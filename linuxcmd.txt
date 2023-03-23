@@ -1,0 +1,120 @@
+CMD AND DEFINITION:
+
+#######IP + NETSTAT######
+ip a == list all ip 
+
+ifconfig == list 802.3 ip
+
+iwconfig == list 802.11 ip 
+
+ip n == neighbor == arp -a 
+
+ip r or route == show ips routes
+
+ping == icmp echo/request
+
+netstat -tulpn == show opened ports
+
+#######FILE######
+echo 'Put this text on file named text' > text.txt
+
+echo 'Add another line on text file' >> text.txt
+
+cat text.txt == show what is in file
+
+touch new.txt == create file
+
+nano next.txt == open editor
+
+mousepad == open text editor
+
+#######START & STOP SERVICES######
+sudo service apache2 start == launch apache service on port 80 visible on web browser
+
+sudo service apache2 stop 
+
+python3 -m http.server 443 == open server via python
+
+sudo systemctl enable ssh == enable ssh on port 22 or other service 
+
+sudo systemctl disable ssh == better to close it on our device
+
+#######INSTALL & UPDATE TOOLS######
+sudo apt update && apt upgrade 
+
+sudo apt install name_of_the_repository
+
+sudo su - == switch user to become sudo permanently
+
+cd /opt
+sudo git clone library link in https (use pimpmykali to fix vm issues) 
+
+#######BASH######
+test device is alive 
+ping IP -c 1 == send 1 pq=acket
+ping IP -c 1 > ip.txt
+
+nano file.sh == generate bash scipt file :
+
+#!/bin/bas 
+
+if ["$1" == ""]
+then
+echo "Enter, an IP"
+echo "Syntax: ./ipsweep.sh x.x.x"
+
+else
+for ip in `seq 1 254`; do
+ping - c 1 $1.$ip | grep "64 bytes" | cut -d " " -f 4 | tr -d ":" & 
+done
+fi
+
+
+###Automatisation Nmap###
+nmap
+for $ip in $(cat ips_lists.txt); do nmap $ip; done
+
+#####PYTHON PORT SCANN#####
+# path /opt/
+#Kali use nc as netcat; nc -nvlp 23 == netcqt listen on port tcp 23 == telnet
+
+import socket #ip + port 
+import sys #system func + params
+from datetime import datetime #cloack sys 
+
+if len(sys.argv) == 2:
+    target = socket.gethostbyname(sys.argv[1])
+else:
+    print('2 arguments mendatory')
+
+try:
+    for port in rang(20, 443):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #AF INET == IPV4
+        socket.setdefaultimeout(1)
+        result = s.connect((target,port))
+        if result =! 1:
+            print(f'Port {port} is closed')
+        elif result == 0:
+            print(f'Port {port} is open')
+        else:
+            print('Whoops, something went bad')
+        s.close()
+
+except KeyboardInterrupt:
+    print('Stop scan')
+
+except socket.gaierror:
+    print('Hostname could not be resolved')
+    sys.exit()
+
+except socket.error:
+    print('Server unreachable, its your fault !')
+    sys"exit()
+
+###KALI TOOL RECON Subdomains###
+-sublist3r == get subdomais
+cmd:
+sublist3r -h == help 
+sublist3r -d domain name
+
+-OWASP AMASS == Find lot more subdomains than sublist3r
