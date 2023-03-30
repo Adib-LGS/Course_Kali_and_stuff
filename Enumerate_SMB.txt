@@ -1,0 +1,17 @@
+##################################
+#####SCANNING###############
+#############ENUMERATION#####################
+##################################
+
+#For ex: after a scna with Nmap, If we discover file shqring protocol "SMB". Use of Metasploit for ennumerating
+
+#msfconsole
+>use auxiliary/scanner/smb/smb_version
+    ->try to scan if we can set a remote host by exploiting a compromized versions of the SMB protocol cmd:
+        ->set RHOSTS IP
+        ->run
+
+#In he same time we'll use smbclient tool
+#smbclient -L \\IP of the remote host\\
+    ->If we discover an intersting "Sharename"
+        ->smbclient \\IP of the remote host\\Sharename
