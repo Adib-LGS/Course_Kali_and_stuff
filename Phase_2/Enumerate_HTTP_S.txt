@@ -1,0 +1,44 @@
+##################################
+#####SCANNING###############
+#############ENUMERATION#####################
+##################################
+
+Start scanning:
+    #cmd: arp-scan -l == display ARP Resolution table
+    #Netdiscover cmds: netdiscover -r IP NETWORK ADD/24 -> Use ARP to show alll the resolution in this range
+    # == for vulnhub in my personal lab.
+-----------------------------------------
+Nmap cmds: nmap -T4 -p- -A IP ADDR
+    -T4 is for the scann speed between 1-5; 
+    -p stands for port range, it is possible to specify ex: -p 23
+    -A stands for ALL the infos
+
+    nmap options == -sS for TCP Handshake (SYN/ACK)
+                    -sU for UDP scan Warning it coudld be very long scnning 
+
+    nmap OPENED PORT + VERSION: nmap -sSV --version-intensity IP
+    
+After scanning report - methodology:
+    must check and analyse the compromising port numbers
+    In cases of Web protocols (80 or 443):
+        test the iP on web browser + check if there is a default web page + test "/admin" on the URL
+        check the server (apache or ngnix) + the versions -> goal find vulns
+
+nikto (web vulns scanner) cmd:  nikto -h http://IP -no404
+    -h stands for Host
+    -no404 obvious ;\
+nikto will display the outdated versions or vulns of different services
+
+In completement use "dirbuster&" to check for "/admin" in he URL IF the result of "nikto -h http://IP:80" reports webb vuls
+in "dirbuster&" go to pick a list to test:
+    -click on browse
+    -base folder "/"
+    -go to user "/usr"
+    -"/share"
+    -"wordlist" 
+    -"dirbuster"
+    -pick the list, start from the small, then medium etc...
+
+    apache -> run on PHP
+    MsServer -> asp, aspx
+    + add other extension "/text/pdf/zip/rare"

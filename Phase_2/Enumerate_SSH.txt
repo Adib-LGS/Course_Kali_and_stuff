@@ -1,0 +1,24 @@
+##################################
+#####SCANNING###############
+#############ENUMERATION#####################
+##################################
+
+#Via Nmap get the SSH version if possible
+in this case SSH v 2.9p2
+
+try to connect through SSH:
+    ->#ssh remote ip 
+
+On our terminal If Nikto Scan == relevent:
+    on Our Terminal cdm:
+        #searchsploit vuln name
+        ex: searchsploit samba 2.2.1a
+exemple of IDENTIFIED WELL KNOWN EXPLOITS:
++ mod_ssl/2.8.4 - mod_ssl 2.8.7 and lower are vulnerable to a remote buffer overflow which may allow a remote shell.
+-80/443 mod_ssl relqted to this exploit (https://www.exploit-db.com/exploits/47080)
+-Fonctionnal exploit on Github (https://github.com/heltonWernik/OpenLuck)
+
+-samba 2.2.1a exploit (Samba trans2open Overflow (Linux x86)https://www.rapid7.com/db/modules/exploit/linux/samba/trans2open/) 
+Available through Metasploit
+
+-webalizer version 2.01 (https://www.rapid7.com/db/vulnerabilities/linuxrpm-RHSA-2002-254/)

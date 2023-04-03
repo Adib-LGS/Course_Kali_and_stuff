@@ -1,0 +1,7 @@
+##################################
+#####SCANNING###############
+#############NESSUS#####################
+##################################
+After Downloading Nessus:
+    ->Go to Download in terminal:
+        dpkg -i Nessus == depackage and install
