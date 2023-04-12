@@ -1,0 +1,35 @@
+##################################
+#####BUFFER###############
+#############OVER-FLOW#####################
+##################################
+
+#Layers of Memory:
+->Kernel
+    ->Stack
+        ->Heap
+            ->Data
+                ->Text 
+
+#We will focus on the Stack:
+Anatomy:
+    ->ESP (Extended Stack Pointer)
+    ->Buffer Space -> Fills with characters "AAA" #main focus
+    ->EBP (Extended Base Pointer)
+    ->EIP (Extended Instruction Pointer) / Return Address
+
+#Purpose of the Buffer Over-Flow:
+Over load the Buffer by sending "strings - characters" 
+    ->to Over Flow the Buffer Space
+        ->Then reach the EBP and EIB
+
+#Buffer Over-Flow Attack Steps:
+1-Spiking: Method to find the vulns parts
+2-Fuzzing: Send bunch of characters
+if Fuzzing == successfull
+    3-Finding the Offset: find at what point we have break the program
+    4-Overwriting the EIP: use the Offset to OVERWRITE the EIP Pointer Address
+    5-Finding Bad characters
+    6-Finding the Right moduleNumber
+    7-Generating Shellcode
+if Steps == successfull:
+    print("8-Gaining Root Access")
