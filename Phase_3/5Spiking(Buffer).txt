@@ -1,0 +1,32 @@
+##################################
+#####BUFFER###############
+#############OVER-FLOW#####################
+######SPIKING#################
+
+Run as Admin Immunity Debbuger:
+->File ->Attach ->choose the wanted PID ->click on "play" 
+
+On Kali:
+1)get the target IP:
+2)#nc -nv TargetIP port(in many case the port for server is 9999)
+3)use of # generic_send_tcp for Spiking: ->to test STATS and TRUN cmds Vulns
+    nano stats.spk write this code:
+        s_readline();
+        s_string("STATS ");
+        s_string_variables("0");
+
+    nano trun.spk write this code:
+        s_readline();
+        s_string("TRUN ");
+        s_string_variables("0");
+4)send this stats.spk via generic_send_tcp:
+    generic_send_tcp TargetIP TargetPort stats.spk 0 0 
+
+    if stats.spk == no vuls:
+        test #  generic_send_tcp TargetIP TargetPort trun.spk 0 0 
+    check on Immunity app if there is some "Access violation message"
+
+5)On Immunity Debugger check :
+    If there is many character ("AAAAAA") for the STATS or TRUN cmd on "Register (FPU)"
+
+

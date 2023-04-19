@@ -23,8 +23,8 @@ Over load the Buffer by sending "strings - characters"
         ->Then reach the EBP and EIB
 
 #Buffer Over-Flow Attack Steps:
-1-Spiking: Method to find the vulns parts
-2-Fuzzing: Send bunch of characters
+1-Spiking: Method to find the vulns parts of the program
+2-Fuzzing: Send bunch of characters to break the program
 if Fuzzing == successfull
     3-Finding the Offset: find at what point we have break the program
     4-Overwriting the EIP: use the Offset to OVERWRITE the EIP Pointer Address
