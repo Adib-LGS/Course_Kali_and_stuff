@@ -40,6 +40,4 @@ else:
                     print ("Fuzzing crashed at %s bytes, check the inputs that you have provided" % str(len(buffer_over_the_rainbow)))
                     sys.exit()
     else:
-        port = int(input("Enter again a Port number between 1 and 65535: "))
-  
-
+        print("Launch again and Enter a Port number between 1 and 65535: ")
