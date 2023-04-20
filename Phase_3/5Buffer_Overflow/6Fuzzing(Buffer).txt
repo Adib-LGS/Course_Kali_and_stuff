@@ -11,5 +11,5 @@ On Kali:
     nano fuzz.py:
 2)Make the script executable in kali:
     chmode + scriptName.py
-3)Lunch the script:
-    ./scriptName.py
+3)Lunch the script to know what is the Overflow lenth value:
+    ./scriptName.py #In my specific case is fuzz.py

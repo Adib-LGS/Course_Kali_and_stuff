@@ -1,0 +1,13 @@
+##################################
+#####BUFFER###############
+#############OVER-FLOW#####################
+######Finding Bad Characters#################
+
+1)It is possible to use a git library:
+    ->cytopia/badchars
+2)After testing tes script with the badchars():
+    If testing == True:
+        ->in Immunity -> Register -> ESP -> Right Click -> 'Follow the in Dump'
+        ->Check if there are some "ERRORS on the HEXA FLOW" on the HEX DUUMP for ex: 
+            01,02,03,B0,B0,06,07,08 <-- the FIRST 'B0' shouldn't be there, the SECOND is OK
+            Note All the FIRST Bad Characters
