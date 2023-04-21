@@ -20,7 +20,7 @@
     ->get the RETURN ADDRESS in Result
 
 4)In scrypt modify:
-#!/usr/bin/python
+#!/usr/bin/python3
 import sys
 import socket
 

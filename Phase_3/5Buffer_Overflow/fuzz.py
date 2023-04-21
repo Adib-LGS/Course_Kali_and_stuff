@@ -1,5 +1,5 @@
 #This is a first test, check if the exception are throwed
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import sys
 import socket

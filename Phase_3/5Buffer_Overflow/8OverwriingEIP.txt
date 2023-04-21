@@ -4,7 +4,7 @@
 ######Overwriting the EIP#################
 
 1)Create a scrypt to Overwrite the EIP, you can change the original scipt + hardcode IP and port
-#!/usr/bin/python
+#!/usr/bin/python3
 import sys
 import socket
 import re

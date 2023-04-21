@@ -10,7 +10,7 @@
         LPORT == Listenning Port
 
 2)Get the GENERATED VALUE by msfvenom and past it on our script by using a List:
-#!/usr/bin/python
+#!/usr/bin/python3
 import sys
 import socket
 
