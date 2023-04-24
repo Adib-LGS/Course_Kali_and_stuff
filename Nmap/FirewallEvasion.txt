@@ -1,0 +1,28 @@
+##################################
+#####NMAP###############
+#############FIREWALL#####################
+##############EVASION#################
+
+#nmap -Pn:
+        ->tells Nmap to not bother pinging the host before scanning it.
+        ->Bypass the ICMP block but it is long
+
+    -f or -mtu size:
+        ->Packet fragmentation
+
+    --scan-delay numbers:
+        ->add a delay between packets sent, useful against IDS triggers
+
+    --badsum:
+        ->generate Invalid checksum for packets, FW may potentially respond automatically
+
+    --source-port portNumber or -g portNumber:
+        ->Use a commons misconfig that is to trust traffice based only the source port number
+        ->Use of DNS 53, FTP 20, DHCP 67
+    
+    --spoof-mac Mac, prefix or vendor name:
+        ->send L2 packets
+
+    --proxies "separted list of proxy URLs":
+        ->establish TCP with final Target through supplied chain of HTTP or SOCKS4 proxies
+        ->Need to ADJUST Nmap timeouts in particular LOWER --max-parallelism

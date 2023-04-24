@@ -1,0 +1,28 @@
+##################################
+#####NMAP###############
+#############Basic Scan#####################
+##############PORT#################
+
+#nmap - Port scanning switches:
+    -sS == Syn Scan Half Open -> SYN send and RST after receive the SYN/ACK from the target == Fast + Stealth
+
+    -sT == TCP 3Way/HandShake
+        if flag == RST:
+            port is closed
+        elif flag == SYN but receive NO RESPONSE:
+            port could be FILTERED by a FW
+
+    -sU == UPD Scan but too long not reliable
+        Su is slow == True:
+            nmap -sU --top-ports 20 TargetIP
+            this is a good practice because nmap have to double check each ping packet to make sure if the port is closed
+            by default nmap -sU mark the packet as "open|filtered"
+
+    if nmap is running in sudo:
+        default scan mode is -sS
+    else:
+        default scan mode is -sT
+
+FIRE WALL EVASION:
+    -sX == Xmas send a MALFORDMED TCP packet and expects a RST RESPONSE for CLOSED PORTS (PSH,URG,FIN)
+            Microsoft Windows + Cisco devices are known to respond with a RST to any MALFORMED TCP packet

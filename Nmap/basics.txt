@@ -1,0 +1,21 @@
+##################################
+#####NMAP###############
+#############Basic Scan#####################
+##################################
+
+#nmap   -sS == Syn Scan Half Open
+        -sT == TCP
+        -sU == UPD Scan but too long not reliable
+        -o == detect which OS
+        -sV == Running Services Running Version
+        -v or -vv == verbose level
+        -oA == save Scan output in 3 MAJOR FORMATS
+        -oN == save Scan output in NORMAL FORMATS
+        -oG == save Scan output in GREPABLE FORMATS
+        -A == AGRESSIVE SCAN
+        -T2 == Timingof speed scan between 1 to 5
+        -p PortNumber == scan a specific port
+        -p PortNumber-PortNumber == scan Ports range
+        -p- == scan ALL Ports
+        --script == activate nmap script
+        --script=vuln == activate a specific script category

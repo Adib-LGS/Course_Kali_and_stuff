@@ -1,0 +1,9 @@
+##################################
+#####NMAP###############
+#############Basic Scan#####################
+##############ICMP PING#################
+
+To obtain a MAP of the NETWORK TOPOLOGY (binding IP with Hosts)
+
+nmap 'ping sweep' == nmap send ICMP packet (ping):
+    #nmap -sn TargetIP/CIDR

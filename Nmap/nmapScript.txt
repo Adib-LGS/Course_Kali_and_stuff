@@ -1,0 +1,33 @@
+##################################
+#####NMAP###############
+#############NSE SCRIPT#####################
+##############NMAP SCRIPTING ENGINE#################
+
+#nmap script categories (not all):
+    ->safe == won't affect the Target
+    ->intrusive == try to affect
+    ->vuln == Scan for VULNS
+    ->exploit == Try to ...
+    ->auth == Try to bypass ...
+    ->brute == Try to bruteForce Credentials
+    ->dos == Denial Of Service
+    ->malware == test wether the target platform is infected by malware or backdoors
+                    ex smt-strangeport or auth-spoof
+    ->discovery == Try to get further info about the network
+
+#nmap NSE ex:
+    nmap --script=ftp-anon -p21 IP -vv
+    nmap -p 80 --script http-pu --script-args http-put.url='/dev/shell.php', http-put.file='./shell.php'
+
+#Where to find the script:
+    ->path:
+        /usr/share/nmap/scripts
+        or
+        /usr/share/nmap/scripts/script.db
+    
+    ->find:
+        grep "ftp" /usr/share/nmap/scripts/script.db
+
+#Install scripts:
+    ->sudo apt update && sudo apt apt install nmap
+     
