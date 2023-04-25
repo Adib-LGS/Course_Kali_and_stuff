@@ -1,0 +1,52 @@
+##################################
+#####BURP SUITE###############
+#############BURP PROXY##################
+##################################
+
+1)Installation:
+
+After installed and activated the Burp Suite Proxy for firefox and then configured it.
+
+We can launch a new REQUEST HHTP GET by trying to connect to a web site via the Browser
+
+If the configuration was correcte we are now able to HOLD the REQUEST on BURP SUITE thgrough our loopback socket IP+Port
+
+As of now we can forward, modify or delete the REQUEST
+
+The log are captured in Burp Suite:
+    ->Proxy
+        ->HTTP History and WebSockets History
+
+To modify the RESPONSE to the REQUEST GET:
+    ->Proxy
+        ->Intercept
+            ->Action 
+                ->Do Intercept -> Response to this request
+
+Otherwise It is possible to use to integrated Web Brower of Burp Suite
+
+2)Scoping && Targeting:
+
+We can RESTRICT BURP to ONLY target our wanted web app:
+    ->Target
+        ->R-click on the wanted URL
+            ->Add to scope
+
+To specifiy the intercepting scope of the Proxy:
+    ->Proxy
+        ->Proxy Settings
+            ->REQUEST INTERCEPTION RULES
+                ->AND URL In Target scope
+
+3)Proxy site map for API:
+    ->Target
+        ->Site Map Reuest \ Response
+
+4)Try to execute XSS:
+Cross Site Scrypting == Injecting client side script into a web page to try to execute the script
+ex: <script>alert("Show me if it is interpreted")</script>
+a)Connect to the wanted site
+b)enable Burp SUite Interception
+c)If thee is a contact form fullfill properly
+d)When validatind de POST REQUEST edit the "email=" variable or other required credentials
+c)Still in BURP SUITE forward the modified POST REQUEST ans check on the Browser if it is Interpreted
