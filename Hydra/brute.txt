@@ -1,0 +1,31 @@
+##################################
+#####HYDRA###############
+#############BASIC BRUTEFORCE#####################
+##################################
+
+#Brute Force tools that support: 
+    -AAA servers
+    -FTP,HTTP GET-POST protocols
+    -HTTP PROXY
+    -SQL DB
+
+#SSH Brute Force cmd:
+    -> hydra -l <username> -P <path to passList> IP -t 4 <protocols>
+    ->Options:
+        -l == specifies SSH username to login
+        -P == add Passwd Lists / by default in Kali  you create your Own Pass list or use metasploit pass list or else
+        -t == number of thread same as Nmap
+
+#POST METHOD for WEB FORMS:
+    -> hydra <username> <wordList> IP http-post-form "<path>:<login_credentials>:<invalid_response>" -V
+
+    ->Options:
+        -l == specifies WEB FORM username to login
+        -P == add Passwd Lists
+        -http-post-form == type of METHOD
+        -<path> == login page URL
+        -<login_credentials> == username + passwd combinaison ex: username=^ADMIN^&password=^ADMIN101^
+        -<invalid_response> == part of the response if test failed ideally check with burpsuite the variables
+        -V == Verbose
+
+    -> hydra -l <username> -P <PathToWordList> IP http-form-post "/:username:^admin^&password:^Admin101^:F=incorrect" -V
