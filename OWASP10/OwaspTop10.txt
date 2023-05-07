@@ -1,7 +1,7 @@
 ##################################
 #####OWASP###############
 #############TOP 10 ATTACKS#####################
-##################################
+###############FIRST FIVE###################
 
 1)Injections:
     ->SQL Injection == user controlled input is passed to SQL queries. 
@@ -23,3 +23,44 @@
         linux shell know os: lsb_release -a
                              Know the user: whoami
                              What is the user’s shell set as ? cat /etc/passwd
+
+3)Brken Auth:
+    ->Force the Auth mechanism A lot of times what happens is that developers forgets to sanitize the input(username & password) 
+        given by the user in the code of their application.
+
+        ex: There is an existing user with the name "admin" and now we want to get access to their account so what we can do is try 
+        to "re-register" that username but with slight modification. 
+        We are going to enter " admin"(notice the space in the starting).
+        
+        ->It appears on the Burp Suite site as variable username=+admin
+
+        Now when you enter that in the username field and enter other required information like email id or password and submit that data. 
+        It will actually register a new user but that user will have the same right as normal admin. 
+        That new user will also be able to see all the content presented under the user admin
+
+4)Crack Hashed password from DB:
+    if nmap scan == tcp 80 or 443:
+        ->Enumerate the webapp via: ikto -h http://TargetIP:80 -no404
+        ->Enumerate the directories via : dirbuster http://TargetIP/ /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
+
+    ->If we were cusccessful to get infos from DB by using for example theses SQL requests:
+            -1 in Kali Terminal #sqlite3 <database-name>
+            -2 See the tables in the database by using this cmd: .tables
+            -3 To see the table information use this cmd: PRAGMA table_info(customers); 
+            -4 To extract infos: SELECT * FROM customers;
+    
+    ->After getting users credentials:
+        It could be usefull to go to "crackstation" for performing HASH Decode
+
+5) XML External Entity (XXE) attack:
+    ->Abuses features of XML parsers/data. It often allows an attacker to interact with any backend.
+        Or exterior, application itself can access and can allow the attacker to read the file on that system. 
+        They can also cause Denial of Service (DoS) attack.
+        Or could use XXE to perform Server-Side Request Forgery (SSRF) inducing the web application to make requests to other applications. 
+        XXE may even enable port scanning and lead to remote code execution.
+
+    ->There are two types of XXE attacks: in-band and out-of-band (OOB-XXE).
+    a) An in-band XXE attack is the one in which the attacker can receive an immediate response to the XXE payload.
+
+    b) out-of-band XXE attacks (also called blind XXE), there is no immediate response from the web application and attacker has to reflect the output of their XXE payload to some other file or their own server.
+
