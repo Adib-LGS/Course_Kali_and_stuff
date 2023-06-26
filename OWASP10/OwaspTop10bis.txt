@@ -78,3 +78,30 @@ XXE or command injection on admin pages.
         - Forums
         - API's
         - Application Runtimes (Tomcat, Jenkins, Jboss, etc)
+
+
+    -Cookie Attribute :
+        Some cookies have additional attributes, a small list of these are below:
+
+        Attribute	Description	Required?
+        Cookie Name	The Name of the Cookie to be set	Yes
+        Cookie Value	Value, this can be anything plaintext or encoded 	Yes
+        Secure Only	If set, this cookie will only be set over HTTPS connections	No
+        Expiry	Set a timestamp where the cookie will be removed from the browser	No
+        Path	The cookie will only be sent if the specified URL is within the request	No
+
+    -Inject Modified Payload via pyckelem.py script :
+        This vulnerability exploits Python Pickle, which I have attached the script. 
+        We essentially have free reign to execute whatever we like such as a reverse shell.
+        
+        The Exploit :
+        First, we need to set up a netcat listener on our Kali.
+            #nc -lvpp 4444
+        Because the code being deserialized is from a base64 format, we cannot just simply spawn a reverse shell. 
+        We must encode our own commands in base64 so that the malicious code will be executed.
+
+        Enter our vpn IP (specific procedure for a lab) in pickleme.py then get the Encoded Payload
+
+        Add the Payload to the cookie on the Web Browser and Refresh the page.
+        Then check on the Netcat Listenner
+        
