@@ -1,0 +1,22 @@
+##################################
+#####OWASP###############
+#############POISON NULL#####################
+##############BYTE###############
+
+ Try to download "package.json.bak." :
+
+    It seems we are met with a "403" which says that only ".md and .pdf" files can be downloaded. 
+
+    We will use a character bypass called "Poison Null Byte". 
+    A Poison Null Byte looks like this: %00. 
+
+Note: as we can download it using the url, we will need to encode this into a url encoded format.
+
+    The Poison Null Byte will now look like this: %2500. 
+    Adding this and then a .md to the end will bypass the 403 error!
+
+Why does this work? 
+
+    A Poison Null Byte is actually a NULL terminator. B
+    y placing a NULL character in the string at a certain byte, the string will tell the server to terminate at that point, 
+    nulling the rest of the string. 

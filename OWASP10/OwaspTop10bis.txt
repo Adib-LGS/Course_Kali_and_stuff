@@ -28,6 +28,8 @@ XXE or command injection on admin pages.
             It represents the page so that programs can change the document structure, style and content. 
             A web page is a document and this document can be either displayed in the browser window or as the HTML source.
 
+            ex of DO XSS : put <iframe src="javascript:alert(`xss`)">  in a search bar
+
     XSS Payloads :
        Exploited to execute malicious Javascript on a victim’s machine :
        
