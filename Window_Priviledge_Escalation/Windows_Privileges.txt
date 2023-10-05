@@ -1,0 +1,7 @@
+Windows Privileges:
+
+Each user has a set of assigned privileges that can be checked with the following command:
+    ->whoami /priv
+
+SeBackup / SeRestore:
+

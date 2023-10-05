@@ -1,0 +1,91 @@
+####
+Examples of active reconnaissance activities include:
+Connecting to one of the company servers such as HTTP, FTP, and SMTP.
+Calling the company in an attempt to get information (social engineering).
+Entering company premises pretending to be a repairman.
+####
+
+-Use "Web Browsing" Reconn : Inspection of elements
+
+-Use "ping" tot test ECHO/REPLY:
+    ping -c 10 X.X.X.X == send 10 packets on Linux
+    ping -n 10 X.X.X.X == send 10 packets on Windows
+-Use "Traceroute" to trace the packet from SRC to DST
+
+-Use "telnet" to test if the port 23 (unsecure) is open and test some Server response (port 80)
+
+-Use "netcat":
+    It can function as a client that connects to a listening port; alternatively, it can act as a server that listens on a port of your choice. 
+    Hence, it is a convenient tool that you can use as a simple client or server over TCP or UDP.
+    On the server system, where you want to open a port and listen on it, 
+    you can issue "nc -lp 1234" or better yet, 
+    "nc -vnlp 1234", which is equivalent to "nc -v -l -n -p 1234"
+
+    option	meaning
+        -l	Listen mode
+        -p	Specify the Port number
+        -n	Numeric only; no resolution of hostnames via DNS
+        -v	Verbose output (optional, yet useful to discover any bugs)
+        -vv	Very Verbose (optional)
+        -k	Keep listening after client disconnects
+
+
+netcat as client	nc X.X.X.X PORT_NUMBER
+netcat as server	nc -lvnp PORT_NUMBER
+
+-Use nmap:
+    nmap -iL list_of_hosts.txt  == scan a list of ip 
+    nmap -sL TARGETS == check the list of hosts,  give you a detailed list of the hosts that Nmap will scan without scanning them
+    nmap -n TARGETS == don't resolve IP via the DNS
+    nmap -R DNSiP == Query DNS
+    nmap -PR -sn TARGETS/CIDR == ARP scan
+    nmap -PM -sn MASKIP/CIDR == Scan the MASK ADDR
+    nmap -PE == use ICMP ECHO
+    nmap -PP == use ICMP TIMESTAMP
+    nmap -PS PortNumber (exemple nmap -PS23, nmap -PS21-25)== use TCP SYN  
+    nmap -PA -sn MACHINEIP/CIDR -vv == Port Number + TCP ACK Ping
+    nmap -sT IP == run TCP connect scan using RST/ACK
+    nmap -sS IP == les detectable cause it send SYN only (without completing TCP 3 Way)
+    nmap -sS -T1 -n IP -vv  == -T0 to avoid IDS we can also use -T1 - by defaut nmap use -T3
+    nmap -sN IP == Null scan, sent TCP packet without FLAG
+    nmap -sF IP == send TCP packet with FIN FLAG, Target should respond with an RST FLAG
+    nmap -XS IP == sets the FIN - PUSH - URG FLAG simultaneously 
+FireWall    nmap -sA IP == TCP ACK FLAG scan (to discover firewall rule sets and configuration)
+FireWall    nmap -sW IP == TCP RST FLAG scan it will check the TCP WINDOWS of the RST (to discover firewall rule sets and configuration + open port)
+    nmap -e NET_INTERFACE -Pn -S SPOOFED_IP 10.10.139.64 ==  specify  network interface-e and disable ping -Pn,  spoofed IP address
+    nmap -D 10.10.0.1,10.10.0.2,ME 10.10.139.64 == scan of 10.10.139.64 appear as coming from the IP addresses 10.10.0.1, 10.10.0.2, ME to indicate that your IP address
+    nmap -sS -p80 -f IP == -f Fragmente packet in multiple of 8 bytes (trick FireWalls and IDS)
+
+    nmap -sA -n --reason 10.10.139.64 == see filtered or unfiltered port on FW + --reason flag explicit reason why Nmap concluded that the system is up or a particular port is open.
+
+######################################## REVIEW #####################################
+
+Port Scan Type	Example Command
+TCP Null Scan	sudo nmap -sN 10.10.162.194
+TCP FIN Scan	sudo nmap -sF 10.10.162.194
+TCP Xmas Scan	sudo nmap -sX 10.10.162.194
+TCP Maimon Scan	sudo nmap -sM 10.10.162.194
+TCP ACK Scan	sudo nmap -sA 10.10.162.194
+TCP Window Scan	sudo nmap -sW 10.10.162.194
+Custom TCP Scan	sudo nmap --scanflags URGACKPSHRSTSYNFIN 10.10.162.194
+Spoofed Source IP	sudo nmap -S SPOOFED_IP 10.10.162.194
+Spoofed MAC Address	--spoof-mac SPOOFED_MAC
+Decoy Scan	nmap -D DECOY_IP,ME 10.10.162.194
+Idle (Zombie) Scan	sudo nmap -sI ZOMBIE_IP 10.10.162.194
+Fragment IP data into 8 bytes	-f
+Fragment IP data into 16 bytes	-ff
+Option	Purpose
+--source-port PORT_NUM
+
+specify source port number
+--data-length NUM
+
+append random data to reach given length
+These scan types rely on setting TCP flags in unexpected ways to prompt ports for a reply. Null, FIN, and Xmas scan provoke a response from closed ports, while Maimon, ACK, and Window scans provoke a response from open and closed ports.
+
+Option	Purpose
+--reason	explains how Nmap made its conclusion
+-v	verbose
+-vv	very verbose
+-d	debugging
+-dd	more details for debugging

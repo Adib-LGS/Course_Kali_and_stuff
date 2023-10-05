@@ -1,0 +1,1 @@
+USe of WPScan to if the version of WordPress is out of the date

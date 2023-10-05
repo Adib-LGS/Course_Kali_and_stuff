@@ -1,0 +1,35 @@
+Powershell History:
+If a user runs a command that includes a password directly as part of the Powershell command line, 
+it can later be retrieved by using the following command from a cmd.exe prompt:
+
+-type %userprofile%\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadline\ConsoleHost_history.txt
+
+If NOT in cmd.exe:
+-type $Env:userprofile\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadline\ConsoleHost_history.txt
+
+Saved Windows Credentials:
+list saved credentials:
+-cmdkey /list 
+-runas /savecred /user:admin cmd.exe
+
+IIS Configuration:
+Internet Information Services (IIS) is the default web server on Windows installations. 
+The configuration of websites on IIS is stored in a file called web.config and can store 
+passwords for databases or configured authentication mechanisms. 
+
+Depending on the installed version of IIS, we can find web.config in one of the following locations:
+
+-C:\inetpub\wwwroot\web.config
+-C:\Windows\Microsoft.NET\Framework64\v4.0.30319\Config\web.config
+
+Here is a quick way to find database connection strings on the file:
+-type C:\Windows\Microsoft.NET\Framework64\v4.0.30319\Config\web.config | findstr connectionString
+
+Retrieve Credentials from PuTTY:
+PuTTY won't allow users to store their SSH password, 
+it will store proxy configurations that include cleartext authentication credentials.
+
+
+To retrieve the stored proxy credentials, you can search under the following registry key for ProxyPassword 
+with the following command:
+-reg query HKEY_CURRENT_USER\Software\SimonTatham\PuTTY\Sessions\ /f "Proxy" /s

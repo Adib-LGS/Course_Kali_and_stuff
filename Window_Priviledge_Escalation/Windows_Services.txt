@@ -1,0 +1,7 @@
+Windows Services:
+Windows services are managed by the Service Control Manager (SCM)
+
+Each service on a Windows machine will have an associated executable which will be run by the SCM whenever a service is started.
+
+All of the services configurations are stored on the registry under "HKLM\SYSTEM\CurrentControlSet\Services\":
+

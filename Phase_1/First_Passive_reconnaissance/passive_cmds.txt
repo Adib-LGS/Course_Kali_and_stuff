@@ -1,0 +1,55 @@
+###
+Passive reconnaissance activities include many activities, for instance:
+-Looking up DNS records of a domain from a public DNS server.
+-Checking job ads related to the target website.
+-Reading news articles about the target company.
+####
+
+-whois to query WHOIS servers -> Query records
+
+-nslookup to query DNS servers -> Query DNS
+
+-dig to query DNS servers -> Query DNS
+
+two online services:
+These two online services allow us to:
+Collect information about our target without directly connecting to it
+->DNSDumpster
+->Shodan.io
+
+Whois:
+WHOIS server listens on TCP port 43
+The domain registrar is responsible for maintaining the WHOIS records for the domain names
+-Registrar: Via which registrar was the domain name registered?
+-Contact info of registrant: Name, organization, address, phone, among other things. (unless made hidden via a privacy service)
+-Creation, update, and expiration dates: When was the domain name first registered? When was it last updated? And when does it need to be renewed?
+-Name Server: Which server to ask to resolve the domain name?
+
+
+Nslookup:
+-nslookup -type=a google.com 8.8.8.8: return all the IPv4 addresses used by Google
+-nslookup -type=MX google.com: return the email servers and configurations for a particular domain
+
+
+Dig: (Same as Nslookup but with more Infos) !
+-dig google.com MX: return more infos than Nslookup
+-dig thmlabs.com TXT: return the TryHackMe Flag !
+
+
+DNSDumpster.com: 
+-Online service that offers detailed answers to DNS queries (sub domains etc...)
+-DNSDumpster will return the collected DNS information in easy-to-read tables and a graph. 
+-DNSDumpster will also provide any collected information about listening servers.
+
+
+Shodan.io:
+-Helpful to learn various pieces of information about the client’s network, without actively connecting to it.
+-One of the other most up voted searches is a search for MYSQL databases.
+https://www.shodan.io/search?query=product%3AMySQL
+
+-If we look at the search, we can see it is another filter.
+product:MySQL
+
+-Vuln filter, which let’s us search for IP addresses vulnerable to an exploit.
+Let’s say we want to find IP addresses vulnerable to Eternal Blue:
+vuln:ms17-010
