@@ -18,7 +18,6 @@ The configuration of websites on IIS is stored in a file called web.config and c
 passwords for databases or configured authentication mechanisms. 
 
 Depending on the installed version of IIS, we can find web.config in one of the following locations:
-
 -C:\inetpub\wwwroot\web.config
 -C:\Windows\Microsoft.NET\Framework64\v4.0.30319\Config\web.config
 

