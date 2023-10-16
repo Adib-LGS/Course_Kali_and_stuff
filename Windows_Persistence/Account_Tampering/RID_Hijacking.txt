@@ -1,0 +1,31 @@
+RID Hijacking
+
+Another method to gain administrative privileges without being an administrator is:
+    Changing some registry values to make the operating system think you are the Administrator.
+
+When a user is created, an identifier called Relative ID (RID) is assigned to them.
+When a user logs on, the LSASS process gets its RID from the SAM registry hive and creates an access token associated with that RID
+
+The goal is: Associating the same RID to both accounts (Admin & Created account)
+
+    -Admin RID = 500
+    -Regular users RID >= 1000
+
+To find the assigned RIDs in Windows cmd:
+    -wmic useraccount get name, sid
+
+We only have to assign the RID=500 to the wanted ACCOUNT. 
+    To do so, we need to access the SAM using Regedit. 
+    The SAM is restricted to the SYSTEM account only, so even the Administrator won't be able to edit it. 
+    To run Regedit as SYSTEM, we will use "psexec" mainly here:
+        PAth: C:\tools\pstools
+        -PsExec64.exe -i -s regedit
+
+From Regedit, we will go to:
+    HKLM\SAM\SAM\Domains\Account\Users\
+
+    want to modify thmuser3:
+        we need to search for a key with its RID in hex (1010 = 0x3F2)
+            ->F
+            ->We will now replace those two bytes with the RID of Administrator in hex (500 = 0x01F4), 
+            switching around the bytes (F401)

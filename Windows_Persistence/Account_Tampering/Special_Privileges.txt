@@ -1,0 +1,44 @@
+Special Privileges and Security Descriptors
+
+A similar result to adding a user to the Backup Operators group
+can be achieved without modifying any group membership
+
+Backup Operators group, it has the following two privileges assigned by default:
+
+    -SeBackupPrivilege: The user can read any file in the system, ignoring any DACL in place.
+    -SeRestorePrivilege: The user can write any file in the system, ignoring any DACL in place.
+
+We can assign such privileges to any user, independent of their group memberships. 
+
+To do so, we can use the secedit command. First, we will export the current configuration to a temporary file:
+
+    -secedit /export /cfg config.inf
+
+We open the file and add our user to the lines in the configuration regarding the SeBackupPrivilege and SeRestorePrivilege:
+We finally convert the .inf file into a .sdb file which is then used to load the configuration back into the system:
+
+    -secedit /import /cfg config.inf /db config.sdb
+    -secedit /configure /db config.sdb /cfg config.inf
+
+We should now have a user with equivalent privileges to any Backup Operator. 
+The user still can't log into the system via WinRM, so let's do something about it.
+
+    -> To Check if the user is created:
+        -net user
+
+Instead of adding the user to the Remote Management Users group, 
+We'll change the security descriptor associated with the WinRM service to allow thmuser2 to connect:
+
+    To enable WinRIM connection POWERSHELL cmd:
+    Open the configuration window for WinRM's security descriptor via POWERSHELL:
+        -Set-PSSessionConfiguration -Name Microsoft.PowerShell -showSecurityDescriptorUI
+
+This will open a window where you can add thmuser2 and assign it "full privileges" to connect to WinRM:
+
+Check if ok:
+    -net user thmuser2:
+        Local Group Memberships      *Users
+        Global Group memberships     *None
+
+In Kali try to connect via WinRM with thmuser2 credentials
+

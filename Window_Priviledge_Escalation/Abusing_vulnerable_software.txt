@@ -37,6 +37,6 @@ Copy the scirpt into Powershell ISE + Save it Again + Run:
 -net user pwnd
 
 IF good:
-Open cmd:
+Open cmd as admin + choose pwnd:
     -runas /user:pwnd cmd.exe
         PASSWORD
