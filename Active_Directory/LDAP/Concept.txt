@@ -1,0 +1,40 @@
+LDAP
+
+Another method of AD authentication that applications can use is Lightweight Directory Access Protocol (LDAP) authentication. 
+LDAP authentication is similar to NTLM authentication. However, with LDAP authentication, the application directly verifies the user's credentials. 
+
+The application has a pair of AD credentials that it can use first to query LDAP and then verify the AD user's credentials.
+
+LDAP authentication is a popular mechanism with third-party (non-Microsoft) applications that integrate with AD. 
+These include applications and systems such as:
+
+Gitlab
+Jenkins
+Custom-developed web applications
+Printers
+VPNs
+
+If any of these applications or services are exposed on the internet, the same type of attacks as those leveraged against NTLM authenticated systems can be used. 
+However, since a service using LDAP authentication requires a set of AD credentials, it opens up additional attack avenues. 
+In essence, we can attempt to recover the AD credentials used by the service to gain authenticated access to AD.
+
+If you could gain a foothold on the correct host, such as a Gitlab server, it might be as simple as reading the configuration files to recover these AD credentials. 
+These credentials are often stored in plain text in configuration files since the security model relies on keeping the location and storage configuration file secure rather than its contents.
+
+(1) User sends printing requests
+with AD username and password
+
+(2) Printer uses its AD credential
+to create and LDAP bind request
+
+(3) DC provides bind response
+
+(4) Printer requests LDAP User search
+
+(5) User search response
+
+(6) LDAP Bind request with user credentials
+
+(7) Server sends Bind response
+
+(8) User is authenticatedand print job is accepted

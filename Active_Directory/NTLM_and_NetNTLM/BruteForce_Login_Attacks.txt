@@ -1,0 +1,16 @@
+Brute-force Login Attacks:
+Since most AD environments have account lockout configured, we won't be able to run a full brute-force attack. 
+Instead, we need to perform a password spraying attack. 
+
+Instead of trying multiple different passwords, which may trigger the account lockout mechanism, we choose and use one password and attempt to authenticate with all the usernames we have acquired. 
+However, it should be noted that these types of attacks can be detected due to the amount of failed authentication attempts they will generate.
+
+Navigating to the URL, we can see that it prompts us for Windows Authentication credentials:
+Userame + Password -> Use the Username collected after OSINT
+
+We could use tools such as Hydra to assist with the password spraying attack. However, it is often better to script up these types of attacks yourself, 
+which allows you more control over the process:
+    Password_Spray_NTLM.py
+
+    kali cmds:
+        ->#python ntlm_passwordspray.py -u <userfile> -f <fqdn> -p <password> -a <attackurl>

