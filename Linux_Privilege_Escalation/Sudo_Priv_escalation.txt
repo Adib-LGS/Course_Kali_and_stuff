@@ -1,0 +1,12 @@
+
+How many programs can the user "user" run on the target system with sudo rights?
+    ->sudo -l
+
+To check if the "sudousable" programs a exploitable go to:
+    -https://gtfobins.github.io/
+
+Use Nmap to spawn a root shell if your user had sudo rights on nmap?
+    sudo nmap --interactive
+
+Retrieve the Passwords Hash:
+    ->cat /etc/shadow
