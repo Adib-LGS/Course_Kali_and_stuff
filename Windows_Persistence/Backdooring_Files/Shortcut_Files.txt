@@ -3,7 +3,8 @@ If we don't want to alter the executable, we can always tamper with the shortcut
 Instead of pointing directly to the expected executable, we can change it to point to a script that will run a backdoor 
 and then execute the usual program normally.
 
-For this task, let's check the shortcut to calc on the Administrator's desktop. 
+For this task, let's check the shortcut to Calculator on the Administrator's desktop 
+(Press the Windows Key + R and type in calc, then enter) 
 
 If we right-click it and go to properties, we'll see where it is pointing:
 
