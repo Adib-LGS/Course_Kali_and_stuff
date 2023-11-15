@@ -1,0 +1,50 @@
+Sometimes, we need more than just persisting to normal AD groups. What if we want to persist to all protected groups simultaneously?
+
+Persisting through AD Group Templates:
+    In order to ensure a bit better persistence and make the blue team scratch their heads, 
+    We should rather inject into the templates that generate the default groups.
+    By injecting into these templates, even if they remove our membership, we just need to wait until the template refreshes, and we will once again be granted membership.
+
+-Such template is the "AdminSDHolder" container (This container exists in every AD domain, and its Access Control List (ACL)
+
+-A process called SDProp takes the ACL of the AdminSDHolder container and applies it to all protected groups every 60 minutes. 
+We can thus write an ACE that will grant us full permissions on all protected groups. 
+
+Every time they (Blue Team) remove the inappropriate permission on the protected object or group, it reappears within the hour
+
+
+Persisting with AdminSDHolder:
+    In order to deploy our persistence to the AdminSDHolder, we will use Microsoft Management Console (MMC)
+    We will use RDP with Low Privilege account 
+    We use the runas command to inject the Administrator credentials, and then execute MMC from this new terminal:
+        runas /netonly /user:thmchilddc.tryhackme.loc\Administrator cmd.exe
+
+Once you have an MMC window, add the Users and Groups Snap-in (File->Add Snap-In->Active Directory Users and Computers). 
+    -Make sure to enable Advanced Features (View->Advanced Features). We can find the AdminSDHolder group under Domain->System
+    -Navigate to the Security of the group (Right-click->Properties->Security)
+
+Let's add our low-privileged user and grant Full Control:
+    -Click Add.
+    -Search for your low-privileged username and click Check Names.
+    -Click OK.
+    -Click Allow on Full Control.
+    -Click Apply.
+    -Click OK.
+
+SDProp:
+    Now we just need to wait 60 minutes, and our user will have full control over all Protected Groups. 
+    This is because the Security Descriptor Propagator (SDProp) service executes automatically every 60 minutes and will propagate this change to all Protected Groups.
+
+    However, since we do not like to wait:
+        We using Powershell. In the C:\Tools\ directory, a script Invoke-ADSDPropagation:
+            PS C:\Tools> Import-Module .\Invoke-ADSDPropagation.ps1 
+            PS C:\Tools> Invoke-ADSDPropagation
+
+    Once done, give it a minute and then review the security permissions of a Protected Group such as the Domain Admins group
+
+    As can be seen, our low privilege user has full control over the group. 
+    You can verify that this will continue to propagate by removing your user from the security permissions and rerunning the PowerShell script. 
+    Your user will be added again. Interestingly, although we have permissions to modify the group, it does not automatically add us to the group.
+
+    However, using our new permissions, we can add ourselves to this group.
+
