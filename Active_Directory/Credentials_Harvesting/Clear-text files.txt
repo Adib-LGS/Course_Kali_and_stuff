@@ -1,0 +1,24 @@
+Clear-text files:
+
+The following are some of the types of clear-text files that an attacker may be interested in:
+    Commands history
+    Configuration files (Web App, FTP files, etc.)
+    Other Files related to Windows Applications (Internet Browsers, Email Clients, etc.)
+    Backup files
+    Shared files and folders
+    Registry
+    Source code 
+
+As an example of a history command, a PowerShell saves executed PowerShell commands in a history file in a user profile in the following path: 
+    C:\Users\USER\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt
+
+The following command is to look for the "password" keyword in the Window registry:
+    c:\Users\user> reg query HKLM /f password /t REG_SZ /s
+    #OR
+    C:\Users\user> reg query HKCU /f password /t REG_SZ /s
+
+ex: Using the "reg query" command, search for the value of the "flag" keyword in the Windows registry
+    reg query HKLM /f password /t REG_SZ /s | grep select-string "flag"
+
+    Enumerate the AD environment we provided. What is the password of the victim user found in the description section:
+        Get-ADUser -Filter * -Properties * | select Name,SamAccountName,Description
