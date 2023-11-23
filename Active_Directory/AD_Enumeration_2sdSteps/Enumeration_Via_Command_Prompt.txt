@@ -1,0 +1,37 @@
+Enumeration through Command Prompt:
+Defenders are monitoring for PowerShell use, and you need to perform your AD Enumeration through a Remote Access Trojan (RAT). 
+
+CMD has a built-in command that we can use to enumerate information about AD:
+    net -> The net command is a handy tool to enumerate information about the local system and AD
+
+
+##################
+Users:
+    We can use the net command to list all users in the AD domain by using the user sub-option:
+        C:\>net user /domain
+
+    We can also use this sub-option to enumerate more detailed information about a single user account:
+        net user zoe.marshall /domain
+
+Groups:
+    We can use the net command to enumerate the groups of the domain by using the group sub-option:
+        C:\>net group /domain
+
+    We could also enumerate more details such as membership to a group by specifying the group in the same command:
+        net group "Tier 1 Admins" /domain
+
+Password Policy:
+    We can use the net command to enumerate the password policy of the domain by using the accounts sub-option:
+        C:\>net accounts /domain
+
+    This will provide us with helpful information such as:
+        ->Length of password history kept. Meaning how many unique passwords must the user provide before they can reuse an old password.
+        ->The lockout threshold for incorrect password attempts and for how long the account will be locked.
+        ->The minimum length of the password.
+        ->The maximum age that passwords are allowed to reach indicating if passwords have to be rotated at a regular interval.
+
+    This information can benefit us if we want to stage additional password spraying attacks against the other user accounts that we have now enumerated
+*
+No additional or external tooling is required, and these simple commands are often not monitored for by the Blue team.
+The net commands must be executed from a domain-joined machine. If the machine is not domain-joined, it will default to the WORKGROUP domain.
+The net commands may not show all information. For example, if a user is a member of more than ten groups, not all of these groups will be shown in the output.

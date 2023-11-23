@@ -1,0 +1,29 @@
+Enumeration through Microsoft Management Console:
+
+Microsoft Management Console:
+    GUI Enumeration Method via the Microsoft Management Console (MMC) with the Remote Server Administration Tools' (RSAT) AD Snap-Ins:
+        following steps to install the Snap-Ins:
+            ->Press Start
+            ->Search "Apps & Features" and press enter
+            ->Click Manage Optional Features
+            ->Click Add a feature
+            ->Search for "RSAT"
+            ->Select "RSAT: Active Directory Domain Services and Lightweight Directory Tools" and click Install
+        You can start MMC by using the Windows Start button, searching run, and typing in MMC. 
+        If we just run MMC normally, it would not work as our computer is not domain-joined, and our local account cannot be used to authenticate to the domain.
+
+
+    This is where the Runas window from the previous task comes into play. In that window, we can start MMC, which will ensure that all MMC network connections will use our injected AD credentials.
+        In MMC, we can now attach the AD RSAT Snap-In:
+            ->Click File -> Add/Remove Snap-in
+            ->Select and Add all three Active Directory Snap-ins
+            ->Click through any errors and warnings
+            ->Right-click on Active Directory Domains and Trusts and select Change Forest
+            ->Enter za.tryhackme.com as the Root domain and Click OK
+            ->Right-click on Active Directory Sites and Services and select Change Forest
+            ->Enter za.tryhackme.com as the Root domain and Click OK
+            ->Right-click on Active Directory Users and Computers and select Change Domain
+            ->Enter za.tryhackme.com as the Domain and Click OK
+            ->Right-click on Active Directory Users and Computers in the left-hand pane
+            ->Click on View -> Advanced Features
+        If everything up to this point worked correctly, your MMC should now be pointed to, and authenticated against, the target Domain

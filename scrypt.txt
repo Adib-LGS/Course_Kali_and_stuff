@@ -175,3 +175,64 @@ The DC Sync Attack to Dump NTLM Hashes in KALI:
         We can use the hashcat -m 1000 mode to crack the Windows NTLM hashes as follows:
         Cracking the Hashes in KALI:
             user@machine$ hashcat -m 1000 -a 0 /path/to/ntlm_hashes.txt /path/to/wordlist/such/as/rockyou.txt
+
+####################
+RUNAS 
+####################
+
+If we have the AD credentials in the format of :, we can use Runas, a legitimate Windows binary, to inject the credentials into memory:
+        -ex: runas.exe /netonly /user:<domain>\<username> cmd.exe
+            Let's look at the parameters:
+
+            /netonly - Since we are not domain-joined, we want to load the credentials for network authentication but not authenticate against a domain controller. 
+                So commands executed locally on the computer will run in the context of your standard Windows account, but any network connections will occur using the account specified here.
+
+            /user - Here, we provide the details of the domain and the username. It is always a safe bet to use the Fully Qualified Domain Name (FQDN).
+
+            cmd.exe - This is the program we want to execute once the credentials are injected. This can be changed to anything, but the safest bet is cmd.exe since you can then use that to launch whatever you want, with the credentials injected.
+    
+
+####################
+Check DNS for SYSVOL in AD Enumeration
+####################
+SYSVOL is a folder that exists on all domain controllers. 
+It is a shared folder storing the Group Policy Objects (GPOs) and information along with any other domain related scripts. 
+It is an "essential component" for Active Directory since it delivers these GPOs to all computers on the domain. 
+Domain-joined computers can then read these GPOs and apply the applicable ones, making domain-wide configuration changes from a central location.
+
+Before we can list SYSVOL, we need to configure our DNS. 
+Sometimes you are lucky, and internal DNS will be configured for you automatically through DHCP or the VPN connection, but not always. 
+It is good to understand how to do it manually. Your safest bet for a DNS server is usually a domain controller. Using the IP of the domain controller, we can execute the following commands in a 
+
+PowerShell window:
+    $dnsip = "<Domain Controller IP>" 
+    $index = Get-NetAdapter -Name 'Ethernet' | Select-Object -ExpandProperty 'ifIndex'
+    Set-DnsClientServerAddress -InterfaceIndex $index -ServerAddresses $dnsip
+
+in our Victim's Windows cmd prompt:
+        nslookup domainFQDN
+
+    We can use the following command to force a network-based listing of the SYSVOL directory:
+        dir \\za.tryhackme.com\SYSVOL\
+
+
+####################
+AD Enumeration via CMD Windows VIctim's machine
+##################
+Users:
+    We can use the net command to list all users in the AD domain by using the user sub-option:
+        net user /domain
+
+    We can also use this sub-option to enumerate more detailed information about a single user account:
+        net user zoe.marshall /domain
+
+Groups:
+    We can use the net command to enumerate the groups of the domain by using the group sub-option:
+        C:\>net group /domain
+
+    We could also enumerate more details such as membership to a group by specifying the group in the same command:
+        net group "Tier 1 Admins" /domain
+
+Password Policy:
+    We can use the net command to enumerate the password policy of the domain by using the accounts sub-option:
+        C:\>net accounts /domain

