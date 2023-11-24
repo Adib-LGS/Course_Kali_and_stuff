@@ -1,0 +1,77 @@
+Enumeration through PowerShell:
+
+    Users:
+
+        We can use the Get-ADUser cmdlet to enumerate AD users:
+            Get-ADUser -Identity gordon.stevens -Server za.tryhackme.com -Properties *
+
+        The parameters are used for the following:
+            -Identity - The account name that we are enumerating
+            -Properties - Which properties associated with the account will be shown, * will show all properties
+            -Server - Since we are not domain-joined, we have to use this parameter to point it to our domain controller
+        or
+
+        For most of these cmdlets, we can also use the-Filter parameter that allows more control over enumeration and use the Format-Table cmdlet to display the results:
+            Get-ADUser -Filter 'Name -like "*stevens"' -Server za.tryhackme.com | Format-Table Name,SamAccountName -A
+
+
+    Groups:
+
+        We can use the Get-ADGroup cmdlet to enumerate AD groups:
+            Get-ADGroup -Identity Administrators -Server za.tryhackme.com
+
+        We can also enumerate group membership using the Get-ADGroupMember cmdlet:
+            Get-ADGroupMember -Identity Administrators -Server za.tryhackme.com
+
+
+    AD Objects:
+
+        A more generic search for any AD objects can be performed using the Get-ADObject cmdlet. 
+        For example, if we are looking for all AD objects that were changed after a specific date:
+
+            ChangeDate = New-Object DateTime(2022, 02, 28, 12, 00, 00)
+            Get-ADObject -Filter 'whenChanged -gt $ChangeDate' -includeDeletedObjects -Server za.tryhackme.com
+
+        If we wanted to, for example, perform a password spraying attack without locking out accounts, 
+        we can use this to enumerate accounts that have a badPwdCount that is greater than 0, to avoid these accounts in our attack:
+
+            Get-ADObject -Filter 'badPwdCount -gt 0' -Server za.tryhackme.com
+
+
+    Domains:
+
+        We can use Get-ADDomain to retrieve additional information about the specific domain:
+            Get-ADDomain -Server za.tryhackme.com
+
+
+
+    Altering AD Objects:
+
+        The great thing about the AD-RSAT cmdlets is that some even allow you to create new or alter existing AD objects. 
+        However, our focus for this network is on enumeration. Creating new objects or altering existing ones would be considered AD exploitation, which is covered later in the AD module.
+
+        However, we will show an example of this by force changing the password of our AD user by using the Set-ADAccountPassword cmdlet:
+            Set-ADAccountPassword -Identity gordon.stevens -Server za.tryhackme.com -OldPassword (ConvertTo-SecureString -AsPlaintext "old" -force) -NewPassword (ConvertTo-SecureString -AsPlainText "new" -Force)
+
+
+
+
+Practical Powershell CMDS:
+
+    When was the Tier 2 Admins group created?
+
+        Get-ADGroup -Identity "Tier 2 Admins" -Server za.tryhackme.com 
+        -Properties *
+        or
+        Get-ADGroup -Identity "Tier 2 Admins" -Properties *
+
+
+    What is the value of the SID attribute of the Enterprise Admins group?
+
+        Get-ADGroup -Identity "Enterprise Admins" -Properties *
+        or
+        Get-ADGroup -Identity "Enterprise Admins" -Properties "SID"
+
+
+    Which container is used to store deleted AD objects?
+        Get-ADDomain -Server za.tryhackme.com 

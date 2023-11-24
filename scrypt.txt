@@ -236,3 +236,13 @@ Groups:
 Password Policy:
     We can use the net command to enumerate the password policy of the domain by using the accounts sub-option:
         C:\>net accounts /domain
+
+####################
+AD Enumeration via CMD PowerShell
+##################
+
+->refer to Enumeration_trough_Powershell.txt
+
+!!!!DISCLAIMER!!!!
+PowerShell is often monitored more by the blue teams than Command Prompt.
+We have to install the AD-RSAT tooling or use other, potentially detectable, scripts for PowerShell enumeration.
