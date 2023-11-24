@@ -1,3 +1,7 @@
+!!!!!!!!!!!!!!! Drawbacks !!!!!!!!!!!!!!!!!!!!!
+Requires the execution of Sharphound, which is noisy and can often be detected by AV or EDR solutions.
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 Enumeration through Bloodhound:
     Bloodhound is the most powerful AD enumeration tool to date, and when it was released in 2016, it changed the AD enumeration landscape forever.
 
@@ -177,6 +181,14 @@ Benefits
 Provides a GUI for AD enumeration.
 Has the ability to show attack paths for the enumerated AD information.
 Provides more profound insights into AD objects that usually require several manual queries to recover.
-Drawbacks
 
+
+!!!!!!!!!!!!!!! Drawbacks !!!!!!!!!!!!!!!!!!!!!
 Requires the execution of Sharphound, which is noisy and can often be detected by AV or EDR solutions.
+
+
+
+What command can be used to execute Sharphound.exe and request that it recovers Session information 
+only from the za.tryhackme.com domain without touching domain controllers?
+
+    SharpHound.exe --CollectionMethods Sessions --Domain za.tryhackme.com --ExcludeDCs

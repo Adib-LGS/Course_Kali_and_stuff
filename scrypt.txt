@@ -246,3 +246,16 @@ AD Enumeration via CMD PowerShell
 !!!!DISCLAIMER!!!!
 PowerShell is often monitored more by the blue teams than Command Prompt.
 We have to install the AD-RSAT tooling or use other, potentially detectable, scripts for PowerShell enumeration.
+
+
+####################
+BloodHound + SharpHound
+##################
+!!!!!!!!!!!!!!! Drawbacks !!!!!!!!!!!!!!!!!!!!!
+Requires the execution of Sharphound, which is noisy and can often be detected by AV or EDR solutions.
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+What command can be used to execute Sharphound.exe and request that it recovers Session information 
+only from the za.tryhackme.com domain without touching domain controllers?
+
+    SharpHound.exe --CollectionMethods Sessions --Domain za.tryhackme.com --ExcludeDCs
