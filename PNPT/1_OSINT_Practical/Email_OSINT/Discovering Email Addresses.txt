@@ -1,0 +1,6 @@
+Discovering Email Addresses:
+->1st Google the future victim
+    ->Hunter.io - https://hunter.io/ Find some email patern ex: {firstNameLetter}{lastName}@company.com
+    ->Phonebook.cz - https://phonebook.cz/
+    ->Email Hippo - https://tools.verifyemailaddress.io/
+    ->Email Checker - https://email-checker.net/validate

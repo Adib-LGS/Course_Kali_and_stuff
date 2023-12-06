@@ -1,0 +1,7 @@
+Sock Puppet:
+    ->Creating a false identity (Fake account) to perform OSINT && Don't gatherd atention on our real identity
+
+    ->For setting up a propper Sock Puppet, we can follow this steps:
+        fakenamegenerator.com
+        thispersondoesnotexist.com (A.I Profile pictures)
+        https://www.reddit.com/r/OSINT/comments/dp70jr/my_process_for_setting_up_anonymous_sockpuppet/

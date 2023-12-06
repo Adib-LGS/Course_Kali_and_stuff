@@ -1,0 +1,6 @@
+Reverse Image Searching:
+    Drag & Drop images into Google or Yandex searchBar
+    research via tineye.com (upload the image)
+
+    check for the Metadata vie Jeffrey's Image webstie:
+        ->exif.regex.info/exif.cgi
