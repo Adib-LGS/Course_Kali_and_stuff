@@ -1,0 +1,11 @@
+Web Site OSINT:
+    ->Find the Website technology: BuiltWith - https://builtwith.com/
+    ->Reverse IP to find the domain name: DNSlytics - https://dnslytics.com/reverse-ip
+    ->Like Wayback machine: Visual Ping - https://visualping.io/
+
+    ->All in one: View DNS - https://viewdns.info/
+
+    ->Website Pentest : Pentest-Tools Subdomain Finder - https://pentest-tools.com/information-gathering/find-subdomains-of-domain#
+    ->Certificate search: crt.sh - https://crt.sh/
+
+    ->Engine Sear: Shodan - https://shodan.io

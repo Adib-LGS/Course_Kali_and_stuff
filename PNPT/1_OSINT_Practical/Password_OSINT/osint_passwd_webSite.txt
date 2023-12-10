@@ -1,0 +1,6 @@
+Hunting Breached Passwords:
+    ->WeLeakInfo - https://weleaki nfo.to/v2/
+    ->LeakCheck - https://leakcheck.io/
+    ->SnusBase - https://snusbase.com/
+    ->Scylla.so - https://scylla.so
+    ->HaveIBeenPwned - https://haveibeenpwned.com/

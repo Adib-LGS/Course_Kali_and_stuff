@@ -1,0 +1,33 @@
+Authentication Relays:
+
+LLMNR, NBT-NS, and WPAD
+    Responder allows us to perform Man-in-the-Middle attacks by poisoning the responses during NetNTLM authentication, 
+    tricking the client into talking to you instead of the actual server they wanted to connect to. On a real LAN, Responder will attempt to poison any  Link-Local Multicast Name Resolution (LLMNR),  
+    NetBIOS Name Service (NBT-NS), and Web Proxy Auto-Discovery (WPAD) requests that are detected
+
+    On large Windows networks, these protocols allow hosts to perform their own local DNS resolution for all hosts on the same local network.
+
+
+Intercepting NetNTLM Challenge:
+    SMB Signing should either be disabled or enabled but not enforced. 
+    When we perform a relay, we make minor changes to the request to pass it along. If SMB signing is enabled, we won't be able to forge the message signature, meaning the server would reject it.
+
+    The associated account needs the relevant permissions on the server to access the requested resources. 
+    Ideally, we are looking to relay the challenge and response of an account with administrative privileges over the server, 
+    as this would allow us to gain a foothold on the host.
+
+    Since we technically don't yet have an AD foothold, some guesswork is involved into what accounts will have permissions on which hosts. 
+    If we had already breached AD, we could perform some initial enumeration first, which is usually the case.
+
+CMD on Kali:
+    sudo responder -I eth0 -dwP 
+
+    When a LLMNR event occurs in the network and is maliciously responded to, the attacker will obtain sensitive information, including:
+        The IP address of the victim (in this example: 10.0.3.7)
+        The domain and username of the victim (in this example: MARVEL\fcastle)
+        The victim’s password hash
+
+    Cracking the Victim’s Hash
+        hashcat –m 5600 <hashfile.txt> <wordlist.txt>
+
+    source: https://tcm-sec.com/llmnr-poisoning-and-how-to-prevent-it/
