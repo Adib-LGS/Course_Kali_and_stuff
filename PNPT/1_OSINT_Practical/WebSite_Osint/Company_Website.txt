@@ -1,0 +1,5 @@
+Hunting Business Information:
+    Gather as much as we can infos to prepare our reconn:
+        ->Open Corporates - https://opencorporates.com/
+        ->AI HIT - https://www.aihitdata.com/
+        ->Job Finder Web Site to find some Technologies used by companies - indeed.com
