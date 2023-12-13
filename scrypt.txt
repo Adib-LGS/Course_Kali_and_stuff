@@ -357,3 +357,10 @@ to download an exe from powershell on a web server in our Kali machine
 Privilege Escalation Windows
 ##################
     https://sushant747.gitbooks.io/total-oscp-guide/content/privilege_escalation_windows.html
+
+
+####################
+SSH connection from Linux Machine to machine in Active Directory
+##################
+    ssh <Domain Name>\\<AD Username>@<Domain Name>
+
