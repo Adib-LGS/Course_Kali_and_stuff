@@ -4,3 +4,10 @@ Reverse Image Searching:
 
     check for the Metadata vie Jeffrey's Image webstie:
         ->exif.regex.info/exif.cgi
+
+
+Kali:
+    Image and Location OSINT:
+        Gather info about img:
+            sudo apt install libimage-exiftool-perl
+            exiftool <img>

@@ -15,3 +15,10 @@ Searching for People:
     ->Spokeo - https://www.spokeo.com/
     ->That'sThem - https://thatsthem.com/
 
+Kali:
+    Find Username and Account:
+        whatsmyname -u thecybermentor
+            or
+        sherlock thecybermentor
+            if found results:
+                cat username.txt | grep "User found"
