@@ -1,0 +1,8 @@
+#############
+Hijacking - DLL - Explorer.exe
+#############
+
+we will use - because it's mainly not use:
+    Process == explorer.exe
+    Path:
+    C:\Windows\System32\cscapi.dll
