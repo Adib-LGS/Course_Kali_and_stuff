@@ -1,0 +1,6 @@
+We can also use the tool call photon
+
+Kali:
+    photon -u https://<domain.com>
+
+and the check what photon has collected on the directory

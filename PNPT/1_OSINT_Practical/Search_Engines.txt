@@ -2,7 +2,7 @@ Search_Engines:
     use of yandex.com && google.com
 
     dorking:
-        search for a specific website: sit:<siteName>
+        search for a specific website: site:<siteName>
         search for a specific thing int he wanted site: "spicificThingName" site:<siteName>
         search for a specific thing using wildcards: "spicificThingName" debutOfResearch *
         search for documents exemple: site:tesla.com password typefile:xlsx
