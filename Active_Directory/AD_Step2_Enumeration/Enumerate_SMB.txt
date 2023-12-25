@@ -16,8 +16,6 @@
     ->If we discover an intersting "Sharename"
         ->smbclient \\IP of the remote host\\Sharename
 
-
-
 -Crackmapexec against the DC if we found (port that could lead to think about it is a DC: 53,88,445,139)
                     enumerate SMB: 
                         crackmapexec smb -u <user.txt> -p <passwords.txt> --continue-on-success <DC IP>
