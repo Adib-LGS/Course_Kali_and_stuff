@@ -1,0 +1,19 @@
+Escalation via Stored Passwords:
+    Automation via linpeas 
+
+    find bash hsitory:
+        ls -la -> cat .bach_history
+
+    Files containing passwords:
+        find . -type f -exec grep -i -I ""PASSWORD" {} /dev/null \;
+        
+        if open vpn:
+            cat myvpn.ovpn
+            cat /etc/openvpn/auth.txt
+
+        history | grep pass 
+
+Escalation via Weak File Permissions:
+
+
+        

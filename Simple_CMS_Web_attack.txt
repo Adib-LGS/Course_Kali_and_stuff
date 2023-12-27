@@ -1,0 +1,30 @@
+Attack Path based on Simple CMS Tryhackme:
+
+    1-A: nmap -A -T4 -p- <IP>: scan all ports
+        find ftp: 21 + anonymous login
+        find 80: apache2
+        find 2222: SSH 
+
+    1-B: dirbuster on port 80
+        search version to exploit
+        Find SQLI CVE
+        We crack the password
+
+    2: check ftp:
+        ftp <IP>
+        anonymous
+        ls
+        cd <fileName>
+        get <file.txt>
+        We found the username
+
+    ssh usr@<IP> -p 2222: we specify the port
+    
+    3-SSH:
+        whoami
+        hostname
+        sudo -l
+        we found 'Vim' exploit for Privilege Escalation
+        Now we are 'root'
+
+    
