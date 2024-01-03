@@ -125,7 +125,7 @@ Once we have a first access on a machine, we can run winpeas or enumerate manual
             We will enum all the ports in aggressive way becaus enot real scenario:
                 nmap -PN -T4 -p- -v <DC or Machine IP> -oN enu/nmap_ports.log 
             We can also enum the top 50 ports:
-                nmap -PN -sV --top-portd 50 --open <DC or Machine IP>
+                nmap -PN -sV --top-ports 50 --open <DC or Machine IP>
 
         If we find RPC Port 3389:
             try the credentials of (Newusername + hashcat clear password) founded by connecting to the firt machine that we have access in RPC and perform runas cmd:

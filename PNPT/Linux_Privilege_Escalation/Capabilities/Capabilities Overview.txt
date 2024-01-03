@@ -1,0 +1,27 @@
+Capabilities Overview:
+    -Documentation:
+        https://www.hackingarticles.in/linux-privilege-escalation-using-capabilities/
+        https://mn3m.info/posts/suid-vs-capabilities/
+        https://medium.com/@int0x33/day-44-linux-capabilities-privilege-escalation-via-openssl-with-selinux-enabled-and-enforced-74d2bec02099
+
+    
+Difference between capability and SUID:
+
+SUID: 
+SUID stands for set user ID and allows users to execute the file as the file owner. 
+This is defined as giving temporary access to a user to run a program/file with the permissions of the file’s owner rather than the user who runs it. 
+This can easily be detected by the use of the “Find” command. 
+To find all files with SUID set in the current directory we can use-perm option which will print files only with permissions set to 4000.
+
+
+Capability: 
+Security of Linux systems can be improved by using many actions. 
+One of these measures is called Linux capabilities which are maintained by the kernel. 
+In other words, we can say that they are a little unintelligible but similar in principle to SUID. 
+Linux’s thread privilege checking is based on capabilities.
+
+
+Hunting Capabilities:
+    getcap -r / 2>/devnull
+        /usr/bin/python = cap_setuid+ep  <--- ep == Permit Everything
+        
