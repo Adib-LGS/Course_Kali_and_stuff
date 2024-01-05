@@ -1,0 +1,44 @@
+Active Directory Attack Path #3:
+Credit Derron C 
+
+Topology:
+    First machine Outside: MS01 - 192.168.100.201
+    2nd machine Inside: MS02 10.10.1.202
+    3rd DC Inside: DC01 - 10.10.1.200
+
+
+From Our Kali we will scan MS01:
+    mkdir <--- Create all necessary folders for the Pentest
+
+    1-Enumerate:
+
+        nmap -Pn -v -p- <IP> -oN enu/nmap-ports.logs
+
+            IF port == 80:
+                gobuster dir -u http://<IP> -r -w /usr/share/wordlists/dirb/common.txt | tee enum/gobuster-p80.log
+                grep -v | 403 enu/gobuster-p80.log 
+                nikto -h http://<IP> | tee enum/nikto-Web80.log
+
+        ------------------------------------------------------
+
+        namp -Pn -v -sVC --top-ports 50 --open <IP> -oN enum/nmap-top50.logs
+
+            Document Ports/Services Versions
+
+        ------------------------------------------------------
+
+            We GET "upload.php", "uploads .doc" 
+            Web Attack agains the upload page
+            Client side Exploitation with Office Macros
+
+        ------------------------------------------------------
+
+    2-Exploit Web Page Attack:
+        we will create a text file that will be uploaded:
+            echo 'show me if upload' > test.txt
+            echo 'show me Office Macros' > test2.doc
+
+        Only the .doc file as been successfully uploaded.
+
+        
+            

