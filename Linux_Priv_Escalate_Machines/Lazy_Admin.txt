@@ -55,7 +55,7 @@ Lazy Admin Machine:
 
                 We may consider this legit result or not but let’s store it for awhile, it may help us along the way.
 
-        We will insiste on port 80 by using dirsearch.py:
+        We will dig deeper into on port 80 by using dirsearch.py:
             python3 dirsearch.py -u http://10.10.59.124/content/ -t 100 -w /usr/share/dirbuster/wordlists/directory-list-2.3-medium.txt 12 7 x
 
             We found 'inc/mysql_backup'
