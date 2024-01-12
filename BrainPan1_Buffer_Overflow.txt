@@ -1,0 +1,111 @@
+1-Enumeration:
+    nmap -T5 -Pn -sC -sV 10.10.116.240 -vv -oN enum/1stScan.log:
+        Starting Nmap 7.94SVN ( https://nmap.org ) at 2024-01-09 20:42 EST
+     
+        Scanning 10.10.116.240 [1000 ports]
+        Warning: 10.10.116.240 giving up on port because retransmission cap hit (2).
+        Increasing send delay for 10.10.116.240 from 0 to 5 due to 115 out of 287 dropped probes since last increase.
+        Discovered open port 9999/tcp on 10.10.116.240
+        Discovered open port 10000/tcp on 10.10.116.240
+
+        PORT      STATE SERVICE REASON  VERSION
+        9999/tcp  open  abyss?  syn-ack
+        | fingerprint-strings: 
+        |   NULL: 
+        |     _| _| 
+        |     _|_|_| _| _|_| _|_|_| _|_|_| _|_|_| _|_|_| _|_|_| 
+        |     _|_| _| _| _| _| _| _| _| _| _| _| _|
+        |     _|_|_| _| _|_|_| _| _| _| _|_|_| _|_|_| _| _|
+        |     [________________________ WELCOME TO BRAINPAN _________________________]
+        |_    ENTER THE PASSWORD
+        10000/tcp open  http    syn-ack SimpleHTTPServer 0.6 (Python 2.7.3)
+        | http-methods: 
+        |_  Supported Methods: GET HEAD
+        |_http-server-header: SimpleHTTP/0.6 Python/2.7.3
+        1 service unrecognized despite returning data. If you know the service/version, please submit the following fingerprint at https://nmap.org/cgi-bin/submit.cgi?new-service :
+        SF-Port9999-TCP:V=7.94SVN%I=7%D=1/9%Time=659DF615%P=x86_64-pc-linux-gnu%r(
+        SF:NULL,298,"_\|\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x
+        SF:20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20_\|\x20\x20\x20\x
+        SF:20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\
+        SF:x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20
+        SF:\x20\n_\|_\|_\|\x20\x20\x20\x20_\|\x20\x20_\|_\|\x20\x20\x20\x20_\|_\|_
+        SF:\|\x20\x20\x20\x20\x20\x20_\|_\|_\|\x20\x20\x20\x20_\|_\|_\|\x20\x20\x2
+        SF:0\x20\x20\x20_\|_\|_\|\x20\x20_\|_\|_\|\x20\x20\n_\|\x20\x20\x20\x20_\|
+        SF:\x20\x20_\|_\|\x20\x20\x20\x20\x20\x20_\|\x20\x20\x20\x20_\|\x20\x20_\|
+        SF:\x20\x20_\|\x20\x20\x20\x20_\|\x20\x20_\|\x20\x20\x20\x20_\|\x20\x20_\|
+        SF:\x20\x20\x20\x20_\|\x20\x20_\|\x20\x20\x20\x20_\|\n_\|\x20\x20\x20\x20_
+        SF:\|\x20\x20_\|\x20\x20\x20\x20\x20\x20\x20\x20_\|\x20\x20\x20\x20_\|\x20
+        SF:\x20_\|\x20\x20_\|\x20\x20\x20\x20_\|\x20\x20_\|\x20\x20\x20\x20_\|\x20
+        SF:\x20_\|\x20\x20\x20\x20_\|\x20\x20_\|\x20\x20\x20\x20_\|\n_\|_\|_\|\x20
+        SF:\x20\x20\x20_\|\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20_\|_\|_\|\x20\x2
+        SF:0_\|\x20\x20_\|\x20\x20\x20\x20_\|\x20\x20_\|_\|_\|\x20\x20\x20\x20\x20
+        SF:\x20_\|_\|_\|\x20\x20_\|\x20\x20\x20\x20_\|\n\x20\x20\x20\x20\x20\x20\x
+        SF:20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\
+        SF:x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20
+        SF:\x20\x20_\|\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20
+        SF:\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\n\x20\x20\x20\x20\x20\x20\
+        SF:x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20
+        SF:\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x2
+        SF:0\x20\x20_\|\n\n\[________________________\x20WELCOME\x20TO\x20BRAINPAN
+        SF:\x20_________________________\]\n\x20\x20\x20\x20\x20\x20\x20\x20\x20\x
+        SF:20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20ENTER
+        SF:\x20THE\x20PASSWORD\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20
+        SF:\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\n\
+        SF:n\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x
+        SF:20\x20\x20\x20\x20\x20\x20\x20\x20>>\x20");
+
+        NSE: Script Post-scanning.
+        NSE: Starting runlevel 1 (of 3) scan.
+        Initiating NSE at 20:43
+        Completed NSE at 20:43, 0.00s elapsed
+        NSE: Starting runlevel 2 (of 3) scan.
+        Initiating NSE at 20:43
+        Completed NSE at 20:43, 0.00s elapsed
+        NSE: Starting runlevel 3 (of 3) scan.
+        Initiating NSE at 20:43
+        Completed NSE at 20:43, 0.00s elapsed
+        Read data files from: /usr/bin/../share/nmap
+        Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+        Nmap done: 1 IP address (1 host up) scanned in 52.49 seconds
+
+                                 
+┌──(kali㉿kali)-[~/Desktop/Linux_PrivEsc/BrainPan1_Buffer_Overflow]
+└─$ curl http://10.10.116.240:10000 -v
+    *   Trying 10.10.116.240:10000...
+    * Connected to 10.10.116.240 (10.10.116.240) port 10000
+    > GET / HTTP/1.1
+    > Host: 10.10.116.240:10000
+    > User-Agent: curl/8.4.0
+    > Accept: */*
+    > 
+    * HTTP 1.0, assume close after body
+    < HTTP/1.0 200 OK
+    < Server: SimpleHTTP/0.6 Python/2.7.3
+    < Date: Wed, 10 Jan 2024 02:02:21 GMT
+    < Content-type: text/html
+    < Content-Length: 215
+    < Last-Modified: Mon, 04 Mar 2013 17:35:55 GMT
+    < 
+    <html>
+    <body bgcolor="ffffff">
+    <center>
+    <!-- infographic from http://www.veracode.com/blog/2012/03/safe-coding-and-software-security-infographic/ -->
+    <img src="soss-infographic-final.png">
+    </center>
+    </body>
+    </html>
+    * Closing connection
+
+    Web Page Enumeration:
+        gobuster dir -u http://10.10.116.240:10000/ -r -w /usr/share/dirbuster/wordlists/directory-list-2.3-medium.txt | tee enum/gobuster-p10000-/content/directory-list.log
+
+            -> http://10.10.116.240:10000/bin/
+            -> brainpan(.)exe ---- It means Windows
+            
+            -> Running file on the exe we can see which binary this is
+                file ./brainpan.exe 
+                ./brainpan.exe: PE32 executable (console) Intel 80386 (stripped to external PDB), for MS Windows, 5 sections
+                  
+    
+    Buffer Over Flow Code:
+        buffer.py

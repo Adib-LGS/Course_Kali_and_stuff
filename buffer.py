@@ -1,4 +1,4 @@
-#This is a first test, check if the exception are throwed
+#This is a first test, check if the exception are throwed + need to be scalable and editable (In Progress....)
 #@Copyrights Adib-LGS
 #!/usr/bin/python3
 
@@ -26,6 +26,8 @@ else:
     if port >= 1 and port <= 65535:
         cmd_name = input("Enter the wanted cmd to check: ")
         #print(type(cmd_name))
+        value = input ('Enter sys encode ')
+        times = input('Enter * to multiplies: ')
         while True:
             try:
                     payload = cmd_name + ' /.:/' + buffer_over_the_rainbow
@@ -39,7 +41,7 @@ else:
             
                     s.close()
                     sleep(1)
-                    buffer_over_the_rainbow += "A"*100
+                    buffer_over_the_rainbow += value*times
             
             except Exception as e:
                     print(e)
