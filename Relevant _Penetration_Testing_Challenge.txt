@@ -114,6 +114,6 @@ Machine may take up to 5 minutes for all services to start.
                 /tmp/smbmore.17UHPt (END)
 
                 Base64: Bob - !P@$$W0rD!123&WsFFC#cccBB ?????
-                        Bob - !PZ$$W0rD!121
+                        Bob - !P@$$W0rD!123
 
 
