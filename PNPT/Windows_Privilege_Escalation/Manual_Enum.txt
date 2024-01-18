@@ -1,0 +1,86 @@
+https://www.absolomb.com/2018-01-26-Windows-Privilege-Escalation-Guide/
+
+Operating System:
+
+    What is the OS and architecture? Is it missing any patches?
+
+        systeminfo
+        wmic qfe
+
+    Is there anything interesting in environment variables? A domain controller in LOGONSERVER?
+
+        set
+
+        Get-ChildItem Env: | ft Key,Value
+
+    Are there any other connected drives?
+
+        net use
+        wmic logicaldisk get caption,description,providername
+
+        Get-PSDrive | where {$_.Provider -like "Microsoft.PowerShell.Core\FileSystem"}| ft Name,Root
+
+Users:
+
+    whoami
+
+    whoami /priv 
+
+    net users: 
+        User accounts for \\WIN-QBA94KB3IOF
+
+        -------------------------------------------------------------------------------
+        admin                    Administrator            DefaultAccount           
+        Guest                    user                     WDAGUtilityAccount   
+
+
+    net localgroup: <--- Wich group
+
+        Aliases for \\WIN-QBA94KB3IOF
+
+
+    net localgroup Administrators <---Are any of the users in the Administrators group?
+
+
+    Anything in the Registry for User Autologon?
+        reg query "HKLM\SOFTWARE\Microsoft\Windows NT\Currentversion\Winlogon" 2>nul | findstr "DefaultUserName DefaultDomainName DefaultPassword"
+
+    Anything interesting in Credential Manager?
+        cmdkey /list
+
+Programs, Processes, and Services:
+
+    Are there any weak folder or file permissions?
+
+    Full Permissions for Everyone or Users on Program Folders?
+
+        icacls "C:\Program Files\*" 2>nul | findstr "(F)" | findstr "Everyone"
+        icacls "C:\Program Files (x86)\*" 2>nul | findstr "(F)" | findstr "Everyone"
+
+        icacls "C:\Program Files\*" 2>nul | findstr "(F)" | findstr "BUILTIN\Users"
+        icacls "C:\Program Files (x86)\*" 2>nul | findstr "(F)" | findstr "BUILTIN\Users" 
+
+    Modify Permissions for Everyone or Users on Program Folders?
+
+        icacls "C:\Program Files\*" 2>nul | findstr "(M)" | findstr "Everyone"
+        icacls "C:\Program Files (x86)\*" 2>nul | findstr "(M)" | findstr "Everyone"
+
+        icacls "C:\Program Files\*" 2>nul | findstr "(M)" | findstr "BUILTIN\Users" 
+        icacls "C:\Program Files (x86)\*" 2>nul | findstr "(M)" | findstr "BUILTIN\Users" 
+
+
+    You can also upload accesschk from Sysinternals to check for writeable folders and files.
+
+        accesschk.exe -qwsu "Everyone" *
+        accesschk.exe -qwsu "Authenticated Users" *
+        accesschk.exe -qwsu "Users" *
+
+    What are the running processes/services on the system? Is there an inside service not exposed? If so, can we open it? See Port Forwarding in Appendix.
+
+        tasklist /svc
+        tasklist /v
+        net start
+        sc query
+
+
+

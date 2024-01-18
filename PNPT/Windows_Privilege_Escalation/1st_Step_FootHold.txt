@@ -1,0 +1,5 @@
+IF We found some ftp or SMB servers that are open for "anonymous" or "guest" without password.
+
+We can use them to send some revser_shell payload and get a FootHold.
+
+ex: Windows_Priv_Esc_THM_Box

