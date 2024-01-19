@@ -1,0 +1,9 @@
+System Info:
+    systeminfo | findstr /B /C:"OS Name" /C:"OS Version" /C:"System Type"
+
+Look if system is Patched:
+    wmic qfe get Caption, Description, HotFixID, InstalledOn
+
+Check the drives
+    wmic logicaldisk get caption,description,providername
+    wmic logicaldisk get caption

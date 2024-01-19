@@ -1,0 +1,18 @@
+User name
+    whoami
+
+User privileges
+    whoami /priv 
+
+User groups
+    whoami /groups 
+
+Show Users on the machine
+    net user 
+    net user <username>
+    net user administrator
+
+Check Logon Session
+    net localgroup
+    net localgroup <username>
+

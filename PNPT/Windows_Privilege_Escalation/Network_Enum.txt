@@ -1,0 +1,12 @@
+Architecture  L3-4
+    ipconfig /all
+
+ARP Table L2
+    arp -a 
+
+Talking ports
+    netstar -ano 
+
+
+
+

@@ -1,0 +1,10 @@
+Enum FireWall or Anti Virus
+    sc query windefend
+    
+Check all Defense Services
+    sc queryex type= service
+
+Check Firewall Settings (open Ports etc..)
+    netsh advfirewall firewall dump (new cmd)
+    netsh firewall show state (old cmd)
+
