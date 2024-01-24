@@ -1,0 +1,8 @@
+Spawning a TTY Shell - https://netsec.ws/?p=337
+
+Impacket Toolkit - https://github.com/SecureAuthCorp/impacket
+
+if there is an Anti Virus psexec will not work
+
+try with:
+    smbexec.py admin:'passwd'@IP

@@ -1,2 +1,5 @@
 List almost all things:
     https://github.com/swisskyrepo/PayloadsAllTheThings
+
+    Windows Priv Escalation:
+        https://swisskyrepo.github.io/InternalAllTheThings/redteam/escalation/windows-privilege-escalation/#eop-impersonation-privileges

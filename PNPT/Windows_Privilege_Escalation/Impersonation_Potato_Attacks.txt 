@@ -1,0 +1,20 @@
+Token Impersonation:
+    is a Windows post-exploitation technique that allows an attacker to steal the access token of a logged-on user on the system without knowing their credentials 
+    and impersonate them to perform operations with their privileges.
+
+    This technique is effective for lateral movement and privilege escalation; 
+    an attacker can obtain domain admin privileges if a logged-on user is a domain administrator. 
+    They can also use the impersonated tokens to pivot to other domain machines on the network. 
+    The impersonation technique requires the attacker to gain local admin privileges on the compromised machine to steal its tokens.
+
+        https://medium.com/r3d-buck3t/domain-escalation-with-token-impersonation-bc577db55a0f
+
+
+Impersonation Privileges:
+    whoami /priv:
+        SeImpersonatePrivilege  -- Enable  is == SeAssignPrimaryToken
+
+        To find othe type of Privileges refer to: EoP - Impersonation Privileges
+            https://swisskyrepo.github.io/InternalAllTheThings/redteam/escalation/windows-privilege-escalation/#eop-living-off-the-land-binaries-and-scripts
+
+        

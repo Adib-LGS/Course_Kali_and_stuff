@@ -1,0 +1,16 @@
+Rotten Potato – Privilege Escalation from Service Accounts to SYSTEM:
+    https://foxglovesecurity.com/2016/09/26/rotten-potato-privilege-escalation-from-service-accounts-to-system/
+        The idea behind this vulnerability is simple to describe at a high level:
+
+            1-Trick the “NT AUTHORITY\SYSTEM” account into authenticating via NTLM to a TCP endpoint we control.
+            
+            2-Man-in-the-middle this authentication attempt (NTLM relay) to locally negotiate a security token for the “NT AUTHORITY\SYSTEM” account. This is done through a series of Windows API calls.
+            
+            3-Impersonate the token we have just negotiated. This can only be done if the attackers current account has the privilege to impersonate security tokens. This is usually true of most service accounts and not true of most user-level accounts.
+
+
+Juicy Potato (abusing the golden privileges):
+    https://github.com/ohpe/juicy-potato
+        RottenPotatoNG and its variants leverages the privilege escalation chain based on BITS service having the MiTM listener on 127.0.0.1:6666 and 
+        when you have SeImpersonate or "SeAssignPrimaryToken" privileges. 
+        During a Windows build review we found a setup where BITS was intentionally disabled and port 6666 was taken.
