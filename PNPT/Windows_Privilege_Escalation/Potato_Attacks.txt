@@ -1,3 +1,15 @@
+To check if there is a Potatoe Exploit:
+    1-in Windows shell:
+        systeminfo 
+    
+    2-Copy the rsult in Kali
+
+        nano sysinfo.txt
+
+        ./windows-exploit-suggester.py --database 2024-01-18-mssb.xls --sysinfo.txt
+
+    3-Then check in the exploit suggester if there is a Potatoe Exploit
+
 Rotten Potato – Privilege Escalation from Service Accounts to SYSTEM:
     https://foxglovesecurity.com/2016/09/26/rotten-potato-privilege-escalation-from-service-accounts-to-system/
         The idea behind this vulnerability is simple to describe at a high level:
