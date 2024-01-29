@@ -1,3 +1,5 @@
+Registry Escalation - AlwaysInstallElevated - Eternal Blue
+
     1- Enumeration:
         nmap -T5 -Pn -sC -sV 10.10.201.3 -oN enum/sanLogs1.logs  -vv
             Starting Nmap 7.94SVN ( https://nmap.org ) at 2024-01-24 21:02 EST

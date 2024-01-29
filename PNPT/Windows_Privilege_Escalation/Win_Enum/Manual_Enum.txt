@@ -82,5 +82,7 @@ Programs, Processes, and Services:
         net start
         sc query
 
+    powershell -c command could we run to manually find out the service name
+        powershell -c Get-Service
 
 

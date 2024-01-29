@@ -369,3 +369,10 @@ SSH connection from Linux Machine to machine in Active Directory
 ##################
     ssh <Domain Name>\\<AD Username>@<Domain Name>
 
+
+####################
+Powershell Manual Service enum
+####################
+powershell -ep bypass
+What powershell -c command could we run to manually find out the service name? 
+        powershell -c Get-Service

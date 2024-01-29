@@ -7,3 +7,6 @@ Look if system is Patched:
 Check the drives
     wmic logicaldisk get caption,description,providername
     wmic logicaldisk get caption
+
+powershell -c command could we run to manually find out the service name
+    powershell -c Get-Service
