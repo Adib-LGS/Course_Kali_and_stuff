@@ -1,4 +1,4 @@
-Windowss IIS Server + Wordpress + CVE 
+Windows IIS Server + Wordpress + CVE + Powershell
 
 1-Enumeration:
      nmap -T5 -Pn -sC -sV 10.10.65.0 -oN enum/sanLogs1.logs  -vv

