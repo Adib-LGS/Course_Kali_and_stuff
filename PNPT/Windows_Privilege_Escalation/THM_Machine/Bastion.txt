@@ -121,6 +121,9 @@ SMB - Win Server 2016 - VHM File - BAckup Win Exploit
             user: L4mpje
             pass: bureaulampje
 
+            FIND PASSWD IN XML CONF + Mremotengdecrypt for the Password
+            admin pass:thXLHM96BeKL0ER2
+
 
 
 

