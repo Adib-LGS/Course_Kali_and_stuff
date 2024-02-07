@@ -2,6 +2,10 @@ SMB + XLSM Decode + MSSQL + LLMNR Responder Attack + NTLM Hash + Powershell reve
 
 Use of psexec.py to open a service and get a shell with Admin credds
 
+additional infos:
+https://medium.com/@markmotig/how-to-capture-mssql-credentials-with-xp-dirtree-smbserver-py-5c29d852f478
+
+
 1-Enumeration:
     nmap -T5 -Pn -sC -sV 10.10.10.125 -oN enum/scanLogs1.logs  -vv
     PORT      STATE    SERVICE          REASON      VERSION
