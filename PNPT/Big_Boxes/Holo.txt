@@ -1,0 +1,95 @@
+This network simulates an external penetration test on a corporate network "Hololive" with one intended kill chain. 
+
+In this lab, you will learn and explore the following topics:
+
+    .NET basics
+    Web application exploitation
+    AV evasion
+    Whitelist and container escapes
+    Pivoting
+    Operating with a C2 (Command and Control) Framework
+    Post-Exploitation
+    Situational Awareness
+    Active Directory attacks
+
+You will learn and exploit the following attacks and misconfigurations:
+
+    Misconfigured sub-domains
+    Local file Inclusion
+    Remote code execution
+    Docker containers
+    SUID binaries
+    Password resets
+    Client-side filters
+    AppLocker
+    Vulnerable DLLs
+    Net-NTLMv2 / SMB
+
+1-Enumeration:
+    nmap -T5 -Pn -sC -sV <IP> -oN enum/scanLogs1.logs  -vv
+        In real Assesment we will Lower the scan Agressivity + Scan the Subnet
+
+        Nmap scan report for 10.200.29.33
+        Host is up, received user-set (0.11s latency).
+        Scanned at 2024-02-07 20:16:49 EST for 310s
+        Not shown: 951 closed tcp ports (conn-refused)
+        PORT      STATE    SERVICE        REASON      VERSION
+        22/tcp    open     ssh            syn-ack     OpenSSH 8.2p1 Ubuntu 4ubuntu0.2 (Ubuntu Linux; protocol 2.0)
+        | ssh-hostkey: 
+        |   3072 a7:48:ae:42:b2:e0:5d:8e:9e:05:c7:dd:d9:d8:11:25 (RSA)
+        | ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDG/s8I5jzaBVvh+Bm6q3qvy9zjkrkTJYYqLn/yKk2IwCUJF2VmwvO0UWv5twhFUlHjut38gec83J3q69nOWCEVesMNxqFoDow5Q8T0mfBLWGbXxTah7xmuUyqqXeQYNflbMVkZ/hUEvHrmGa9KrDi4B1DVtlihvw5rDVCKgf4b/l+AjjiP4ljrK2AkCow2UznnzBvAOBMRA590hjH9gzeSblR2BRnj4v9K4X7tUwReZHXNq60cyQsAGO0ymDX+T/tL9DTj0UkHV8ZTvzQzH6/XGUT0TJNfwPxMdQG5B74j0LYCVzwo576MehxstcinSqPPnAcmcrTbmI5eZcQ/rv28Rnz1BisIn5cEtneRvpgyCUGODRlsYyv/sV+SvGvNMg5TPoqNOCWGUqQeGiuiiDVpMvATsd6C0qINAES52xBtQ0gUi+P83LWLiOnni44r89/+DMybC0iSi9ommwcIYum9Ak9GA1gAK30zK9O/lQJZAHDn9gUKhGeH9IjSLpVSfJk=
+        |   256 e3:75:ef:2e:11:09:87:7f:1c:33:ad:f7:88:ef:ad:0c (ECDSA)
+        | ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBBbPP5F+rHnKs62RUg0i816weSKeRLi93/Y3Mt0FCc8cxYADGkw74NjOIPDhAJXSi47K4sSwdFhzjFSMFsXlhKo=
+        |   256 db:7b:df:b5:a3:88:7b:f5:b8:fa:8f:95:68:be:a1:6e (ED25519)
+        |_ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEqoMsM7556dvagOUqqU5Ae5rSKbS4SiZTV6C3eLvUUk
+        33/tcp    filtered dsp            no-response
+        80/tcp    open     http           syn-ack     Apache httpd 2.4.29 ((Ubuntu))
+        | http-methods: 
+        |_  Supported Methods: GET HEAD POST OPTIONS
+        |_http-generator: WordPress 5.5.3  <------------------ Wordpress Version
+        | http-robots.txt: 21 disallowed entries 
+        | /var/www/wordpress/index.php 
+        | /var/www/wordpress/readme.html /var/www/wordpress/wp-activate.php 
+        | /var/www/wordpress/wp-blog-header.php /var/www/wordpress/wp-config.php 
+        | /var/www/wordpress/wp-content /var/www/wordpress/wp-includes 
+        | /var/www/wordpress/wp-load.php /var/www/wordpress/wp-mail.php 
+        | /var/www/wordpress/wp-signup.php /var/www/wordpress/xmlrpc.php 
+        | /var/www/wordpress/license.txt /var/www/wordpress/upgrade 
+        | /var/www/wordpress/wp-admin /var/www/wordpress/wp-comments-post.php 
+        | /var/www/wordpress/wp-config-sample.php /var/www/wordpress/wp-cron.php 
+        | /var/www/wordpress/wp-links-opml.php /var/www/wordpress/wp-login.php 
+        |_/var/www/wordpress/wp-settings.php /var/www/wordpress/wp-trackback.php
+        |_http-title: holo.live
+
+        We dig deeper into 10.200.29.33:
+            nmap -T5 -A -p- 10.200.29.33 -oN enum/AllPortsSRV01.logs -vv (We can remove -A and -T5 : Too Aggresive)
+                Discovered open port 33060/tcp on 10.200.29.33
+            nmap -T5 -sV -sC -p 33060 10.200.29.33:
+                PORT      STATE SERVICE REASON  VERSION
+                33060/tcp open  mysqlx? syn-ack
+
+    -------------------------------------------------------------------------------------------------------------------------
+
+    Nmap scan report for 10.200.29.250
+        Host is up, received user-set (0.11s latency).
+        PORT      STATE    SERVICE          REASON      VERSION
+        22/tcp    open     ssh              syn-ack     OpenSSH 7.6p1 Ubuntu 4ubuntu0.5 (Ubuntu Linux; protocol 2.0)
+
+    -------------------------------------------------------------------------------------------------------------------------
+
+    nikto 10.200.29.33 port 80:
+                Apache/2.4.29 (Ubuntu)
+
+    Domain:
+        gobuster dir -u http://10.200.29.33/ -r -w /usr/share/wordlists/dirbuster/directory-list-2.3-small.txt :
+            /wp-content           (Status: 200) [Size: 0]
+            /'                    (Status: 200) [Size: 21456]
+            /dashboard            (Status: 200) [Size: 1016]
+
+    Subdomain:
+    add 10.200.23.33  holo.live in the DNS Kali
+        gedit /etc/hosts
+        
+        wfuzz -u http://10.200.29.33 -w ~/Desktop/subdomains-top1million-110000.txt -H "Host: FUZZ.10.200.29.33" --hc 400,403,432,401,404,442,500
+            admin.holo.live
+            dev.holo.live        
