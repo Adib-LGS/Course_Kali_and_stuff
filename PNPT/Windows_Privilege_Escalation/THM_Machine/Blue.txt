@@ -1,4 +1,4 @@
-#####Eternal Blue
+#####Eternal Blue + SMB + ms17_010_eternalblue
 
 1-Enumeration:
     nmap -T5 -sV -sC -Pn 10.10.252.95 -oN enum/AllPortsSRV01.logs  -vv
