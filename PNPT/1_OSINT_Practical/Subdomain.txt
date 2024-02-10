@@ -1,0 +1,12 @@
+######## Use of Sublist3r
+
+sublist3r -d <domain.com> -t 100 -v (thread - faster)
+
+############# use of webapp crt.sh
+
+%<.domain name> it will check the SUB sub domain
+
+
+######Best Tools:
+
+OWASP - AMASSS
