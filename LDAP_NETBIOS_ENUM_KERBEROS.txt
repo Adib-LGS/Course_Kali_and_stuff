@@ -1,4 +1,4 @@
-HM  Attacktive Directory:
+THM  Attacktive Directory:
 AD Domain: spookysec.local
  
  
