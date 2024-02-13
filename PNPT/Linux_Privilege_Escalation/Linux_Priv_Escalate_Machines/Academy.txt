@@ -1,3 +1,4 @@
+Web App Admin Login roleid + Burp Suite + Laravel exploit
 HTB Academy:
 
 1-Enumeration:
