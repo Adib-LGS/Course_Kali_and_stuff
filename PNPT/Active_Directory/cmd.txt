@@ -1,0 +1,4 @@
+Get a shell on Windows Machin using Hashes or password
+    sometimes - psexec.py can be blocked by A.v
+    we cans use:
+        wmiexec.pysmbexec.py
