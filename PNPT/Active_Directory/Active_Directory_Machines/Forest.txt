@@ -209,7 +209,7 @@ Compromise Full DOmain + Golden Ticket Attack = Mimikatz or ticketer.py
 
     #########################################################################################################################
 
-    Pre-Auth Kerberos - ASREPRoast:
+    NOT Pre-Auth Kerberos - ASREPRoast:
 
     We will try to obtain a TGT Ticket via the svc-alfresco form our Enumeration - Because it seems that svc-alfresco do not require PREAUTH:
 
@@ -224,7 +224,7 @@ Compromise Full DOmain + Golden Ticket Attack = Mimikatz or ticketer.py
         We past all the TGT Hash in a file to hashcat (ASREPRoast):
             hashcat hash.hash /usr/share/wordlists/rockyou.txt -m 18200
 
-        We found a password for svc-alfresco
+        We found the password for svc-alfresco
 
 
     If it doesn't work we possibly need to Brute Force with users we find in enum4linux:
