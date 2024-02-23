@@ -1,5 +1,5 @@
 #########
-nonymous / Guest access to an SMB 
+Anonymous / Guest access to an SMB 
 Kerberos pre-authentication disabled, which allows us to conduct an ASREPRoasting attack.
 Retrieve a hash of the encrypted material contained in the AS-REP
 Offline brute force attack in order to recover the plaintext password
@@ -72,8 +72,8 @@ SMB/LDAP:
         smbclient //10.10.10.192/profiles$
         We find usernames in the profile$ we will use it for Kerbrute 
 
-    Kerbrute fint users account without "Pre auth"
-        kerbrute -domain blackfield.local -users users.txt -passwords passwd.txt -outpurfile ldapEnum.log 
+    Kerbrute find users account without "Pre auth"
+        kerbrute -domain blackfield.local -users users.txt -passwords passwd.txt -outputfile ldapEnum.log 
 
     We found 3 users  and 1 without Preauth:
         audit2020
