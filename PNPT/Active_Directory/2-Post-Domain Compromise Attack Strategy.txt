@@ -1,0 +1,18 @@
+#######
+Now we OWN the DOMAIN, NOW WHAT ?
+#######
+2-Post-Domain Compromise Attack Strategy:
+    Provide as much value to the client as possible
+        -Dump the NTDS.dit and crack the passwd <------Refer to Blackfield.txt
+        -Enumerate shares for sensitive information
+
+    Persistence is Important
+        -What happens if I LOST my DA Access ?
+        -Creating DA Accounts is usefull (Do not forget to delete it)
+        -Creating Golden Ticket too
+
+
+Golden Ticket mimikatz:
+kerberos::golden /User:<userNam> /domain:<domainName> /sid:S-1-5-21....  /krbtgt:<krbtgt account hash> /id:500  /ptt
+
+Silver Ticket is Stealthier nowadays

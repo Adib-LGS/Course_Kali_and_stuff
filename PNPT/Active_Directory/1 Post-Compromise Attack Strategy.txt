@@ -1,0 +1,15 @@
+#########
+After we have comprimizing our fisrt machine in AD Environement
+#########
+
+Post-Compromise Attack Strategy:
+    We have an account, now what ?
+
+    Search the quick wins:
+        Kerberoasting
+        Secretsump
+        PTH
+    IF no quick wins:
+        Enumeration - BloodHound
+        Where does your account have access ?
+        Old vuln die hard    

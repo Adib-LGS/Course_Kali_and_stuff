@@ -21,27 +21,7 @@ which can be used with Impacket&amp;amp;#039;s psexec.py in order to gain a shel
         139/tcp  open  netbios-ssn   syn-ack Microsoft Windows netbios-ssn
         389/tcp  open  ldap          syn-ack Microsoft Windows Active Directory LDAP (Domain: EGOTISTICAL-BANK.LOCAL0., Site: Default-First-Site-Name)
         445/tcp  open  microsoft-ds? syn-ack
-        464/tcp  open  kpasswd5?     syn-ack
-        593/tcp  open  ncacn_http    syn-ack Microsoft Windows RPC over HTTP 1.0
-        636/tcp  open  tcpwrapped    syn-ack
-        3268/tcp open  ldap          syn-ack Microsoft Windows Active Directory LDAP (Domain: EGOTISTICAL-BANK.LOCAL0., Site: Default-First-Site-Name)
-        3269/tcp open  tcpwrapped    syn-ack
-        Service Info: Host: SAUNA; OS: Windows; CPE: cpe:/o:microsoft:windows
-
-        Host script results:
-        | smb2-security-mode: 
-        |   3:1:1: 
-        |_    Message signing enabled and required
-        | p2p-conficker: 
-        |   Checking for Conficker.C or higher...
-        |   Check 1 (port 35558/tcp): CLEAN (Timeout)
-        |   Check 2 (port 54510/tcp): CLEAN (Timeout)
-        |   Check 3 (port 57297/udp): CLEAN (Timeout)
-        |   Check 4 (port 60089/udp): CLEAN (Timeout)
-        |_  0/4 checks are positive: Host is CLEAN or ports are blocked
-        |_clock-skew: 7h00m01s
-        | smb2-time: 
-        |   date: 2024-02-20T06:06:58
+       
 
     SMB/LDAP:
         Enumerate LDAP:
@@ -51,22 +31,6 @@ which can be used with Impacket&amp;amp;#039;s psexec.py in order to gain a shel
                 objectCategory: CN=Domain-DNS,CN=Schema,CN=Configuration,DC=EGOTISTICAL-BANK,DC=LOCAL
                 isCriticalSystemObject: TRUE
                 gPLink: [LDAP://CN={31B2F340-016D-11D2-945F-00C04FB984F9},CN=Policies,CN=System,DC=EGOTISTICAL-BANK,DC=LOCAL;0]
-
-
-                dn: CN=Users,DC=EGOTISTICAL-BANK,DC=LOCAL
-                dn: CN=Computers,DC=EGOTISTICAL-BANK,DC=LOCAL
-                dn: OU=Domain Controllers,DC=EGOTISTICAL-BANK,DC=LOCAL
-                dn: CN=System,DC=EGOTISTICAL-BANK,DC=LOCAL
-                dn: CN=LostAndFound,DC=EGOTISTICAL-BANK,DC=LOCAL
-                dn: CN=Infrastructure,DC=EGOTISTICAL-BANK,DC=LOCAL
-                dn: CN=ForeignSecurityPrincipals,DC=EGOTISTICAL-BANK,DC=LOCAL
-                dn: CN=Program Data,DC=EGOTISTICAL-BANK,DC=LOCAL
-                dn: CN=NTDS Quotas,DC=EGOTISTICAL-BANK,DC=LOCAL
-                dn: CN=Managed Service Accounts,DC=EGOTISTICAL-BANK,DC=LOCAL
-                dn: CN=Keys,DC=EGOTISTICAL-BANK,DC=LOCAL
-                dn: CN=TPM Devices,DC=EGOTISTICAL-BANK,DC=LOCAL
-                dn: CN=Builtin,DC=EGOTISTICAL-BANK,DC=LOCAL
-                dn: CN=Hugo Smith,DC=EGOTISTICAL-BANK,DC=LOCAL
 
                 ldapServiceName: EGOTISTICAL-BANK.LOCAL:sauna$@EGOTISTICAL-BANK.LOCAL
 

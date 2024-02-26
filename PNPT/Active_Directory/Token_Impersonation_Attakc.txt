@@ -1,0 +1,7 @@
+Token Impersonation Attack:
+-Privilege Escalation:
+    We can use the 'Incognito' mode from metasploit and other way (mimikatz)
+
+        We can use the methodlogy in TCM Cours:
+            Attacking Active Directory: Post-Compromise Attacks 
+                -Token Impersonation Walkthrough 
