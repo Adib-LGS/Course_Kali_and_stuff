@@ -72,20 +72,11 @@ Compromise Full DOmain + Golden Ticket Attack = Mimikatz or ticketer.py
         Getting domain SID for 10.10.10.161:
             Domain Name: Name: HTB                                                                                        
             Domain Sid: S-1-5-21-3072663084-364016917-1341370565
-
-                                                                                                                                                                            
+                                                                                                                                                           
             Account: $331000-VK4ADACQNUCA  Name: (null)    Desc: (null)                                                          
             Account: Administrator  Name: Administrator     Desc: Built-in account for administering the computer/domain
-            Account: andy  Name: Andy Hislip       Desc: (null)
-            Account: lucinda       Name: Lucinda Berger    Desc: (null)
-            Account: mark  Name: Mark Brandt       Desc: (null)
-            Account: santi Name: Santi Rodriguez   Desc: (null)
-            ccount: sebastien     Name: Sebastien Caron   Desc: (null)
+            .....
             Account: svc-alfresco  Name: svc-alfresco      Desc: (null)
-
-            [+] Found domain(s):
-                [+] HTB
-                [+] Builtin
 
         [+] Password Info for Domain: HTB  <-------- Password Spraying Attack - Kerberos
                 [+] Minimum password length: 7
@@ -99,35 +90,10 @@ Compromise Full DOmain + Golden Ticket Attack = Mimikatz or ticketer.py
                 [+] Forced Log off Time: Not Set
 
         [+]  Getting domain group memberships:                                                                                                                        
-                                                                                                                                                            
-            Group: 'Domain Controllers' (RID: 516) has member: HTB\FOREST$                                                                                                
-            Group: 'Domain Guests' (RID: 514) has member: HTB\Guest
-            Group: 'Domain Admins' (RID: 512) has member: HTB\Administrator
-            Group: 'Privileged IT Accounts' (RID: 1149) has member: HTB\Service Accounts
-            Group: 'Exchange Servers' (RID: 1118) has member: HTB\EXCH01$
-            Group: 'Exchange Servers' (RID: 1118) has member: HTB\$D31000-NSEL5BRJ63V7
-
             Group: '$D31000-NSEL5BRJ63V7' (RID: 1133) has member: HTB\EXCH01$
             Group: 'Schema Admins' (RID: 518) has member: HTB\Administrator
             Group: 'Service Accounts' (RID: 1148) has member: HTB\svc-alfresco
-            Group: 'Domain Computers' (RID: 515) has member: HTB\EXCH01$
-
-            Group: 'Organization Management' (RID: 1104) has member: HTB\Administrator
-            Group: 'Domain Users' (RID: 513) has member: HTB\Administrator
-            Group: 'Domain Users' (RID: 513) has member: HTB\DefaultAccount
-            Group: 'Domain Users' (RID: 513) has member: HTB\krbtgt
-            Group: 'Domain Users' (RID: 513) has member: HTB\$331000-VK4ADACQNUCA
-            Group: 'Domain Users' (RID: 513) has member: HTB\SM_2c8eef0a09b545acb
-            
-            Group: 'Domain Users' (RID: 513) has member: HTB\sebastien
-            Group: 'Domain Users' (RID: 513) has member: HTB\lucinda
-            Group: 'Domain Users' (RID: 513) has member: HTB\svc-alfresco
-            Group: 'Domain Users' (RID: 513) has member: HTB\andy
-            Group: 'Domain Users' (RID: 513) has member: HTB\mark
-            Group: 'Domain Users' (RID: 513) has member: HTB\santi
-            Group: 'Enterprise Admins' (RID: 519) has member: HTB\Administrator
-            Group: 'Exchange Trusted Subsystem' (RID: 1119) has member: HTB\EXCH01$
-
+   
 
 
     We can also know about passwd policy with crackmapexec exec:
