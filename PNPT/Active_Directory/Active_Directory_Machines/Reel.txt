@@ -1,0 +1,82 @@
+#########
+Reel is medium to hard difficulty machine, 
+which requires a client-side attack to bypass the perimeter, 
+and highlights a technique for gaining 
+privileges in an Active Directory environment.
+FTP Enum + wget Files
+exiftool for docx Files
+SMTP Enumeration
+#########
+Resolute:
+
+1-Enumeration:
+    nmap -T5 -sV -sC -Pn 10.10.10.77  -oN enum/scan.log -vv
+        PORT      STATE SERVICE      REASON  VERSION
+        21/tcp    open  ftp          syn-ack Microsoft ftpd
+        22/tcp    open  ssh          syn-ack OpenSSH 7.6 (protocol 2.0)
+        25/tcp    open  smtp?        syn-ack
+        135/tcp   open  msrpc        syn-ack Microsoft Windows RPC
+        139/tcp   open  netbios-ssn  syn-ack Microsoft Windows netbios-ssn
+        445/tcp   open  microsoft-ds syn-ack Microsoft Windows Server 2008 R2 - 2012 microsoft-ds (workgroup: HTB)
+        593/tcp   open  ncacn_http   syn-ack Microsoft Windows RPC over HTTP 1.0
+        49159/tcp open  msrpc        syn-ack Microsoft Windows RPC
+
+    Rescan of FTP:
+        PORT   STATE SERVICE REASON  VERSION
+        21/tcp open  ftp     syn-ack Microsoft ftpd
+        | ftp-anon: Anonymous FTP login allowed (FTP code 230)
+        |_05-28-18  11:19PM       <DIR>          documents
+        | ftp-syst: 
+        |_  SYST: Windows_NT
+        Service Info: OS: Windows; CPE: cpe:/o:microsoft:windows
+
+
+
+    Enumerate SMB:
+        ─$ crackmapexec smb 10.10.10.77 -u "" -p "" --shares
+            SMB         10.10.10.77     445    REEL             [*] Windows Server 2012 R2 Standard 9600 x64 (name:REEL) (domain:HTB.LOCAL) (signing:True) (SMBv1:True)
+            SMB         10.10.10.77     445    REEL             [+] HTB.LOCAL\: 
+            SMB         10.10.10.77     445    REEL             [-] Error enumerating shares: STATUS_ACCESS_DENIED
+
+
+    Enumerate FTP:
+        ─$ ftp 10.10.10.77   
+            Connected to 10.10.10.77
+            220 Microsoft FTP Service
+            Name (10.10.10.77:kali): anonymous
+
+        Download all files from FTP
+            ─$ wget -m ftp://anonymous:anonymous@10.10.10.77 
+            OR
+            wget -m --no-passive ftp://anonymous:anonymous@10.10.10.77
+
+            We Get some Windows 'docx' files - we need to open them via Kali or Windows Machine (easyer method)
+
+            We found a server URL:
+                http://WEF.HTB.LOCAL:5985
+
+            We found a Laptop Name:
+                LAPTOP12.HTB.LOCAL
+
+        We run on Kali exiftool:
+            ─$ exiftool Windows\ Event\ Forwarding.docx      
+                we found an email address:   nico@megabank.com
+
+    Enumerate SMTP:
+        $ telnet 10.10.10.77 25
+            >HELP
+            >ehlo all
+                250-REEL
+                250-SIZE 20480000
+                250-AUTH LOGIN PLAIN
+                250 HELP
+
+                >AUTH LOGIN PLAIN
+                    334 UGFzc3dvcmQ6
+
+    In one txt note 'nico@megabank.com' has specified that he want o receive files in RTF format by email
+
+                
+              
+
+
