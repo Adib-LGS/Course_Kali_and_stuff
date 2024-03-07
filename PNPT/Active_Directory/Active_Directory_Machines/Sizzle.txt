@@ -1,0 +1,170 @@
+####
+Sizzle is an &amp;quot;Insane&amp;quot; difficulty WIndows box with an Active Directory environment. 
+A writable directory in an SMB share allows to steal NTLM hashes which can be cracked to access the Certificate Services Portal. 
+A self signed certificate can be created using the CA and used for PSRemoting. 
+A SPN associated with a user allows a kerberoast attack on the box. 
+The user is found to have Replication rights which can be abused to get Administrator hashes via DCSync
+####
+
+1-Enumeration:
+    nmap -T5 -sV -sC -Pn 10.10.10.103  -oN enum/scan.log -vv
+        PORT     STATE SERVICE       REASON  VERSION
+        21/tcp   open  ftp           syn-ack Microsoft ftpd
+        | ftp-syst: 
+        |_  SYST: Windows_NT
+        |_ftp-anon: Anonymous FTP login allowed (FTP code 230) <------- Allowed
+        53/tcp   open  domain        syn-ack Simple DNS Plus
+        80/tcp   open  http          syn-ack Microsoft IIS httpd 10.0
+        |_http-title: Site doesn't have a title (text/html).
+        | http-methods: 
+        |   Supported Methods: OPTIONS TRACE GET HEAD POST
+        |_  Potentially risky methods: TRACE
+        |_http-server-header: Microsoft-IIS/10.0
+        135/tcp  open  msrpc         syn-ack Microsoft Windows RPC
+        139/tcp  open  netbios-ssn   syn-ack Microsoft Windows netbios-ssn
+
+        389/tcp  open  ldap          syn-ack Microsoft Windows Active Directory LDAP (Domain: HTB.LOCAL, Site: Default-First-Site-Name)
+        |_ssl-date: 2024-03-07T01:01:20+00:00; 0s from scanner time.
+        | ssl-cert: Subject: commonName=sizzle.htb.local
+        | Issuer: commonName=HTB-SIZZLE-CA/domainComponent=HTB
+        | Public Key type: rsa
+        | Public Key bits: 2048
+        | Signature Algorithm: sha256WithRSAEncryption
+        | Not valid before: 2018-07-03T17:58:55
+        | Not valid after:  2020-07-02T17:58:55
+        | MD5:   240b:1eff:5a65:ad8d:c64d:855e:aeb5:9e6b
+        | SHA-1: 77bb:3f67:1b6b:3e09:b8f9:6503:ddc1:0bbf:0b75:0c72
+        | -----BEGIN CERTIFICATE-----
+        |...
+        |_-----END CERTIFICATE-----
+
+        443/tcp  open  ssl/http      syn-ack Microsoft IIS httpd 10.0
+        | ssl-cert: Subject: commonName=sizzle.htb.local  
+        | Issuer: commonName=HTB-SIZZLE-CA/domainComponent=HTB  <---------------------- HTB-SIZZLE-CA/ Common Name of the Certificate
+        | Public Key type: rsa
+        | Public Key bits: 2048
+        | Signature Algorithm: sha256WithRSAEncryption
+        | Not valid before: 2018-07-03T17:58:55
+        | Not valid after:  2020-07-02T17:58:55
+        | MD5:   240b:1eff:5a65:ad8d:c64d:855e:aeb5:9e6b
+        | SHA-1: 77bb:3f67:1b6b:3e09:b8f9:6503:ddc1:0bbf:0b75:0c72
+        | -----BEGIN CERTIFICATE-----
+        | ...
+        |_-----END CERTIFICATE-----
+        |_ssl-date: 2024-03-07T01:01:20+00:00; 0s from scanner time.
+        | tls-alpn: 
+        |   h2
+        |_  http/1.1
+        |_http-title: Site doesn't have a title (text/html).
+        |_http-server-header: Microsoft-IIS/10.0
+        | http-methods: 
+        |   Supported Methods: OPTIONS TRACE GET HEAD POST
+        |_  Potentially risky methods: TRACE
+
+        445/tcp  open  microsoft-ds? syn-ack
+        464/tcp  open  kpasswd5?     syn-ack
+        593/tcp  open  ncacn_http    syn-ack Microsoft Windows RPC over HTTP 1.0
+
+        636/tcp  open  ssl/ldap      syn-ack
+        |_ssl-date: 2024-03-07T01:01:20+00:00; 0s from scanner time.
+        | ssl-cert: Subject: commonName=sizzle.htb.local
+        | Issuer: commonName=HTB-SIZZLE-CA/domainComponent=HTB    <---------------------- HTB-SIZZLE-CA/ Common Name of the Certificate
+        | Public Key type: rsa
+        | Public Key bits: 2048
+        | Signature Algorithm: sha256WithRSAEncryption
+        | Not valid before: 2018-07-03T17:58:55
+        | Not valid after:  2020-07-02T17:58:55
+        | MD5:   240b:1eff:5a65:ad8d:c64d:855e:aeb5:9e6b
+        | SHA-1: 77bb:3f67:1b6b:3e09:b8f9:6503:ddc1:0bbf:0b75:0c72
+        | -----BEGIN CERTIFICATE-----
+        | ...
+        |_-----END CERTIFICATE-----
+
+        3268/tcp open  ldap       
+        | ssl-cert: Subject: commonName=sizzle.htb.local
+        | Issuer: commonName=HTB-SIZZLE-CA/domainComponent=HTB   <---------------------- HTB-SIZZLE-CA/ Common Name of the Certificate
+        | Public Key type: rsa
+        | Public Key bits: 2048
+        | Signature Algorithm: sha256WithRSAEncryption
+        | Not valid before: 2018-07-03T17:58:55
+        | Not valid after:  2020-07-02T17:58:55
+        | MD5:   240b:1eff:5a65:ad8d:c64d:855e:aeb5:9e6b
+        | SHA-1: 77bb:3f67:1b6b:3e09:b8f9:6503:ddc1:0bbf:0b75:0c72
+        | -----BEGIN CERTIFICATE-----
+        |...
+        |_-----END CERTIFICATE-----
+        |_ssl-date: 2024-03-07T01:01:20+00:00; 0s from scanner time.
+
+        3269/tcp open  ssl/ldap   
+        |_ssl-date: 2024-03-07T01:01:20+00:00; 0s from scanner time.
+        | ssl-cert: Subject: commonName=sizzle.htb.local
+        | Issuer: commonName=HTB-SIZZLE-CA/domainComponent=HTB  <---------------------- HTB-SIZZLE-CA/ Common Name of the Certificate
+        | Public Key type: rsa
+        | Public Key bits: 2048
+        | Signature Algorithm: sha256WithRSAEncryption
+        | Not valid before: 2018-07-03T17:58:55
+        | Not valid after:  2020-07-02T17:58:55
+        | MD5:   240b:1eff:5a65:ad8d:c64d:855e:aeb5:9e6b
+        | SHA-1: 77bb:3f67:1b6b:3e09:b8f9:6503:ddc1:0bbf:0b75:0c72
+        | -----BEGIN CERTIFICATE-----
+        |...
+        |_-----END CERTIFICATE-----
+        Service Info: Host: SIZZLE; OS: Windows; CPE: cpe:/o:microsoft:windows
+
+        Host script results:
+        | p2p-conficker: 
+        |_  0/4 checks are positive: Host is CLEAN or ports are blocked
+        | smb2-security-mode: 
+        |   3:1:1: 
+        |_    Message signing enabled and required <------------- NO NTLM Relay Attack
+        | smb2-time: 
+        |   date: 2024-03-07T01:00:43
+        |_  start_date: 2024-03-07T00:58:23
+        |_clock-skew: mean: 0s, deviation: 0s, median: 0s
+
+
+    FTP - Anonymous:
+        ftp 10.10.10.103:
+            nothing for the moment
+
+    
+    Port 80/443:
+        Certificat Authority:
+            'HTB-SIZZLE-CA' Common Name of the Certificate
+
+
+    RPC - Anonymous:
+    └─$ rpcclient -U "" -N 10.10.10.103
+        rpcclient $> enumdomusers
+        result was NT_STATUS_ACCESS_DENIED
+
+
+    LDAP - Anonymous:
+        enum4linux -a -u "" -p "" 10.10.10.103:
+            NO RESULTS
+
+
+    SMB - Anonymous:
+        └─$crackmapexec smb 10.10.10.103 -u "anonymous" -p '' --shares
+                SMB         10.10.10.103    445    SIZZLE           [*] Windows 10.0 Build 14393 x64 (name:SIZZLE) (domain:HTB.LOCAL) (signing:True) (SMBv1:False)
+                SMB         10.10.10.103    445    SIZZLE           Share           Permissions     Remark
+                SMB         10.10.10.103    445    SIZZLE           -----           -----------     ------
+                SMB         10.10.10.103    445    SIZZLE           ADMIN$                          Remote Admin
+                SMB         10.10.10.103    445    SIZZLE           C$                              Default share
+                SMB         10.10.10.103    445    SIZZLE           CertEnroll                      Active Directory Certificate Services share
+                SMB         10.10.10.103    445    SIZZLE           Department Shares READ            
+                SMB         10.10.10.103    445    SIZZLE           IPC$            READ            Remote IPC
+                SMB         10.10.10.103    445    SIZZLE           NETLOGON                        Logon server share 
+                SMB         10.10.10.103    445    SIZZLE           Operations                      
+                SMB         10.10.10.103    445    SIZZLE           SYSVOL                          Logon server share 
+        
+        smbclient '//10.10.10.103/Department Shares' -U"anonymous"
+            smb: \> dir
+                .                                   D        0  Tue Jul  3 11:22:32 2018
+                ..                                  D        0  Tue Jul  3 11:22:32 2018
+                Accounting                          D        0  Mon Jul  2 15:21:43 2018
+                Audit                               D        0  Mon Jul  2 15:14:28 2018
+                Banking     
+   
+
+
