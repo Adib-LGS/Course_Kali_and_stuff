@@ -214,6 +214,9 @@ NTLMv2 - Hashcat -m 5600
 
 
     LDAP 2 Time:
+        enum4linux -a -u "amanda" -p "Ashare1972" 10.10.10.103
+            We found a lot of things 
+            
         We ENUMERATE LDAP ALSO VIA crackmapexec:
             -https://medium.com/r3d-buck3t/crackmapexec-in-action-enumerating-windows-networks-part-2-c61dfb7cd88e
 
@@ -240,5 +243,23 @@ NTLMv2 - Hashcat -m 5600
 
 2-Exploit:
     WE 'LL FOCUS OUR ATTENTION ON ABUSER OF CERTIFICATE MISSCONF IN AD ENV:
+        https://book.hacktricks.xyz/windows-hardening/active-directory-methodology/ad-certificates/domain-escalation
         https://www.thehacker.recipes/a-d/movement/ad-cs
     
+    We create our certificate with amanda account:
+        openssl genrsa -aes256 -out amanda.key 2048 
+        openssl req -new -key amanda.key -out amanda.csr
+
+    We add the amanda.csr in "http://sizzle.htb.local/certsrv/certrqxt.asp"
+    Certificate template == User 
+
+    We downlaod the certs in base64
+
+    We'll try to use our newly generated cert, signed by CA to login via SSL
+        we enter the amanda.key pass 
+        we use the "sizzle_remoteSSLShell.rb" script 
+
+    Now we have a shell:
+            PS htb\amanda@SIZZLE Documents> 
+
+

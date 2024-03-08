@@ -6,3 +6,9 @@ List almost all things:
 
     MSSQL Exploit:
         https://medium.com/@markmotig/how-to-capture-mssql-credentials-with-xp-dirtree-smbserver-py-5c29d852f4783
+
+    AD CERTIFICATE MISSCONFIG ABUSE:
+        https://www.thehacker.recipes/a-d/movement/ad-cs
+
+    crackmapexec enumeration:
+        https://medium.com/r3d-buck3t/crackmapexec-in-action-enumerating-windows-networks-part-2-c61dfb7cd88e
