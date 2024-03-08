@@ -232,3 +232,13 @@ NTLMv2 - Hashcat -m 5600
                 https://medium.com/r3d-buck3t/domain-takeover-with-petitpotam-exploit-3900f89b38f7
             
             IT will not work beacause no NTLM Relay 
+
+        We open the link found via crackmapexec:
+            Found PKI Enrollment WebService: https://sizzle.htb.local/HTB-SIZZLE-CA_CES_UsernamePassword/service.svc/CES
+
+        We check the Certificate
+
+2-Exploit:
+    WE 'LL FOCUS OUR ATTENTION ON ABUSER OF CERTIFICATE MISSCONF IN AD ENV:
+        https://www.thehacker.recipes/a-d/movement/ad-cs
+    
