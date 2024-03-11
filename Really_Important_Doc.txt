@@ -12,3 +12,9 @@ List almost all things:
 
     crackmapexec enumeration:
         https://medium.com/r3d-buck3t/crackmapexec-in-action-enumerating-windows-networks-part-2-c61dfb7cd88e
+
+    We can use "ApplockerByPass" to find a Writable Folder - add exe payloads in Windows:
+    https://juggernaut-sec.com/applocker-bypass/
+
+    BloodHound.py izi way:
+        https://github.com/dirkjanm/BloodHound.py

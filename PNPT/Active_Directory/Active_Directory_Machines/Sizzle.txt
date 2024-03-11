@@ -7,6 +7,8 @@ The user is found to have Replication rights which can be abused to get Administ
 
 SCF File + Responder LISTENING == Catch the Hash
 NTLMv2 - Hashcat -m 5600
+
+BloodHound.py + Port Forwarding
 ####
 
 1-Enumeration:
@@ -263,3 +265,34 @@ NTLMv2 - Hashcat -m 5600
             PS htb\amanda@SIZZLE Documents> 
 
 
+    In Users directory we see another user named mrlky but we didn't have permission to view it's content 
+
+    So enumerate the AD using python bloodhound which works on LDAP and gather information regarding users ,groups , gpo’s and etc in the domain
+
+    2- Ways:
+        -A:
+            We want to use "SharpHound.exe" but the downlaod is blocked.
+            We can use "ApplockerByPass" to find a Writable Folder:
+            https://juggernaut-sec.com/applocker-bypass/
+
+        -B:
+            https://github.com/dirkjanm/BloodHound.py
+            python3 bloodhound.py -d HTB.local -u 'Amanda' -p 'Ashare1972' -c all -ns 10.10.10.103  <---Easyest Way Bro it's 2024 start to be lazy as possible - Chill Man - Relax Man ahahaha
+
+            we run bloodhound:
+                bloodhound
+
+    BloodHound Attack surface:
+        https://arz101.medium.com/hackthebox-sizzle-bae3ccdee7e1
+
+        Using the query for Kerberoastable Accounts we see user MRLKY
+
+        MRLKY DCSync rights meaning that through this account we can request data from domain controller , 
+        the data we usually retrieve from DC is the NTDS.dit file which contains all domain users hashes
+
+        ***************
+        ***************
+        But issue here is that port 88 isn’t exposed externally , meaning that we can’t connect to kerberos from our host machine so we may need to do port forwarding 
+        in order access kerberos or we can try to import PowerView or AD-Module which is a powershell module through which we can perform AD enumeration and kerberoasting
+        ***************
+        ***************
