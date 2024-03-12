@@ -296,3 +296,8 @@ BloodHound.py + Port Forwarding
         in order access kerberos or we can try to import PowerView or AD-Module which is a powershell module through which we can perform AD enumeration and kerberoasting
         ***************
         ***************
+
+        Searching for this error I found something related to this that there’s a security policy for powershell and it is set to ConstrainedLanguage which will block some cmdlets to be executed 
+        like downloading a file or loading the powershell script
+
+        We will follow the rest of arz101 KB to get administrators ticket hash
