@@ -1,0 +1,95 @@
+#################
+One of the more challenging machines 
+Knowledge or research of Windows Servers and the domain controller system is required. 
+#################
+
+1-Enumeration:
+    nmap -T5 -sV -sC -Pn 10.10.10.52  -oN enum/scan.log -vv
+    PORT      STATE    SERVICE        REASON      VERSION
+    53/tcp    open     domain         syn-ack     Microsoft DNS 6.1.7601 (1DB15CD4) (Windows Server 2008 R2 SP1)
+    | dns-nsid: 
+    |_  bind.version: Microsoft DNS 6.1.7601 (1DB15CD4)
+    88/tcp    open     kerberos-sec   syn-ack     Microsoft Windows Kerberos (server time: 2024-03-13 22:24:27Z)
+    135/tcp   open     msrpc          syn-ack     Microsoft Windows RPC
+    139/tcp   open     netbios-ssn    syn-ack     Microsoft Windows netbios-ssn
+    389/tcp   open     ldap           syn-ack     Microsoft Windows Active Directory LDAP (Domain: htb.local, Site: Default-First-Site-Name)
+    445/tcp   open     microsoft-ds   syn-ack     Windows Server 2008 R2 Standard 7601 Service Pack 1 microsoft-ds (workgroup: HTB)
+    464/tcp   open     kpasswd5?      syn-ack
+    593/tcp   open     ncacn_http     syn-ack     Microsoft Windows RPC over HTTP 1.0
+    636/tcp   open     tcpwrapped     syn-ack
+    705/tcp   filtered agentx         no-response
+    1433/tcp  open     ms-sql-s       syn-ack     Microsoft SQL Server 2014 12.00.2000.00; RTM
+    ....
+    | ms-sql-info: 
+    |   10.10.10.52:1433: 
+    |     Version: 
+    |       name: Microsoft SQL Server 2014 RTM
+    |       number: 12.00.2000.00
+    |       Product: Microsoft SQL Server 2014
+    |       Service pack level: RTM
+    |       Post-SP patches applied: false
+    |_    TCP port: 1433
+    | ms-sql-ntlm-info: 
+    |   10.10.10.52:1433: 
+    |     Target_Name: HTB
+    |     NetBIOS_Domain_Name: HTB
+    |     NetBIOS_Computer_Name: MANTIS
+    |     DNS_Domain_Name: htb.local
+    |     DNS_Computer_Name: mantis.htb.local
+    |     DNS_Tree_Name: htb.local
+    |_    Product_Version: 6.1.7601
+    3268/tcp  open     ldap           syn-ack     Microsoft Windows Active Directory LDAP (Domain: htb.local, Site: Default-First-Site-Name)
+    3269/tcp  open     tcpwrapped     syn-ack
+.    8080/tcp  open     http           syn-ack     Microsoft IIS httpd 7.5
+    |_http-title: Tossed Salad - Blog
+    | http-methods: 
+    |_  Supported Methods: GET HEAD POST OPTIONS
+    |_http-server-header: Microsoft-IIS/7.5
+    10025/tcp filtered unknown        no-response
+    10082/tcp filtered amandaidx      no-response
+    49152/tcp open     msrpc          syn-ack     Microsoft Windows RPC
+    49153/tcp open     msrpc          syn-ack     Microsoft Windows RPC
+    49154/tcp open     msrpc          syn-ack     Microsoft Windows RPC
+    49155/tcp open     msrpc          syn-ack     Microsoft Windows RPC
+    49157/tcp open     ncacn_http     syn-ack     Microsoft Windows RPC over HTTP 1.0
+    49158/tcp open     msrpc          syn-ack     Microsoft Windows RPC
+    49167/tcp open     msrpc          syn-ack     Microsoft Windows RPC
+    Service Info: Host: MANTIS; OS: Windows; CPE: cpe:/o:microsoft:windows_server_2008:r2:sp1, cpe:/o:microsoft:windows
+
+    Host script results:
+    | smb-security-mode: 
+    |   account_used: guest
+    |   authentication_level: user
+    |   challenge_response: supported
+    |_  message_signing: required
+    | smb2-security-mode: 
+    |   2:1:0: 
+    |_    Message signing enabled and required
+    | smb2-time: 
+    |   date: 2024-03-13T22:25:23
+    |_  start_date: 2024-03-13T22:22:37
+    | smb-os-discovery: 
+    |   OS: Windows Server 2008 R2 Standard 7601 Service Pack 1 (Windows Server 2008 R2 Standard 6.1)
+    |   OS CPE: cpe:/o:microsoft:windows_server_2008::sp1
+    |   Computer name: mantis
+    |   NetBIOS computer name: MANTIS\x00
+    |   Domain name: htb.local
+    |   Forest name: htb.local
+    |   FQDN: mantis.htb.local
+    |_  System time: 2024-03-13T18:25:26-04:00
+    | p2p-conficker: 
+    |   Checking for Conficker.C or higher...
+    |   Check 1 (port 10637/tcp): CLEAN (Couldn't connect)
+    |   Check 2 (port 15617/tcp): CLEAN (Couldn't connect)
+    |   Check 3 (port 19802/udp): CLEAN (Timeout)
+    |   Check 4 (port 31059/udp): CLEAN (Failed to receive data)
+    |_  0/4 checks are positive: Host is CLEAN or ports are blocked
+    |_clock-skew: mean: 48m00s, deviation: 1h47m22s, median: -1s
+
+
+    RPC + LDAP == Nothing for the moment
+
+    SMB:
+        └─$ crackmapexec smb 10.10.10.52 -u "" -p '' --shares 
+        SMB         10.10.10.52     445    MANTIS           [*] Windows Server 2008 R2 Standard 7601 Service Pack 1 x64 (name:MANTIS) (domain:htb.local) (signing:True) (SMBv1:True)
+        SMB         10.10.10.52     445    MANTIS           [+] htb.local\: 
