@@ -41,6 +41,9 @@ which can be used with Impacket&amp;amp;#039;s psexec.py in order to gain a shel
                 SMB         10.10.10.175    445    SAUNA            [+] EGOTISTICAL-BANK.LOCAL\: 
 
     WE CANNOT CONNECT TO SMB
+
+
+    Kerbrute:
         WE WILL TRY TO KERBRUTE via user.txt list (We foudn potential users in the website):
             ./kerbrute_linux_amd64  userenum --dc 10.10.10.175 -d EGOTISTICAL-BANK.LOCAL user.txt
 
