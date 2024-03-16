@@ -1,0 +1,59 @@
+############
+Cascade is a medium difficulty Windows machine configured as a Domain Controller. 
+LDAP anonymous binds are enabled, and enumeration yields the password for user `r.thompson`, which gives access to a `TightVNC` registry backup. 
+The backup is decrypted to gain the password for `s.smith`. 
+This user has access to a .NET executable, which after decompilation and source code analysis reveals the password for the `ArkSvc` account. 
+This account belongs to the `AD Recycle Bin` group, and is able to view deleted Active Directory objects. 
+One of the deleted user accounts is found to contain a hardcoded password, which can be reused to login as the primary domain administrator. 
+############
+1-Enumeration:
+    nmap -T5 -sV -sC -Pn 10.10.10.182  -oN enum/scan.log -vv
+
+    PORT      STATE SERVICE       REASON  VERSION
+    53/tcp    open  domain        syn-ack Microsoft DNS 6.1.7601 (1DB15D39) (Windows Server 2008 R2 SP1)
+    | dns-nsid: 
+    |_  bind.version: Microsoft DNS 6.1.7601 (1DB15D39)
+    88/tcp    open  kerberos-sec  syn-ack Microsoft Windows Kerberos (server time: 2024-03-16 16:12:53Z)
+    135/tcp   open  msrpc         syn-ack Microsoft Windows RPC
+    139/tcp   open  netbios-ssn   syn-ack Microsoft Windows netbios-ssn
+    389/tcp   open  ldap          syn-ack Microsoft Windows Active Directory LDAP (Domain: cascade.local, Site: Default-First-Site-Name)
+    445/tcp   open  microsoft-ds? syn-ack
+    636/tcp   open  tcpwrapped    syn-ack
+    3268/tcp  open  ldap          syn-ack Microsoft Windows Active Directory LDAP (Domain: cascade.local, Site: Default-First-Site-Name)
+    3269/tcp  open  tcpwrapped    syn-ack
+    49154/tcp open  msrpc         syn-ack Microsoft Windows RPC
+    49155/tcp open  msrpc         syn-ack Microsoft Windows RPC
+    49157/tcp open  ncacn_http    syn-ack Microsoft Windows RPC over HTTP 1.0
+    49158/tcp open  msrpc         syn-ack Microsoft Windows RPC
+    Service Info: Host: CASC-DC1; OS: Windows; CPE: cpe:/o:microsoft:windows_server_2008:r2:sp1, cpe:/o:microsoft:windows
+
+    Host script results:
+    | p2p-conficker: 
+    |_  0/4 checks are positive: Host is CLEAN or ports are blocked
+    | smb2-security-mode: 
+    |   2:1:0: 
+    |_    Message signing enabled and required
+    |_clock-skew: -1s
+    | smb2-time: 
+    |   date: 2024-03-16T16:13:43
+    |_  start_date: 2024-03-16T15:22:12
+
+
+
+    RPC Enum:
+        rpcclient -U "" -N 10.10.10.182
+        rpcclient $> enumdomusers
+        rpcclient $> enumdomgroups
+    We found users + domain groups
+
+
+    SMB Enum:
+        ─$ crackmapexec smb 10.10.10.182 -u "" -p ''                
+        SMB         10.10.10.182    445    CASC-DC1         [*] Windows 6.1 Build 7601 x64 (name:CASC-DC1) (domain:cascade.local) (signing:True) (SMBv1:False)
+        SMB         10.10.10.182    445    CASC-DC1         [+] cascade.local\: 
+
+
+    LDAP Enum:
+        We found infos = users names + users groups etc..
+
+        We found Pass Policy - No Threshold for password FAILED

