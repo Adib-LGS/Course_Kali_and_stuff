@@ -57,3 +57,43 @@ One of the deleted user accounts is found to contain a hardcoded password, which
         We found infos = users names + users groups etc..
 
         We found Pass Policy - No Threshold for password FAILED
+
+        We try to enum users in ldap via "ldapsearch" and find some passwd:
+        
+            └─$ ldapsearch -x -H ldap://10.10.10.182 -s sub -b 'dc=cascade,dc=local' > ldapEnum.txt  
+
+        We found a Base64 passw of r.thompson - we decode via a website
+
+    SMB Enum 2:
+        └─$ crackmapexec smb 10.10.10.182 -u "r.thompson" -p 'rY4n5eva' --shares
+
+        r.thompson has access in READ to some file, lets dig
+
+        In the Folder of "s.smith" we found a VNC files once we 'get'the file in the SMB
+        We found a PASSWD in Hex that we need to decrypt
+
+        Decrypting the encrypted VNC password
+        https://whatsoftware.com/crack-or-decrypt-vnc-server-encrypted-password/?source=post_page-----aec1ac3bb07a--------------------------------
+
+
+        Now we have access to a new account
+        └─$ crackmapexec smb 10.10.10.182 -u "s.smith" -p 'sT333ve2' --shares
+
+    We have acces to the macine with 's.smith' via evil-winrm
+
+    Audit.db Enumeration:
+        We use SQL Browser and import 'Audit.db'
+
+        We discovered 'ArkSvc' with his encrypted passwd
+
+
+        We verify the group of arksvc:
+            *Evil-WinRM* PS C:\Users\s.smith\Desktop> net user arksvc
+
+                Local Group Memberships      *AD Recycle Bin       *IT  *Remote Management Use
+                Global Group memberships     *Domain Users
+
+
+    
+
+
