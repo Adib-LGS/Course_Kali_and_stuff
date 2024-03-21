@@ -67,6 +67,7 @@ Base64 decrypt
             └─$ ldapsearch -x -H ldap://10.10.10.182 -s sub -b 'dc=cascade,dc=local' > ldapEnum.txt  
 
         We found a Base64 passw of r.thompson - we decode via a website
+        
 
     SMB Enum 2:
         └─$ crackmapexec smb 10.10.10.182 -u "r.thompson" -p 'rY4n5eva' --shares

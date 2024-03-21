@@ -23,3 +23,7 @@ List almost all things:
 
     VNC Hex Passwrd Decrypt:
         https://github.com/frizb/PasswordDecrypts
+
+    
+    Visual Studio RCE - via NodeJs:
+        Visual Studio Code RCE - https://iwantmore.pizza/posts/cve-2019-1414.html

