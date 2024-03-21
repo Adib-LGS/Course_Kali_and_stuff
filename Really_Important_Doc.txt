@@ -19,3 +19,7 @@ List almost all things:
 
     BloodHound.py izi way:
         https://github.com/dirkjanm/BloodHound.py
+
+
+    VNC Hex Passwrd Decrypt:
+        https://github.com/frizb/PasswordDecrypts

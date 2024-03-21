@@ -412,3 +412,14 @@ Find if schedultask programmed:
 
 Add new user in order to dump the hashes:
     net user adib adib1234 /add /domain
+
+#####################
+Base64 decrypt in Kali 
+#####################
+echo YmFDVDNyMWFOMDBkbGVz | base64 -d
+
+#####################
+VNC Hex Passwd Decrypt
+#####################
+https://github.com/frizb/PasswordDecrypts
+            echo -n <Hex Here> | xxd -r -p | openssl enc -des-cbc --nopad --nosalt -K e84ad660c4721ae0 -iv 0000000000000000 -d | hexdump -Cv
