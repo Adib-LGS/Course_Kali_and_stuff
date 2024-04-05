@@ -506,4 +506,11 @@ C:>cmdkey /list
 
 if it show saved creds:
 
-C:>runas /savecred /user:user@domain.domain powershell.exe 
+C:>runas /savecred /user:user@domain.domain powershell.exe
+
+
+#####################
+LINUX INTERACTIVE SHELL
+#####################
+INTERACTIVE SHELL:
+        https://fahmifj.medium.com/get-a-fully-interactive-reverse-shell-b7e8d6f5b1c1

