@@ -1,0 +1,23 @@
+################################
+Wreath focus on:
+
+    Pivoting
+    Working with the Empire C2 (Command and Control) framework
+    Simple Anti-Virus evasion techniques
+
+The following topics will also be covered, albeit more briefly:
+
+    Code Analysis (Python and PHP)
+    Locating and modifying public exploits
+    Simple webapp enumeration and exploitation
+    Git Repository Analysis
+    Simple Windows Post-Exploitation techniques
+    CLI Firewall Administration (CentOS and Windows)
+    Cross-Compilation techniques
+    Coding wrapper programs
+    Simple exfiltration techniques
+    Formatting a pentest report
+################################
+
+1-Enumeration:
+    nmap -T5 -Pn -sC -sV 10.10.10.125 -oN enum/scanLogs1.logs  -vv

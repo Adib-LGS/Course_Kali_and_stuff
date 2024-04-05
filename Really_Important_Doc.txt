@@ -27,3 +27,12 @@ List almost all things:
     
     Visual Studio RCE - via NodeJs:
         Visual Studio Code RCE - https://iwantmore.pizza/posts/cve-2019-1414.html
+
+
+    AMSI (Anti Malware) Bypass Defender etc:
+        -Blog Explaination: https://rastamouse.me/memory-patching-amsi-bypass/
+        -Exploit:
+            https://amsi.fail/
+            https://medium.com/@nullx3d/amsi-overview-and-bypass-methods-76b9d5896eb5
+            https://cheatsheet.haax.fr/windows-systems/privilege-escalation/amsi_and_evasion/
+

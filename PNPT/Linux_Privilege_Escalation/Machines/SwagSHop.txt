@@ -1,0 +1,46 @@
+
+
+1-Enumeration:
+    nmap -T5 -sV -sC -Pn 10.10.10.140 -oN enum/scan1.logs -vv
+        PORT   STATE SERVICE REASON  VERSION
+        22/tcp open  ssh     syn-ack OpenSSH 7.6p1 Ubuntu 4ubuntu0.7 (Ubuntu Linux; protocol 2.0)
+        | ssh-hostkey: 
+        |   2048 b6:55:2b:d2:4e:8f:a3:81:72:61:37:9a:12:f6:24:ec (RSA)
+        | ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCgTCefp89MPJm2oaJqietdslSBur+eCMVQRW19iUL2DQSdZrIctssf/ws4HWN9DuXWB1p7OR9GWQhjeFv+xdb8OLy6EQ72zQOk+cNU9ANi72FZIkpD5A5vHUyhhUSUcnn6hwWMWW4dp6BFVxczAiutSWBVIm2YLmcqwOEOJhfXLVvsVqu8KUmybJQWFaJIeLVHzVgrF1623ekDXMwT7Ktq49RkmqGGE+e4pRy5pWlL2BPVcrSv9nMRDkJTXuoGQ53CRcp9VVi2V7flxTd6547oSPck1N+71Xj/x17sMBDNfwik/Wj3YLjHImAlHNZtSKVUT9Ifqwm973YRV9qtqtGT
+        |   256 2e:30:00:7a:92:f0:89:30:59:c1:77:56:ad:51:c0:ba (ECDSA)
+        | ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEG18M3bq7HSiI8XlKW9ptWiwOvrIlftuWzPEmynfU6LN26hP/qMJModcHS+idmLoRmZnC5Og9sj5THIf0ZtxPY=
+        |   256 4c:50:d5:f2:70:c5:fd:c4:b2:f0:bc:42:20:32:64:34 (ED25519)
+        |_ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINmmpsnVsVEZ9KB16eRdxpe75vnX8B/AZMmhrN2i4ES7
+        80/tcp open  http    syn-ack Apache httpd 2.4.29 ((Ubuntu))
+        |_http-title: Did not follow redirect to http://swagshop.htb/
+        | http-methods: 
+        |_  Supported Methods: GET HEAD POST OPTIONS
+        |_http-favicon: Unknown favicon MD5: 88733EE53676A47FC354A61C32516E82
+        Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+
+    We found a version Outdated of Magento Varien - 2014 we will check for an RCE exploit.
+
+    We can use: 
+        ->'searchsploit Magento'
+        OR 
+        ->https://www.exploit-db.com/exploits/37977
+
+    We use this script and we replace the Target + creds and use python2.7 to run it
+
+    ┌──(kali㉿kali)-[~/Desktop/Linux_PrivEsc/SwagShop]
+    └─$ python2.7 37977.py
+        WORKED
+        Check http://10.10.10.140/index.php/admin with creds forme:forme
+
+
+2-Exploit:
+    Once Loged:
+        Go to the “Manage Products” page (from catalog menu)
+        chose one of the products OR Create it
+        Click on the "Custom Options" -> “Add New Option” button and set Title, selected “File” in Input Type field and add “.php” 
+
+        Then, back to the shopping site, I clicked the item which I’ve edited and chose “php-reverse-shell.php”. Clicking “ADD TO CART” button lets you to upload this webshell to the server.
+
+        http://10.10.10.140/media/custom_options/quote/s/h/
+

