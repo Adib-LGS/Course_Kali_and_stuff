@@ -49,6 +49,7 @@ sudo su - == switch user to become sudo permanently
 cd /opt
 sudo git clone library link in https (use pimpmykali to fix vm issues) 
 
+
 #######BASH######
 test device is alive 
 ping IP -c 1 == send 1 pq=acket
@@ -116,6 +117,8 @@ except socket.gaierror:
 except socket.error:
     print('Server unreachable, its your fault !')
     sys"exit()
+
+
 
 ###KALI TOOL RECON Subdomains###
 -sublist3r == get subdomais

