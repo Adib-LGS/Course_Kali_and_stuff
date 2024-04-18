@@ -1,5 +1,5 @@
 ################################
-Noble
+Node
 Node focuses mainly on newer software and poor configurations
 Webapp API/Angular Framework on port 3000
 API Pentest for creds
