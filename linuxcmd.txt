@@ -142,3 +142,10 @@ request:
 ->Find specific site == site:sitename.domain
 ->Find specific file == filetype:extensionname
 #######EX: site:cisco.com filetype:pdf
+
+
+###########
+SUID ls
+###########
+
+find / -perm -u=s -type f -ls 2>/dev/null

