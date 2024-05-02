@@ -19,6 +19,8 @@ List almost all things:
 
     BloodHound.py izi way:
         https://github.com/dirkjanm/BloodHound.py
+        https://github.com/fox-it/bloodhound-import
+        git clone https://github.com/fox-it/bloodhound-import.git
 
 
     VNC Hex Passwrd Decrypt:

