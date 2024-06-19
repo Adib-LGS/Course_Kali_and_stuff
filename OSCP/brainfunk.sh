@@ -4,7 +4,7 @@ INSANE Level
 ###############
 
 1-Enummeration:
-    └─$ nmap -T5 -sV -sC -Pn 10.129.112.14 -v
+    └─$ nmap -T5 -sV -sC -Pn 10.129.228.97 -v
         PORT    STATE SERVICE  VERSION
         22/tcp  open  ssh      OpenSSH 7.2p2 Ubuntu 4ubuntu2.1 (Ubuntu Linux; protocol 2.0)
 
@@ -39,7 +39,34 @@ INSANE Level
             |_SHA-1: f448:e798:a817:5580:879c:8fb8:ef0e:2d3d:c656:cb66
         Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
+
+
     # Port 443:
         We check the Certificate
             Email Address   orestis@brainfuck.htb
-            
+            DNS:www.brainfuck.htb
+            DNS:sup3rs3cr3t.brainfuck.htb
+
+        We add this domains to our /etc/hosts
+
+        https://sup3rs3cr3t.brainfuck.htb/
+
+        https://sup3rs3cr3t.brainfuck.htb/d/1-development:
+            POST https://sup3rs3cr3t.brainfuck.htb/login
+                    {
+                    "errors": [
+                        {
+                        "status": "401",
+                        "code": "permission_denied"
+                        }
+                    ]
+                    }
+            /.htaccess   
+
+        https://brainfuck.htb/
+            nginx 1.10.0
+            WordPress 4.7.3
+            └─$ gobuster dir -u https://brainfuck.htb/  -w /usr/share/wordlists/dirbuster/directory-list-2.3-small.txt -k     
+                /wp-content           (Status: 301) [Size: 194] [--> https://brainfuck.htb/wp-content/]
+                /wp-includes          (Status: 301) [Size: 194] [--> https://brainfuck.htb/wp-includes/]
+                /wp-admin             (Status: 301) [Size: 194] [--> https://brainfuck.htb/wp-admin/]
