@@ -24,12 +24,6 @@ Bastard
         Service Info: OS: Windows; CPE: cpe:/o:microsoft:windows
 
 
-    # Port 80:
-        Drupal 7
-        PHP 5.3.28
-        http://10.129.87.141/rest/:
-            "Services Endpoint "rest_endpoint" has been setup successfully."
-
     # Port 135:
         Try RPC connection:
             rpcclient -U "" -N 10.129.87.141
@@ -37,3 +31,23 @@ Bastard
                 do_cmd: Could not initialise samr. Error was NT_STATUS_ACCESS_DENIED
                 rpcclient $> enumdomgroups
                 do_cmd: Could not initialise samr. Error was NT_STATUS_ACCESS_DEN
+
+
+     # Port 80:
+        Drupal 7.5.4
+        PHP 5.3.28
+        http://10.129.87.141/rest/:
+            "Services Endpoint "rest_endpoint" has been setup successfully."
+
+        # Check  for an exploit in searchsploit:
+            searchsploit drupal
+            7.x Module Services - Remote Code Execution php/webapps/41564.php
+
+        # Get the exploit path
+            searchsploit -p php/webapps/41564.php
+
+        # We modifythe script that wil add our file in the server and allow us to remote comande exection
+
+        # From that we are able to uploads 'exe' files and gains remote shell and privileges
+
+    
