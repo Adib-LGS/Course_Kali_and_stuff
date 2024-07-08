@@ -118,7 +118,8 @@ systemctl SUID for Priv ESC
 
     Priv Esc:
     Now we are the user named 'papper'
-        find / -perm -u=s -type f -ls 2>/dev/null
+        
+        
 
         We found:
             systemctl

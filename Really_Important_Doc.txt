@@ -38,3 +38,7 @@ List almost all things:
             https://medium.com/@nullx3d/amsi-overview-and-bypass-methods-76b9d5896eb5
             https://cheatsheet.haax.fr/windows-systems/privilege-escalation/amsi_and_evasion/
 
+
+
+    OSCP CHEAT-SHEET:
+        https://github.com/Rajchowdhury420/OSCP-CheatSheet/blob/main/Reverse-Shell-via-JPG.md
