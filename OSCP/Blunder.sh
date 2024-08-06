@@ -23,3 +23,15 @@ The website contains various facts about different genres.
 
         └─$ nikto -h http://10.129.95.225:80/ 
             http://10.129.95.225/install.php
+
+        BLUDIT 3.9.2 - Login page:
+            We found the version in the HEADER - favicon.png
+            http://10.129.95.225/admin/site
+
+        We found anti brute force exploit:
+            https://rastating.github.io/bludit-brute-force-mitigation-bypass/
+            python brute force script
+            https://github.com/musyoka101/Bludit-CMS-Version-3.9.2-Brute-Force-Protection-Bypass-script/blob/master/bruteforce.py
+
+        We found Creds:
+        fergus:RolandDeschain
