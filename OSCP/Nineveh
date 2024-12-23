@@ -1,5 +1,9 @@
 ####
 #Nineveh 
+#Hydra Brute Force
+#Image / PNG STEGANOGRAPHY
+#strings xx.png to display info into PNG/IMG
+#PHP Lite Admin - RCE by Creating Neew Table
 #####
 1-Enummeration:
     └─$ nmap -T5 -sV -sC -Pn 10.129.179.93 -v
@@ -47,10 +51,29 @@
                 Server Root 	/etc/apache2 
 
 
+            If we go to http://10.129.128.89/department/login.php:
+                We display the source code we can find:
+                    <!-- @admin! MySQL is been installed.. please fix the login page! ~amrois -->
+                    
+
+
+
+
+
         Port 443:
                 443 gobuster dir -u https://10.129.179.93/ -w /usr/share/wordlists/dirbuster/directory-list-lowercase-2.3-medium.txt -k ssl
                 /db/  " Warning: rand() expects parameter 2 to be integer, float given in /var/www/ssl/db/index.php on line 114"
                 /secure_notes 
+
+
+                https://10.129.128.89/db/:
+                    We find a "phpLiteAdmin v1.9" page
+                    "@admin!"  doesn'T work, so we brute force with hydra:
+                        password: password123
+
+                    TABLES ARE EMPTY !
+                PHP LiteAdmin is exploitable by creating new DB:
+                    https://www.exploit-db.com/exploits/24044
 
 
                 https://10.129.179.93/secure_notes/nineveh.png
@@ -104,3 +127,6 @@
             We have access to the panel
 
             http://10.129.179.93/department/manage.php/secret/nineveh.pub
+
+
+        
