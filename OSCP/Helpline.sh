@@ -17,6 +17,11 @@
         |   3:1:1: 
         |_    Message signing enabled but not required <--------------------- SMB Exploit
 
+        Enumeration with -p- flag:
+        5985/tcp  open  http          Microsoft HTTPAPI httpd 2.0 (SSDP/UPnP)
+        |_http-title: Not Found
+        |_http-server-header: Microsoft-HTTPAPI/2.0
+
 
         Port 8080:
             nikto -h http://10.129.96.159:8080
@@ -47,6 +52,11 @@
                 http://10.129.96.159:8080/mc/j_security_check
 
 
+            There is one exploit available for this version:
+                ManageEngine ServiceDesk Plus 9.3 - User Enumeration | java/webapps/46674.txt
+                └──╼ [★]$ sudo nano /usr/share/exploitdb/exploits/java/webapps/46674.txt
+
+
             We try to login with guest:guest after redirection we found the HomePage:
                 http://10.129.96.159:8080/HomePage.do
 
@@ -57,6 +67,8 @@
 
             We found a creation form:
                 http://10.129.96.159:8080/WorkOrder.do?reqTemplate=61
+
+
 
 
 
@@ -73,5 +85,9 @@
             └──╼ [★]$ smbclient -U '' -L//10.129.96.159
                 Password for [WORKGROUP\]:
                 session setup failed: NT_STATUS_LOGON_FAILURE
+
+
+    
+
 
 
