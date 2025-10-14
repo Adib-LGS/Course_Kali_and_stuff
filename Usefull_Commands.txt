@@ -254,6 +254,9 @@ AD Enumeration Scan
 
     Find User list: net rpc group members 'Domain Users' -W 'ZA.TRYHACKME.COM' -I '10.200.24.101' -U '%'
 
+    RPC ENUMERATION cmds:
+        https://www.hackingarticles.in/active-directory-enumeration-rpcclient/
+
 
 ####################
 AD Enumeration Lateral Movement
