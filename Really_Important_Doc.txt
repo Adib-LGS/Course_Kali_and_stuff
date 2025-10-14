@@ -42,3 +42,9 @@ List almost all things:
 
     OSCP CHEAT-SHEET:
         https://github.com/Rajchowdhury420/OSCP-CheatSheet/blob/main/Reverse-Shell-via-JPG.md
+
+    LDAP Enum:
+        https://medium.com/@gokulg.me/introduction-92199491c808
+
+    RPC Enum:
+        https://www.hackingarticles.in/active-directory-enumeration-rpcclient/
