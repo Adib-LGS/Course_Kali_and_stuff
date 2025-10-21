@@ -48,3 +48,6 @@ List almost all things:
 
     RPC Enum:
         https://www.hackingarticles.in/active-directory-enumeration-rpcclient/
+
+    Web APP Basinc PHP Code:
+        https://bugbase.ai/blog/top-10-exploits-in-php-applications-and-how-to-exploit-them
