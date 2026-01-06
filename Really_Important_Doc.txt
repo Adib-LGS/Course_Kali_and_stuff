@@ -54,3 +54,6 @@ CRACKMAP EXEC ALL CMDS:
 crackmapexec enumeration:
     https://systemweakness.com/crackmapexec-smb-ad-enumeration-simplified-21e603927f44 <-- Part 1
     https://medium.com/r3d-buck3t/crackmapexec-in-action-enumerating-windows-networks-part-2-c61dfb7cd88e <-- Part 2
+
+SharpCollectiokn - Many Executable ex: Certify.exe or Rubeus.exe:
+    https://github.com/Flangvik/SharpCollection/blob/master/NetFramework_4.7_Any/Rubeus.exe
