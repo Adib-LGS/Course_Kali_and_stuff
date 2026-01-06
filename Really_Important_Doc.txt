@@ -1,53 +1,56 @@
 List almost all things:
     https://github.com/swisskyrepo/PayloadsAllTheThings
 
-    Windows Priv Escalation:
-        https://swisskyrepo.github.io/InternalAllTheThings/redteam/escalation/windows-privilege-escalation/#eop-impersonation-privileges
+Windows Priv Escalation:
+    https://swisskyrepo.github.io/InternalAllTheThings/redteam/escalation/windows-privilege-escalation/#eop-impersonation-privileges
 
-    MSSQL Exploit:
-        https://medium.com/@markmotig/how-to-capture-mssql-credentials-with-xp-dirtree-smbserver-py-5c29d852f4783
+MSSQL Exploit:
+    https://medium.com/@markmotig/how-to-capture-mssql-credentials-with-xp-dirtree-smbserver-py-5c29d852f4783
 
-    AD CERTIFICATE MISSCONFIG ABUSE:
-        https://www.thehacker.recipes/a-d/movement/ad-cs
+AD CERTIFICATE MISSCONFIG ABUSE:
+    https://www.thehacker.recipes/a-d/movement/ad-cs
 
-    crackmapexec enumeration:
-        https://systemweakness.com/crackmapexec-smb-ad-enumeration-simplified-21e603927f44 <-- Part 1
-        https://medium.com/r3d-buck3t/crackmapexec-in-action-enumerating-windows-networks-part-2-c61dfb7cd88e <-- Part 2
-
-    We can use "ApplockerByPass" to find a Writable Folder - add exe payloads in Windows:
+We can use "ApplockerByPass" to find a Writable Folder - add exe payloads in Windows:
     https://juggernaut-sec.com/applocker-bypass/
 
-    BloodHound.py izi way:
-        https://github.com/dirkjanm/BloodHound.py
-        https://github.com/fox-it/bloodhound-import
-        git clone https://github.com/fox-it/bloodhound-import.git
+BloodHound.py izi way:
+    https://github.com/dirkjanm/BloodHound.py
+    https://github.com/fox-it/bloodhound-import
+    git clone https://github.com/fox-it/bloodhound-import.git
 
 
-    VNC Hex Passwrd Decrypt:
-        https://github.com/frizb/PasswordDecrypts
-
-    
-    Visual Studio RCE - via NodeJs:
-        Visual Studio Code RCE - https://iwantmore.pizza/posts/cve-2019-1414.html
+VNC Hex Passwrd Decrypt:
+    https://github.com/frizb/PasswordDecrypts
 
 
-    AMSI (Anti Malware) Bypass Defender etc:
-        -Blog Explaination: https://rastamouse.me/memory-patching-amsi-bypass/
-        -Exploit:
-            https://amsi.fail/
-            https://medium.com/@nullx3d/amsi-overview-and-bypass-methods-76b9d5896eb5
-            https://cheatsheet.haax.fr/windows-systems/privilege-escalation/amsi_and_evasion/
+Visual Studio RCE - via NodeJs:
+    Visual Studio Code RCE - https://iwantmore.pizza/posts/cve-2019-1414.html
+
+
+AMSI (Anti Malware) Bypass Defender etc:
+    -Blog Explaination: https://rastamouse.me/memory-patching-amsi-bypass/
+    -Exploit:
+        https://amsi.fail/
+        https://medium.com/@nullx3d/amsi-overview-and-bypass-methods-76b9d5896eb5
+        https://cheatsheet.haax.fr/windows-systems/privilege-escalation/amsi_and_evasion/
 
 
 
-    OSCP CHEAT-SHEET:
-        https://github.com/Rajchowdhury420/OSCP-CheatSheet/blob/main/Reverse-Shell-via-JPG.md
+OSCP CHEAT-SHEET:
+    https://github.com/Rajchowdhury420/OSCP-CheatSheet/blob/main/Reverse-Shell-via-JPG.md
 
-    LDAP Enum:
-        https://medium.com/@gokulg.me/introduction-92199491c808
+LDAP Enum:
+    https://medium.com/@gokulg.me/introduction-92199491c808
 
-    RPC Enum:
-        https://www.hackingarticles.in/active-directory-enumeration-rpcclient/
+RPC Enum:
+    https://www.hackingarticles.in/active-directory-enumeration-rpcclient/
 
-    Web APP Basinc PHP Code:
-        https://bugbase.ai/blog/top-10-exploits-in-php-applications-and-how-to-exploit-them
+Web APP Basinc PHP Code:
+    https://bugbase.ai/blog/top-10-exploits-in-php-applications-and-how-to-exploit-them
+
+CRACKMAP EXEC ALL CMDS:
+    https://hackviser.com/tactics/tools/crackmapexec
+
+crackmapexec enumeration:
+    https://systemweakness.com/crackmapexec-smb-ad-enumeration-simplified-21e603927f44 <-- Part 1
+    https://medium.com/r3d-buck3t/crackmapexec-in-action-enumerating-windows-networks-part-2-c61dfb7cd88e <-- Part 2
