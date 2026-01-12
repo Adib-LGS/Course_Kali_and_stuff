@@ -152,12 +152,3 @@ APT → Multimaster → Authority → Cerberus
 ```
 
 ---
-
-Si tu veux, je peux maintenant :
-
-* 🔖 Ajouter une **checkbox de progression**
-* 🧩 Générer un **template de notes OSCP (Markdown)**
-* 🛠 Associer chaque box à **commands cheatsheets**
-* 📊 Transformer ça en **Notion / Obsidian vault**
-
-Dis‑moi ce que tu veux comme prochaine étape 🚀
